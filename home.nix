@@ -37,6 +37,9 @@
     nix-output-monitor
     nautilus
     gnome-keyring
+
+    # Flameshot compiled with Wayland support (USE_WAYLAND_GRIM flag)
+    (flameshot.override { enableWlrSupport = true; })
   ];
 
   home.pointerCursor = {
