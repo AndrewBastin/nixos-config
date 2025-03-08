@@ -2,7 +2,8 @@
 
 This is the configuration I use to configure my NixOS environment. This configuration configures some essential programs I use and set up my desktop shell setup using Hyprland and Waybar.
 
-NOTE: This config will perpetually be in a state of being 'in-progress' and not complete, please only use this as a reference for your own config and do not use it outright, I give no guarantees this will work or be maintained in the future. See LICENSE for more info
+> [!NOTE]
+> This config will perpetually be in a state of being 'in-progress' and not complete, please only use this as a reference for your own config and do not use it outright, I give no guarantees this will work or be maintained in the future. See LICENSE for more info
 
 
 ### Setting this up in a new NixOS system
