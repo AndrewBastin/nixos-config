@@ -1,0 +1,109 @@
+{
+  "layer": "bottom",
+  "height": 32,
+  "position": "top",
+  "modules-left": ["hyprland/workspaces", "hyprland/window"],
+  "modules-right": [
+    "group/sys",
+    "custom/pipewire",
+    "network",
+    "battery",
+    // "custom/power",
+    "clock"
+  ],
+  "tray": {
+    "icon-size": 16,
+    "spacing": 10,
+  },
+  "group/sys": {
+    "orientation": "horizontal",
+    "drawer": {
+      "transition-left-to-right": true,
+      "click-to-reveal": true,
+      "transition-duration": 500,
+    },
+    "modules": ["custom/markl", "idle_inhibitor", "tray"],
+  },
+  "hyprland/workspaces": {
+    "format": "{icon}",
+    "active-only": true
+  },
+  "hyprland/window": {
+    "format": "{}",
+    "icon": true,
+    "icon-size": 18
+  },
+  "battery": {
+    "bat": "BAT0",
+    "interval": 60,
+    "states": {
+      "warning": 30,
+      "critical": 15,
+    },
+    "format": "{icon}",
+    "format-icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
+    "tooltip-format": "{capacity}% {timeTo}",
+    "max-length": 25,
+  },
+  "network": {
+    "format-wifi": "{icon}",
+    "format-ethernet": "",
+    "tooltip-format-wifi": "{essid} {signalStrength}%",
+    "tooltip-format-disconnected": "No connection",
+    "format-linked": "{ifname} (No IP) ?",
+    "format-disconnected": "󰅛",
+    "max-length": 30,
+    "format-icons": ["󰣾", "󰣴", "󰣶", "󰣸", "󰣺"],
+    "on-click": "kitty -e nmtui",
+  },
+  "custom/pipewire": {
+    "interval": "once",
+    "return-type": "json",
+    "format": "{}",
+    "exec": "~/.config/waybar/scripts/pipewire.sh",
+    "on-click-right": "pavucontrol",
+    "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+    "signal": 3,
+  },
+  "clock": {
+    "format": "{:%a %b %d %OI:%M %p}",
+    "tooltip": false
+  },
+  "custom/power": {
+    "interval": "once",
+    "format": "󰐥",
+    "tooltip": false,
+    "on-click": "~/.local/bin/bemenu_power.sh",
+  },
+  "idle_inhibitor": {
+    "format": "{icon}",
+    "format-icons": {
+      "activated": "󰒳",
+      "deactivated": "󰒲"
+    }
+  },
+  "custom/mic": {
+    "exec": "~/.config/waybar/scripts/mic.sh",
+    "format": "{}",
+    "interval": "once",
+    "signal": 2,
+    "tooltip": false,
+    "on-click": "wpctl set-mute @DEFAULT_SOURCE@ toggle",
+    "on-click-right": "pavucontrol",
+  },
+  "custom/markr": {
+    "interval": "once",
+    "format": "",
+    "tooltip": false,
+  },
+  "custom/markl": {
+    "interval": "once",
+    "format": "",
+    "tooltip": false,
+  },
+  "custom/sep": {
+    "interval": "once",
+    "format": ":",
+    "tooltip": false,
+  },
+}
