@@ -3,7 +3,6 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
-    nixos-hardware.url = "github:NixOS/nixos-hardware/master";
 
     home-manager = {
       url = "github:nix-community/home-manager/release-24.11";
@@ -18,9 +17,6 @@
     nixosConfigurations.violet = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       modules = [
-        nixos-hardware.nixosModules.asus-zephyrus-ga402x-amdgpu
-        nixos-hardware.nixosModules.asus-zephyrus-ga402x-nvidia
-
         ./configuration.nix
 
         home-manager.nixosModules.home-manager {

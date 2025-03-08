@@ -13,10 +13,10 @@
   boot.kernelModules = [ "kvm-amd" ];
 
   boot.extraModulePackages = [ ];
-  # boot.kernelPackages = pkgs.linuxPackages_latest;
-  # boot.kernelParams = [
-  #   "amdgpu.dcdebugmask=0x10" # This kernel flag removes pink glitchy graphics when things happen in screen
-  # ];
+  boot.kernelPackages = pkgs.linuxPackages_latest;
+  boot.kernelParams = [
+    "amdgpu.dcdebugmask=0x10" # This kernel flag removes pink glitchy graphics when things happen in screen
+  ];
 
   fileSystems."/" =
     { device = "/dev/disk/by-uuid/11a76a11-b246-41d4-a95f-3d6e33cf1caa";
