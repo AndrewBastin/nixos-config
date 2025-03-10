@@ -99,11 +99,18 @@
     executable = true;
   };
 
+  # Nixpkgs config
+  home.file.".config/nixpkgs/config.nix".text= ''
+    {
+      # Allows nix-shell etc. to use unfree packages without env variable
+      allowUnfree = true;
+    }
+  '';
+
   # npmrc patch to install global NPM packages into a local mutable store
   # NOTE: This means that npm global packages won't be managed by Nix and can be mutable!
   #       But this makes it easier for day to day work.
   home.file.".npmrc".source = ./config/npm/.npmrc;
-
 
   programs.bash = {
     enable = true;
