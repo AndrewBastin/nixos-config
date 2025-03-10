@@ -179,6 +179,13 @@
     config.init.defaultBranch = "main";
   };
 
+  programs.appimage = {
+    enable = true;
+
+    # Registers binfmt to set the interpreter for Appimage files as appimage-run
+    binfmt = true;
+  };
+
   virtualisation.docker.enable = true;
 
   fonts.packages = with pkgs; [
