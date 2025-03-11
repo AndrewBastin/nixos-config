@@ -7,6 +7,9 @@
   wayland.windowManager.hyprland = {
     enable = true;
     extraConfig = builtins.readFile ./config/hypr/hyprland.conf;
+    plugins = [
+      pkgs.hyprlandPlugins.hyprsplit
+    ];
   };
 
   home.packages = with pkgs; [
