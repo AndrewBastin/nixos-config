@@ -86,12 +86,6 @@
     source = ./config/waybar;
   };
 
-  home.file.".config/waybar/scripts" = {
-    source = ./config/waybar/scripts;
-    recursive = true;
-    executable = true;
-  };
-
   # Kitty config
   home.file.".config/kitty/kitty.conf".source = ./config/kitty/kitty.conf;
 
