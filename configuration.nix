@@ -2,7 +2,7 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   imports =
@@ -178,6 +178,10 @@
     config.credential.helper = "libsecret";
     config.init.defaultBranch = "main";
   };
+
+  programs.dconf.profiles.gdm.databases = [{
+    settings."org/gnome/desktop/interface".scaling-factor = lib.gvariant.mkUint32 2;
+  }];
 
   programs.appimage = {
     enable = true;
