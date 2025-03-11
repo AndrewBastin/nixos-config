@@ -28,7 +28,7 @@
     pavucontrol
     brightnessctl
     bemenu
-    rofi
+    rofi-wayland
     hyprpaper
     fzf
     aria2
