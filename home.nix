@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   home.username = "andrew";
@@ -108,6 +108,13 @@
   # NOTE: This means that npm global packages won't be managed by Nix and can be mutable!
   #       But this makes it easier for day to day work.
   home.file.".npmrc".source = ./config/npm/.npmrc;
+
+  # Fix for file picker becoming too big on the main violet laptop screen
+  dconf.settings = {
+    "org/gtk/settings/file-chooser" = {
+      window-size = lib.hm.gvariant.mkTuple [800 600];
+    };
+  };
 
   programs.bash = {
     enable = true;
