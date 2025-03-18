@@ -42,9 +42,7 @@
     gnome-keyring
     tig
     devenv
-
-    # Flameshot compiled with Wayland support (USE_WAYLAND_GRIM flag)
-    (flameshot.override { enableWlrSupport = true; })
+    gscreenshot
   ];
 
   home.pointerCursor = {
