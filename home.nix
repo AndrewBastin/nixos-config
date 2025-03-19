@@ -13,6 +13,7 @@
   };
 
   home.packages = with pkgs; [
+    file
     firefox
     neovim
     gh
