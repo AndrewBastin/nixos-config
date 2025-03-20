@@ -123,10 +123,10 @@
     package = config.boot.kernelPackages.nvidiaPackages.mkDriver {
       # A temporary patch until 570 drivers hit NixOS repos
       # Ref: https://github.com/NixOS/nixpkgs/issues/375730#issuecomment-2625234288
-      version = "570.86.16";
-      sha256_64bit = "sha256-RWPqS7ZUJH9JEAWlfHLGdqrNlavhaR1xMyzs8lJhy9U=";
+      version = "570.124.04";
+      sha256_64bit = "sha256-G3hqS3Ei18QhbFiuQAdoik93jBlsFI2RkWOBXuENU8Q=";
       openSha256 = "sha256-DuVNA63+pJ8IB7Tw2gM4HbwlOh1bcDg2AN2mbEU9VPE=";
-      settingsSha256 = "sha256-9rtqh64TyhDF5fFAYiWl3oDHzKJqyOW3abpcf2iNRT8=";
+      settingsSha256 = "sha256-LNL0J/sYHD8vagkV1w8tb52gMtzj/F0QmJTV1cMaso8=";
       usePersistenced = false;
     };
   };
