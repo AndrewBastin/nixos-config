@@ -171,6 +171,8 @@
 
   services.gnome.gnome-keyring.enable = true;
 
+  services.flatpak.enable = true;
+
   # Git Config
   programs.git = {
     enable = true;
