@@ -39,7 +39,7 @@
                 inputs = inputs;
               };
 
-              modules = [config.hardwareConfiguration] ++ commonModules ++ config.additionalModules;
+              modules = [config.hardwareConfiguration] ++ commonModules ++ (config.additionalModules or []);
             };
       in
         nixpkgs.lib.mapAttrs machineMapper (import ./machines);
