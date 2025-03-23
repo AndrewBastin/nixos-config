@@ -13,22 +13,36 @@
 
   outputs = { self, nixpkgs, nixos-hardware, home-manager, ... }@inputs: {
 
-    # 'violet' is the hostname of the machine
-    nixosConfigurations.violet = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-      modules = [
-        ./configuration.nix
+    nixosConfigurations =
+      let
+        # Modules which are common to all NixOS machines
+        commonModules = [
+          ./configuration.nix
 
-        home-manager.nixosModules.home-manager {
-          home-manager.useGlobalPkgs = true;
-          home-manager.useUserPackages = true;
+          home-manager.nixosModules.home-manager {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
 
-          home-manager.backupFileExtension = "hm-backup";
+            home-manager.backupFileExtension = "hm-backup";
 
-          home-manager.users.andrew = import ./home.nix;
-        }
-      ];
-    };
+            home-manager.users.andrew = import ./home.nix;
+          }
+        ];
+
+        machineMapper =
+          name: config:
+            nixpkgs.lib.nixosSystem {
+              system = config.system;
+
+              specialArgs = {
+                hostname = name;
+                inputs = inputs;
+              };
+
+              modules = [config.hardwareConfiguration] ++ commonModules ++ config.additionalModules;
+            };
+      in
+        nixpkgs.lib.mapAttrs machineMapper (import ./machines);
 
   };
 }
