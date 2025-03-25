@@ -26,7 +26,11 @@
         };
 
         apps = {
-          nvim = flake-utils.lib.mkApp { drv = self.packages.${system}.nvim; };
+          nvim = flake-utils.lib.mkApp {
+            drv = self.packages.${system}.nvim;
+            name = "nvim";
+            exePath = "/bin/nvim";
+          };
         };
       }
     )
