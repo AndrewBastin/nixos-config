@@ -63,6 +63,17 @@
       package = pkgs.adwaita-icon-theme;
       name = "Adwaita";
     };
+
+    theme = {
+      name = "Adwaita-dark";
+      package = pkgs.gnome-themes-extra;
+    };
+  };
+
+  qt = {
+    enable = true;
+    platformTheme.name = "adwaita";
+    style.name = "adwaita-dark";
   };
 
   programs.git = {
