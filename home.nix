@@ -22,7 +22,6 @@
     gh
     nodejs_22
     pnpm_10
-    kitty
     cargo
     rustc
     nil
@@ -82,6 +81,17 @@
     userEmail = "andrewbastin.k@gmail.com";
   };
 
+  programs.kitty = {
+    enable = true;
+    themeFile = "adwaita_darker";
+    font.name = "FiraCode Nerd Font Mono";
+    settings.cursor_trail = 1;
+    keybindings = {
+      "ctrl+shift+t" = "launch --cwd=current --type=tab";
+    };
+    shellIntegration.enableBashIntegration = true;
+  };
+
   # Set the wallpaper via Hyprpaper
   home.file.".config/hypr/hyprpaper.conf".text =
     ''
@@ -98,9 +108,6 @@
   home.file.".config/waybar" = {
     source = ./config/waybar;
   };
-
-  # Kitty config
-  home.file.".config/kitty/kitty.conf".source = ./config/kitty/kitty.conf;
 
   # ~/.local/bin
   home.file.".local/bin" = {
