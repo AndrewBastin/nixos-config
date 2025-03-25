@@ -1,0 +1,220 @@
+# We use Nixvim to configure the neovim instance.
+# Inputs to this function:
+#  - nixvim: This should generally be the nixvim-flake structure for the system you are targeting.
+#    For example,
+#    --
+#    inputs.nixvim-flake.url = "github:nix-community/nixvim";
+#    outputs = { nixvim-flake, ... }:
+#       # ... Get stuff like nixpkgs, system, etc. import ./nvim.nix { 
+#          nixvim = (import nixvim-flake).legacyPackages."${system}";
+#       };
+#    --
+
+{ nixvim, ... }:
+  nixvim.makeNixvim {
+    colorschemes.kanagawa = {
+      enable = true;
+      settings.theme = "dragon";
+    };
+
+    opts = {
+      confirm = true;
+      number = true;
+      relativenumber = true;
+
+      shiftwidth = 2;
+      shiftround = true;
+      tabstop = 2;
+      splitright = true;
+      expandtab = true;
+      wrap = false;
+    };
+
+    plugins = {
+      web-devicons.enable = true;
+
+      lualine.enable = true;
+      fzf-lua.enable = true;
+      neo-tree.enable = true;
+      noice.enable = true;
+      gitsigns.enable = true;
+      which-key.enable = true;
+      nvim-surround.enable = true;
+      neoconf.enable = true;
+      blink-cmp.enable = true;
+      blink-cmp-copilot.enable = true;
+
+
+      dashboard = {
+        enable = true;
+
+        settings = {
+          theme = "hyper";
+          config = {
+            header = [
+              "  /$$$$$$                  /$$                                           /$$    /$$ /$$              "
+              " /$$__  $$                | $$                                          | $$   | $$|__/              "
+              ''| $$  \ $$ /$$$$$$$   /$$$$$$$  /$$$$$$   /$$$$$$  /$$  /$$  /$$        | $$   | $$ /$$ /$$$$$$/$$$$ ''
+              ''| $$$$$$$$| $$__  $$ /$$__  $$ /$$__  $$ /$$__  $$| $$ | $$ | $$ /$$$$$$|  $$ / $$/| $$| $$_  $$_  $$''
+              ''| $$__  $$| $$  \ $$| $$  | $$| $$  \__/| $$$$$$$$| $$ | $$ | $$|______/ \  $$ $$/ | $$| $$ \ $$ \ $$''
+              ''| $$  | $$| $$  | $$| $$  | $$| $$      | $$_____/| $$ | $$ | $$          \  $$$/  | $$| $$ | $$ | $$''
+              ''| $$  | $$| $$  | $$|  $$$$$$$| $$      |  $$$$$$$|  $$$$$/$$$$/           \  $/   | $$| $$ | $$ | $$''
+              ''|__/  |__/|__/  |__/ \_______/|__/       \_______/ \_____/\___/             \_/    |__/|__/ |__/ |__/''
+            ];
+
+            shortcut = [
+              { desc = "_"; }
+            ];
+
+            footer = null;
+
+            project.enable = false;
+
+            mru = {
+              cwd_only = true;
+            };
+          };
+        };
+      };
+
+      mini = {
+        enable = true;
+
+        modules = {
+          hipatterns = {
+            # Highlight standalone 'FIXME', 'HACK', 'TODO', 'NOTE'
+            fixme = {
+              pattern = "%f[%w]()FIXME()%f[%W]";
+              group = "MiniHipatternsFixme";
+            };
+            hack = {
+              pattern = "%f[%w]()HACK()%f[%W]";
+              group = "MiniHipatternsHack";
+            };
+            todo = {
+              pattern = "%f[%w]()TODO()%f[%W]";
+              group = "MiniHipatternsTodo";
+            };
+            note = {
+              pattern = "%f[%w]()NOTE()%f[%W]";
+              group = "MiniHipatternsNote";
+            };
+
+            # Highlight hex color strings (`#rrggbb`) using that color
+            hex_color.__raw = "require('mini.hipatterns').gen_highlighter.hex_color()";
+          };
+
+          indentscope = {};
+
+          cursorword = {};
+
+          animate = {
+            cursor.enable = false;
+          };
+
+          comment = {
+            mappings = {
+              comment = "<leader>c";
+              comment_line = "<leader>cc";
+              comment_visual = "<leader>c";
+              textobject = "<leader>c";
+            };
+          };
+
+          bracketed = {
+            # NOTE: ]<Uppercased Suffix> and [<Uppercased Suffix> moves to the first and the last jumps for each category
+
+            # ]c and [c to jump to next and previous comments
+            comment    = { suffix = "c"; options = {}; };
+            # ]mc and [mc to jump to next and previous merge conflict markers
+            conflict   = { suffix = "mc"; options = {}; };
+            # ]d and [d to jump to next and previous lines with diagnostics
+            diagnostic = { suffix = "d"; options = {}; };
+            # ]i and [i to jump to next and previous lines with indent changes
+            indent     = { suffix = "i"; options = {}; };
+            # ]q and [q to jump to next and previous entries in the quickfix list
+            quickfix   = { suffix = "q"; options = {}; };
+            # ]t and [t to jump to next and previous nodes in treesitter
+            treesitter = { suffix = "t"; options = {}; };
+          };
+
+          jump = {
+            mappings = {
+              forward = "f";
+              backward = "F";
+              forward_till = "t";
+              backward_till = "T";
+              repeat_jump = ";";
+            };
+          };
+
+          jump2d = {
+            mappings = {
+              start_jumping = "\\";
+            };
+          };
+        };
+      };
+
+
+      treesitter = {
+        enable = true;
+        settings.auto_install = true;
+      };
+
+      copilot-lua.enable = true;
+
+      lsp = {
+        enable = true;
+        servers = {
+          rust_analyzer = {
+            enable = true;
+
+            # Better let rust-analyzer use the project (or global) given Rustc and Cargo
+            installCargo = false;
+            installRustc = false;
+          };
+          ts_ls.enable = true;
+          nixd.enable = true;
+          gopls.enable = true;
+          elixirls.enable = true;
+          jsonls.enable = true;
+          pyright.enable = true;
+          dockerls.enable = true;
+          docker_compose_language_service.enable = true;
+          bashls.enable = true;
+        };
+      };
+    };
+
+    globals.mapleader = " ";
+
+    keymaps =
+      let
+        # A helper function to neatly define keymaps with less verbosity
+        silentNMap =
+          key: description: action:
+          { 
+            mode = "n";
+            key = key;
+            options.silent = true;
+            options.desc = description;
+            action = action;
+          };
+      in
+        [
+          (silentNMap "<leader>e"         "Toggle File Viewer"                  "<cmd>Neotree toggle<CR>")
+          (silentNMap "<leader>f"         "Fuzzy Find Files"                    "<cmd>lua require('fzf-lua').files()<CR>")
+          (silentNMap "<leader><leader>"  "Fuzzy Find Git Files"                "<cmd>lua require('fzf-lua').git_files()<CR>")
+          (silentNMap "<leader>d"         "Fuzzy Find (Document Diagnostics)"   "<cmd>lua require('fzf-lua').diagnostics_document()<CR>")
+          (silentNMap "<leader>s"         "Fuzzy Find (Document Symbols)"       "<cmd>lua require('fzf-lua').lsp_document_symbols()<CR>")
+          (silentNMap "<leader>S"         "Fuzzy Find (Workspace Symbols)"      "<cmd>lua require('fzf-lua').lsp_workspace_symbols()<CR>")
+          (silentNMap "<leader>gl"        "Fuzzy Find (Lines)"                  "<cmd>lua require('fzf-lua').lines()<CR>")
+          (silentNMap "<leader>bb"        "Fuzzy Find (Buffers)"                "<cmd>lua require('fzf-lua').buffers()<CR>")
+          (silentNMap "<leader>gp"        "Fuzzy Find (Project Grep)"           "<cmd>lua require('fzf-lua').live_grep()<CR>")
+          (silentNMap "<leader>cf"        "Change filetype"                     "<cmd>lua require('fzf-lua').filetypes()<CR>")
+          (silentNMap "<leader>Gc"        "Git commits of this file"            "<cmd>lua require('fzf-lua').git_bcommits()<CR>")
+          (silentNMap "<leader>GG"        "Git status"                          "<cmd>lua require('fzf-lua').git_status()<CR>")
+        ];
+  }
+

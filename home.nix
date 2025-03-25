@@ -1,4 +1,6 @@
-{ config, pkgs, lib, ... }:
+# NOTE: nvim is the custom neovim package passed in via 'extraSpecialArgs'
+#       check out its code in apps/nvim.nix
+{ pkgs, lib, nvim, ... }:
 
 {
   home.username = "andrew";
@@ -13,9 +15,10 @@
   };
 
   home.packages = with pkgs; [
+    nvim
+
     file
     firefox
-    neovim
     gh
     nodejs_22
     pnpm_10
