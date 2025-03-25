@@ -5,6 +5,11 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
     flake-utils.url = "github:numtide/flake-utils";
 
+    nix-darwin = {
+      url = "github:LnL7/nix-darwin/nix-darwin-24.11";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     home-manager = {
       url = "github:nix-community/home-manager/release-24.11";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -16,66 +21,59 @@
     };
   };
 
-  outputs = { self, nixpkgs, nixvim, flake-utils, home-manager, ... }@inputs:
-    flake-utils.lib.eachDefaultSystem (system:
-      {
-        packages = {
-          nvim = import ./apps/nvim.nix {
-            nixvim = (import nixvim).legacyPackages."${system}";
+  outputs = { self, nixpkgs, nixvim, nix-darwin, flake-utils, home-manager, ... }@inputs:
+    let
+      lib = import ./lib.nix;
+
+      # Custom apps that I use with special configurations (for example, nvim)
+      exportedApps = flake-utils.lib.eachDefaultSystem (system:
+        {
+          packages = {
+            nvim = import ./apps/nvim.nix {
+              nixvim = (import nixvim).legacyPackages."${system}";
+            };
           };
-        };
 
-        apps = {
-          nvim = flake-utils.lib.mkApp {
-            drv = self.packages.${system}.nvim;
-            name = "nvim";
-            exePath = "/bin/nvim";
+          apps = {
+            nvim = flake-utils.lib.mkApp {
+              drv = self.packages.${system}.nvim;
+              name = "nvim";
+              exePath = "/bin/nvim";
+            };
           };
-        };
-      }
-    )
-    // {
-      nixosConfigurations =
-        let
-          # Modules which are common to all NixOS machines
-          commonModules =
-            system: 
-              [
-                ./configuration.nix
+        }
+      );
 
-                home-manager.nixosModules.home-manager {
-                  home-manager.useGlobalPkgs = true;
-                  home-manager.useUserPackages = true;
+      # Configurations for NixOS and Darwin machines
+      osConfigs = {
+        nixosConfigurations =
+          let
+            mkNixOSConfigFromMachineDef = lib.buildNixOSConfigFromMachineDef {
+              inherit inputs home-manager;
 
-                  home-manager.backupFileExtension = "hm-backup";
+              pkgs = nixpkgs;
+              provideNvimForSystem = system: self.packages.${system}.nvim;
+            };
+
+          in
+            nixpkgs.lib.mapAttrs
+              mkNixOSConfigFromMachineDef
+              (lib.getNixOSMachines nixpkgs);
+
+        darwinConfigurations =
+          let
+            mkDarwinConfigFromMachineDef = lib.buildDarwinConfigFromMachineDef {
+              inherit nix-darwin;
               
-
-                  home-manager.extraSpecialArgs = {
-                    nvim = self.packages.${system}.nvim;
-                  };
-
-                  home-manager.users.andrew = import ./home.nix;
-
-                }
-              ];
-
-          machineMapper =
-            name: config:
-              nixpkgs.lib.nixosSystem {
-                system = config.system;
-
-                specialArgs = {
-                  hostname = name;
-                  inputs = inputs;
-                };
-
-                modules = 
-                  [config.hardwareConfiguration]
-                  ++ (commonModules config.system)
-                  ++ (config.additionalModules or []);
-              };
-        in
-          nixpkgs.lib.mapAttrs machineMapper (import ./machines);
-    };
+              flake = self;
+              provideNvimForSystem = system: self.packages.${system}.nvim;
+            };
+          in
+            nixpkgs.lib.mapAttrs
+              mkDarwinConfigFromMachineDef
+              (lib.getDarwinMachines nixpkgs);
+      };
+    in
+      exportedApps // osConfigs;
 }
 
