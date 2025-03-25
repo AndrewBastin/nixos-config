@@ -48,7 +48,7 @@
       osConfigs = {
         nixosConfigurations =
           let
-            mkNixOSConfigFromMachineDef = lib.buildNixOSConfigFrommachineDef {
+            mkNixOSConfigFromMachineDef = lib.buildNixOSConfigFromMachineDef {
               inherit inputs home-manager;
 
               pkgs = nixpkgs;
