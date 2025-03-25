@@ -2,10 +2,22 @@
   violet = {
     system = "x86_64-linux";
 
-    hardwareConfiguration = import ./violet/hardware-configuration.nix;
+    nixos = {
+      hardwareConfiguration = import ./violet/hardware-configuration.nix;
 
-    additionalModules = [
-      ./violet/extraConfiguration.nix
-    ];
+      additionalModules = [
+        ./violet/extraConfiguration.nix
+      ];
+    };
+  };
+
+  uwu = {
+    system = "aarch64-darwin";
+
+    darwin = {
+      modules = [
+        ./uwu/configuration.nix
+      ];
+    };
   };
 }
