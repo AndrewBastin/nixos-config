@@ -66,8 +66,9 @@
               { desc = "_"; }
             ];
 
-            footer = null;
+            footer.__raw = "{}";
 
+            packages.enable = false;
             project.enable = false;
 
             mru = {
