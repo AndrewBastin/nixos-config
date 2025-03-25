@@ -127,6 +127,9 @@
     "org/gtk/settings/file-chooser" = {
       window-size = lib.hm.gvariant.mkTuple [800 600];
     };
+    "org/gnome/desktop/interface" = {
+      color-scheme = "prefer-dark";
+    };
   };
 
   programs.direnv = {
