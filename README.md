@@ -21,3 +21,10 @@ sudo ln -s ~/nixos-config /etc/nixos
 # Apply the changes
 sudo nixos-rebuild switch
 ```
+
+### Neovim
+My Neovim config is setup using [Nixvim](https://github.com/nix-community/nixvim) and it is exported in the flake as `nvim`.
+You can run my neovim configuration in your system by running:
+```sh
+nix run github:AndrewBastin/nixos-config#nvim
+```
