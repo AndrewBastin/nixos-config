@@ -185,6 +185,23 @@
           docker_compose_language_service.enable = true;
           bashls.enable = true;
         };
+
+        keymaps = {
+          lspBuf = {
+            "K" = "hover";
+            "gd" = "definition";
+            "gD" = "references";
+            "gi" = "implementation";
+            "gt" = "type_definition";
+            "<c-k>" = "signature_help";
+            "<leader>cr" = "rename";
+          };
+          diagnostic = {
+            "<leader>xd" = "open_float";
+            "<leader>xn" = "goto_next";
+            "<leader>xp" = "goto_prev";
+          };
+        };
       };
     };
 
