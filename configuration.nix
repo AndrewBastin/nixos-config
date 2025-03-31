@@ -88,6 +88,8 @@
   # Fix for Chromium and Electron to work without Xwayland 
   environment.sessionVariables.NIXOS_OZONE_WL = "1";
 
+  environment.variables.EDITOR = "nvim";
+
   services.gnome.gnome-keyring.enable = true;
 
   services.flatpak.enable = true;

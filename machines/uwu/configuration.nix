@@ -10,6 +10,7 @@
     pkgs-unstable.claude-code
   ];
 
+  environment.variables.EDITOR = "nvim";
 
 
   system.configurationRevision = flake.rev or flake.dirtyRev or null;
