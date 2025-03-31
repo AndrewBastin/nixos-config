@@ -1,6 +1,6 @@
 # NOTE: nvim is the custom neovim package passed in via 'extraSpecialArgs'
 #       check out its code in apps/nvim.nix
-{ pkgs, lib, nvim, ... }:
+{ pkgs, pkgs-unstable, lib, nvim, ... }:
 
 {
   home.username = "andrew";
@@ -15,6 +15,9 @@
   };
 
   home.packages = with pkgs; [
+    # Unstable packages
+    pkgs-unstable.claude-code
+
     nvim
 
     file

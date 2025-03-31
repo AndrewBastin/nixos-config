@@ -1,5 +1,5 @@
 # NOTE: This is a nix-darwin configuration module, as opposed to a nixos configuration module
-{ flake, nvim, ... }: 
+{ flake, nvim, pkgs-unstable, ... }: 
 {
   
   # uwu runs Determinate Nix, which manages stuff on nix-darwin's behalf
@@ -7,6 +7,7 @@
 
   environment.systemPackages = [
     nvim
+    pkgs-unstable.claude-code
   ];
 
 

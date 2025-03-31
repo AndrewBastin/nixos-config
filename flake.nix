@@ -3,6 +3,8 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
+
     flake-utils.url = "github:numtide/flake-utils";
 
     nix-darwin = {
@@ -21,7 +23,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, nixvim, nix-darwin, flake-utils, home-manager, ... }@inputs:
+  outputs = { self, nixpkgs, nixvim, nixpkgs-unstable, nix-darwin, flake-utils, home-manager, ... }@inputs:
     let
       lib = import ./lib.nix;
 
@@ -49,9 +51,10 @@
         nixosConfigurations =
           let
             mkNixOSConfigFromMachineDef = lib.buildNixOSConfigFromMachineDef {
-              inherit inputs home-manager;
+              inherit inputs home-manager nixpkgs-unstable;
 
               pkgs = nixpkgs;
+
               provideNvimForSystem = system: self.packages.${system}.nvim;
             };
 
@@ -63,9 +66,11 @@
         darwinConfigurations =
           let
             mkDarwinConfigFromMachineDef = lib.buildDarwinConfigFromMachineDef {
-              inherit nix-darwin;
+              inherit nix-darwin nixpkgs-unstable;
               
               flake = self;
+              pkgs = nixpkgs;
+
               provideNvimForSystem = system: self.packages.${system}.nvim;
             };
           in

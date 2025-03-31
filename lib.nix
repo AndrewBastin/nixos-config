@@ -14,14 +14,18 @@
     in
       pkgs.lib.filterAttrs filterFunc (import ./machines);
 
-  buildNixOSConfigFromMachineDef = { inputs, provideNvimForSystem, pkgs, home-manager }: machineName: machineConfig:
+  buildNixOSConfigFromMachineDef = { inputs, provideNvimForSystem, pkgs, nixpkgs-unstable, home-manager }: machineName: machineConfig:
     let
+      pkgs-unstable = import nixpkgs-unstable {
+        system = machineConfig.system; 
+        config.allowUnfree = true;
+      };
+
       # Modules which are common to all NixOS machines
       commonModules =
         [
           ./configuration.nix
-
-          home-manager.nixosModules.home-manager {
+home-manager.nixosModules.home-manager {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
 
@@ -29,6 +33,8 @@
         
 
             home-manager.extraSpecialArgs = {
+              inherit pkgs-unstable;
+
               nvim = provideNvimForSystem machineConfig.system;
             };
 
@@ -41,6 +47,8 @@
         system = machineConfig.system;
 
         specialArgs = {
+          inherit pkgs-unstable;
+
           hostname = machineName;
           inputs = inputs;
         };
@@ -51,10 +59,15 @@
           ++ (machineConfig.nixos.additionalModules or []);
       };
       
-  buildDarwinConfigFromMachineDef = { flake, nix-darwin, provideNvimForSystem }: machineName: machineConfig:
+  buildDarwinConfigFromMachineDef = { flake, nixpkgs-unstable, nix-darwin, provideNvimForSystem }: machineName: machineConfig:
     nix-darwin.lib.darwinSystem {
       specialArgs = {
         inherit flake;
+
+        pkgs-unstable = import nixpkgs-unstable {
+          system = machineConfig.system; 
+          config.allowUnfree = true;
+        };
 
         hostname = machineName;
         nvim = provideNvimForSystem machineConfig.system;
