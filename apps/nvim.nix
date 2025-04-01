@@ -44,6 +44,15 @@
       blink-cmp.enable = true;
       blink-cmp-copilot.enable = true;
 
+      gitblame = {
+        enable = true;
+
+        settings = {
+          delay = 0;
+          virtual_text_column = 70;
+        };
+      };
+
 
       dashboard = {
         enable = true;
