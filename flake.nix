@@ -69,7 +69,6 @@
               inherit nix-darwin nixpkgs-unstable;
               
               flake = self;
-              pkgs = nixpkgs;
 
               provideNvimForSystem = system: self.packages.${system}.nvim;
             };
