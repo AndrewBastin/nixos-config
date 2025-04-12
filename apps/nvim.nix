@@ -239,6 +239,7 @@
           (silentNMap "<leader>gl"        "Fuzzy Find (Lines)"                  "<cmd>lua require('fzf-lua').lines()<CR>")
           (silentNMap "<leader>bb"        "Fuzzy Find (Buffers)"                "<cmd>lua require('fzf-lua').buffers()<CR>")
           (silentNMap "<leader>gp"        "Fuzzy Find (Project Grep)"           "<cmd>lua require('fzf-lua').live_grep()<CR>")
+          (silentNMap "<leader>ca"        "LSP Code Actions"                    "<cmd>lua require('fzf-lua').lsp_code_actions()<CR>")
           (silentNMap "<leader>cf"        "Change filetype"                     "<cmd>lua require('fzf-lua').filetypes()<CR>")
           (silentNMap "<leader>Gc"        "Git commits of this file"            "<cmd>lua require('fzf-lua').git_bcommits()<CR>")
           (silentNMap "<leader>GG"        "Git status"                          "<cmd>lua require('fzf-lua').git_status()<CR>")
