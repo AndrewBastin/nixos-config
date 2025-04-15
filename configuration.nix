@@ -117,6 +117,10 @@
 
   programs.hyprland.enable = true;
 
+  # Hyprlock
+  programs.hyprlock.enable = true;
+  security.pam.services.hyprlock = {};
+
   system.stateVersion = "24.11";
 
 }

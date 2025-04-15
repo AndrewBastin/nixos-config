@@ -107,6 +107,11 @@
       ipc = false
     '';
 
+  # Hyprlock
+  home.file.".config/hypr/hyprlock.conf" = {
+    source = ./config/hypr/hyprlock.conf;
+  };
+
   # Configure Waybar (Scripts are split so they can be assigned as executable
   home.file.".config/waybar" = {
     source = ./config/waybar;

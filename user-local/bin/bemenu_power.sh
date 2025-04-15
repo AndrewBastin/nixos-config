@@ -21,7 +21,7 @@ case $(printf "%s\n" "Lock" "Logout" "Suspend" "Reboot" "Shutdown" | $HOME/.loca
   loginctl suspend
   ;;
 "Lock")
-  $HOME/.config/river/scripts/locker.sh
+  hyprlock
   ;;
 "Logout")
   loginctl terminate-session "${XDG_SESSION_ID-}"
