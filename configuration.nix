@@ -121,6 +121,9 @@
   programs.hyprlock.enable = true;
   security.pam.services.hyprlock = {};
 
+  # NPM
+  environment.etc.npmrc.source = ./config/npm/.npmrc;
+
   system.stateVersion = "24.11";
 
 }
