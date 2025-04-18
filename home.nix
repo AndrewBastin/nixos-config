@@ -29,6 +29,7 @@
     rustc
     nil
     hyprland
+    polkit_gnome
     waybar
     wl-clipboard
     pavucontrol
