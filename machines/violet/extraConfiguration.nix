@@ -13,14 +13,9 @@
     };
   };
 
-  services.power-profiles-daemon.enable = true;
-
-  systemd.services.power-profiles-daemon = {
-    enable = true;
-    wantedBy = [ "multi-user.target" ];
-  };
-
   services.asusd.enable = true;
+
+  services.tlp.enable = true;
 
   # Nvidia related shenans
   services.xserver.videoDrivers = ["nvidia"];
