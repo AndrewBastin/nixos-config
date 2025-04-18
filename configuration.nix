@@ -83,6 +83,8 @@
     wget
     htop
     bat
+    ntfs3g
+    gparted
   ];
 
   # Fix for Chromium and Electron to work without Xwayland 
