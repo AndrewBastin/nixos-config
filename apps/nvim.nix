@@ -41,8 +41,61 @@
       which-key.enable = true;
       nvim-surround.enable = true;
       neoconf.enable = true;
-      blink-cmp.enable = true;
       blink-cmp-copilot.enable = true;
+
+      blink-cmp = {
+        enable = true;
+
+        settings = {
+          sources = {
+            providers = {
+              copilot = {
+                async = true;
+                module = "blink-cmp-copilot";
+                name = "copilot";
+                score_offset = 100;
+              };
+            };
+
+            default = [
+              "lsp"
+              "buffer"
+              "path"
+              "copilot"
+            ];
+          };
+
+          appearance.kind_icons = {
+            Copilot = "";
+            Class = "󱡠";
+            Color = "󰏘";
+            Constant = "󰏿";
+            Constructor = "󰒓";
+            Enum = "󰦨";
+            EnumMember = "󰦨";
+            Event = "󱐋";
+            Field = "󰜢";
+            File = "󰈔";
+            Folder = "󰉋";
+            Function = "󰊕";
+            Interface = "󱡠";
+            Keyword = "󰻾";
+            Method = "󰊕";
+            Module = "󰅩";
+            Operator = "󰪚";
+            Property = "󰖷";
+            Reference = "󰬲";
+            Snippet = "󱄽";
+            Struct = "󱡠";
+            Text = "󰉿";
+            TypeParameter = "󰬛";
+            Unit = "󰪚";
+            Value = "󰦨";
+            Variable = "󰆦";
+          };
+        };
+
+      };
 
       gitblame = {
         enable = true;
