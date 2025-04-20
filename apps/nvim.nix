@@ -222,7 +222,10 @@
 
       treesitter = {
         enable = true;
-        settings.auto_install = true;
+        settings = {
+          highlight.enable = true;
+          auto_install = true;
+        };
       };
 
       copilot-lua.enable = true;
