@@ -66,7 +66,7 @@
         darwinConfigurations =
           let
             mkDarwinConfigFromMachineDef = lib.buildDarwinConfigFromMachineDef {
-              inherit nix-darwin nixpkgs-unstable;
+              inherit nix-darwin nixpkgs-unstable home-manager;
               
               flake = self;
 

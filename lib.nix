@@ -59,10 +59,10 @@ home-manager.nixosModules.home-manager {
           ++ (machineConfig.nixos.additionalModules or []);
       };
       
-  buildDarwinConfigFromMachineDef = { flake, nixpkgs-unstable, nix-darwin, provideNvimForSystem }: machineName: machineConfig:
+  buildDarwinConfigFromMachineDef = { flake, nixpkgs-unstable, home-manager, nix-darwin, provideNvimForSystem }: machineName: machineConfig:
     nix-darwin.lib.darwinSystem {
       specialArgs = {
-        inherit flake;
+        inherit flake home-manager;
 
         pkgs-unstable = import nixpkgs-unstable {
           system = machineConfig.system; 
