@@ -10,7 +10,7 @@
 #       };
 #    --
 
-{ nixvim, ... }:
+{ nixvim, noLSP ? false, ... }:
   nixvim.makeNixvim {
     colorschemes.kanagawa = {
       enable = true;
@@ -230,7 +230,7 @@
 
       copilot-lua.enable = true;
 
-      lsp = {
+      lsp = if noLSP then { enable = false; } else {
         enable = true;
         servers = {
           rust_analyzer = {
