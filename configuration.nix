@@ -111,7 +111,12 @@
     binfmt = true;
   };
 
-  virtualisation.docker.enable = true;
+  virtualisation = {
+    docker.enable = true;
+    libvirtd.enable = true;
+  };
+
+  programs.virt-manager.enable = true;
 
   fonts.packages = with pkgs; [
     (nerdfonts.override { fonts = [ "FiraCode" "NerdFontsSymbolsOnly" "JetBrainsMono" ]; })
