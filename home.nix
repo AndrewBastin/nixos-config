@@ -22,6 +22,7 @@
 
     file
     firefox
+    google-chrome
     gh
     nodejs_22
     pnpm_10
