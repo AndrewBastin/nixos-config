@@ -16,7 +16,8 @@
 
   home.packages = with pkgs; [
     # Unstable packages
-    pkgs-unstable.claude-code
+    # TODO: Remove this when claude-code version is above 0.2.92.
+    (import ./patches/claude-code { pkgs = pkgs-unstable; })
 
     nvim
 
