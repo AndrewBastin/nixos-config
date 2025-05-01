@@ -131,6 +131,9 @@
   # Polkit
   security.polkit.enable = true;
 
+  # Steam
+  programs.steam.enable = true;
+
   systemd.user.services.polkit-gnome-authentication-agent-1 = {
     description = "polkit-gnome-authentication-agent-1";
     wantedBy = [ "graphical-session.target" ];
