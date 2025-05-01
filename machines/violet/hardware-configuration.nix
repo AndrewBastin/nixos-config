@@ -38,6 +38,10 @@
     }
   ];
 
+  boot.resumeDevice = "/dev/disk/by-uuid/6bf2ff05-97c8-4980-8b6b-e7401ca33e39";
+
+  systemd.sleep.extraConfig = "HibernateMode=shutdown";
+
   # Enables DHCP on each ethernet and wireless interface. In case of scripted networking
   # (the default) this is the recommended approach. When using systemd-networkd it's
   # still possible to use this option, but it's recommended to use it in conjunction
