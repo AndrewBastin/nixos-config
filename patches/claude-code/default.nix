@@ -7,7 +7,7 @@
 # NOTE: pkgs is expected to be a nixos unstable branch nixpkgs
 { pkgs }:
   let
-    patchVersion = "0.2.92";
+    patchVersion = "0.2.100";
     nixpkgsVersion = pkgs.claude-code.version;
 
     compareVersions = pkgs.lib.strings.compareVersions;
@@ -16,14 +16,14 @@
       # Copy-pasted in from https://github.com/NixOS/nixpkgs/blob/aafd9d5cdc9fedc95f00db40d4800f28d707df73/pkgs/by-name/cl/claude-code/package.nix
       pkgs.buildNpmPackage rec {
         pname = "claude-code";
-        version = "0.2.92";
+        version = patchVersion;
 
         src = pkgs.fetchzip {
           url = "https://registry.npmjs.org/@anthropic-ai/claude-code/-/claude-code-${version}.tgz";
-          hash = "sha256-PYNtUsexEdl8QphDclgb8v37mN8WvjJO5A8yLiJ6zAs=";
+          hash = "sha256-tg1n8TyG+W/fmoPXDOm0sCwdxF1fDh/kPzhk1StUm9Q=";
         };
 
-        npmDepsHash = "sha256-jSiYaCr8iSAi+368orDnBpDt1XbXGkfULMRKs9XURZY=";
+        npmDepsHash = "sha256-fOLzD8JUZXGvVvQ9OAB7bP9b8tU2/U98Ub2vHydgEkc=";
 
         postPatch = ''
           cp ${./package-lock.json} package-lock.json
