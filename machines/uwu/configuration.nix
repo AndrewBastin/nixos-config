@@ -20,7 +20,7 @@
 
   environment.systemPackages = [
     nvim
-    (import ../../patches/claude-code { pkgs = pkgs-unstable; })
+    pkgs-unstable.claude-code
   ];
 
   environment.variables.EDITOR = "nvim";
