@@ -148,6 +148,9 @@
       };
   };
 
+  # Preload
+  services.preload.enable = true;
+
 
   system.stateVersion = "24.11";
 
