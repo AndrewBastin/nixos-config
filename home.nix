@@ -47,7 +47,7 @@
     zellij
     slack
     nix-output-monitor
-    nautilus
+    xfce.thunar
     gnome-keyring
     tig
     devenv
