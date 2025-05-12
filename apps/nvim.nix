@@ -97,6 +97,32 @@
 
       };
 
+      codecompanion = {
+        enable = true;
+
+        settings = {
+          adapters = {
+            anthropic = {
+              __raw = /* lua */ ''
+                function ()
+                  return require("codecompanion.adapters").extend("anthropic", {
+                    env = {
+                      api_key = "cmd:cat ~/.config/andrewvim/anthropic_api_key"
+                    }
+                  })
+                end
+              '';
+            };
+          };
+
+          strategies = {
+            inline.adapter = "anthropic";
+            chat.adapter = "anthropic";
+            agent.adapter = "anthropic";
+          };
+        };
+      };
+
       gitblame = {
         enable = true;
 
@@ -299,6 +325,7 @@
           (silentNMap "<leader>cf"        "Change filetype"                     "<cmd>lua require('fzf-lua').filetypes()<CR>")
           (silentNMap "<leader>Gc"        "Git commits of this file"            "<cmd>lua require('fzf-lua').git_bcommits()<CR>")
           (silentNMap "<leader>GG"        "Git status"                          "<cmd>lua require('fzf-lua').git_status()<CR>")
+          (silentNMap "<leader>a"         "Toggle AI Chat"                      "<cmd>CodeCompanionChat Toggle<CR>")
         ];
   }
 
