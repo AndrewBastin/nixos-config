@@ -52,6 +52,7 @@
     tig
     devenv
     gscreenshot
+    qutebrowser
   ];
 
   home.pointerCursor = {
@@ -128,7 +129,7 @@
   };
 
   # Nixpkgs config
-  home.file.".config/nixpkgs/config.nix".text= ''
+  home.file.".config/nixpkgs/config.nix".text = /* nix */ ''
     {
       # Allows nix-shell etc. to use unfree packages without env variable
       allowUnfree = true;
@@ -144,6 +145,21 @@
       color-scheme = "prefer-dark";
     };
   };
+
+  # Qutebrowser
+  # We use catppuccin as a theme and we need to pull its source in
+  home.file.".config/qutebrowser/catppuccin" = {
+    source = pkgs.fetchFromGitHub {
+      owner = "catppuccin";
+      repo = "qutebrowser";
+      rev = "808adc3d7d5be6fc573d6be6e9c888cb96b5d6e6";
+
+      hash = "sha256-FmxrgpFlp+cMUdCx5HHIiLMGWML23p+pfxTKT/X0UME=";
+    };
+
+    recursive = true;
+  };
+  home.file.".config/qutebrowser/config.py".source = ./config/qutebrowser/config.py;
 
   programs.direnv = {
     enable = true;
