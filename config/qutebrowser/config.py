@@ -10,4 +10,6 @@ c.tabs.show = "multiple"
 
 c.scrolling.smooth = True
 
+c.colors.webpage.preferred_color_scheme = "dark"
+
 catppuccin.setup(c, "frappe")
