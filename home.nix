@@ -32,6 +32,7 @@
     rustc
     nil
     hyprland
+    hyprshot
     polkit_gnome
     waybar
     wl-clipboard
@@ -52,7 +53,6 @@
     gnome-keyring
     tig
     devenv
-    gscreenshot
   ];
 
   home.pointerCursor = {
