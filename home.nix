@@ -53,6 +53,7 @@
     gnome-keyring
     tig
     devenv
+    thunderbird
   ];
 
   home.pointerCursor = {
