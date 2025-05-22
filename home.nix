@@ -16,7 +16,7 @@
 
   home.packages = with pkgs; [
     # Unstable packages
-    pkgs-unstable.claude-code
+    (pkgs-unstable.callPackage ./patches/claude-code {})
     pkgs-unstable.qutebrowser
 
     # Custom Packages
