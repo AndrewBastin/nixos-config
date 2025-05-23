@@ -13,7 +13,7 @@
   lib
 }:
   let
-    patchVersion = "1.0.0";
+    patchVersion = "1.0.2";
     nixpkgsVersion = claude-code.version;
 
     compareVersions = lib.strings.compareVersions;
@@ -26,10 +26,10 @@
 
         src = fetchzip {
           url = "https://registry.npmjs.org/@anthropic-ai/claude-code/-/claude-code-${version}.tgz";
-          hash = "sha256-DwZJDl+Yt6ULpumSnwktWCJZPxFgdsDkRHAt+6C/BcM=";
+          hash = "sha256-mQv2o9uaOZiZSdkNmLiqJs66fe9fiHfEmrXQZwmME34=";
         };
 
-        npmDepsHash = "sha256-taZ6yFGWj6oSa0llhByX49qfID9grzNpBt9dQhLl1vo=";
+        npmDepsHash = "sha256-Diii1tBBzYlB4svlphtu1VAOoijoq9WudxtJFSXXbbE=";
 
         postPatch = ''
           cp ${./package-lock.json} package-lock.json
