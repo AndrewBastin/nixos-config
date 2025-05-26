@@ -46,7 +46,8 @@
   };
   services.blueman.enable = true;
 
-  hardware.pulseaudio.enable = false;
+  services.pulseaudio.enable = false;
+
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
@@ -116,7 +117,9 @@
   programs.virt-manager.enable = true;
 
   fonts.packages = with pkgs; [
-    (nerdfonts.override { fonts = [ "FiraCode" "NerdFontsSymbolsOnly" "JetBrainsMono" ]; })
+    nerd-fonts.fira-code
+    nerd-fonts.symbols-only
+    nerd-fonts.jetbrains-mono
   ];
 
   programs.hyprland.enable = true;
