@@ -66,6 +66,7 @@ button:hover {
 #idle_inhibitor,
 #tray,
 #clock,
+#custom-notification,
 #network {
   color: @fg;
   padding: 0 8px;

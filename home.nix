@@ -33,6 +33,7 @@
     rustc
     nil
     hyprland
+    swaynotificationcenter
     hyprshot
     polkit_gnome
     waybar

@@ -5,11 +5,10 @@
   "modules-left": ["hyprland/workspaces", "hyprland/window"],
   "modules-right": [
     "group/sys",
-    // "custom/pipewire",
     "pulseaudio",
     "network",
     "battery",
-    // "custom/power",
+    "custom/notification",
     "clock"
   ],
   "tray": {
@@ -81,11 +80,33 @@
     "format": "{:%a %b %d %OI:%M %p}",
     "tooltip": false
   },
-  "custom/power": {
-    "interval": "once",
-    "format": "󰐥",
-    "tooltip": false,
-    "on-click": "~/.local/bin/bemenu_power.sh",
+  "custom/notification": {
+    "tooltip": true,
+    "tooltip-format": "{} notifications",
+    "format": "{icon}",
+    "format-icons": {
+      "notification": "󱅫",
+      "none": "",
+
+      // I don't want to know if I have notifications when I am in DnD
+      "dnd-notification": "",
+      "dnd-none": "",
+
+      // When notifications are inhibited, I want to know if there is a notification, but
+      // don't want it to take my attention. I also want to know if there is inhibition
+      "inhibited-notification": "󱅫",
+      "inhibited-none": "󰂠",
+
+      // I don't want to know if I have notifications when I am in DnD
+      "dnd-inhibited-notification": "",
+      "dnd-inhibited-none": ""
+    },
+    "return-type": "json",
+    "exec-if": "which swaync-client",
+    "exec": "swaync-client -swb",
+    "on-click": "swaync-client -t -sw",
+    "on-click-right": "swaync-client -d -sw",
+    "escape": true
   },
   "idle_inhibitor": {
     "format": "{icon}",
@@ -103,10 +124,5 @@
     "interval": "once",
     "format": "",
     "tooltip": false,
-  },
-  "custom/sep": {
-    "interval": "once",
-    "format": ":",
-    "tooltip": false,
-  },
+  }
 }
