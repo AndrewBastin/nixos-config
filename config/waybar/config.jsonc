@@ -89,8 +89,8 @@
       "none": "",
 
       // I don't want to know if I have notifications when I am in DnD
-      "dnd-notification": "",
-      "dnd-none": "",
+      "dnd-notification": "󰂛",
+      "dnd-none": "󰂛",
 
       // When notifications are inhibited, I want to know if there is a notification, but
       // don't want it to take my attention. I also want to know if there is inhibition
@@ -98,8 +98,8 @@
       "inhibited-none": "󰂠",
 
       // I don't want to know if I have notifications when I am in DnD
-      "dnd-inhibited-notification": "",
-      "dnd-inhibited-none": ""
+      "dnd-inhibited-notification": "󰂛",
+      "dnd-inhibited-none": "󰂛"
     },
     "return-type": "json",
     "exec-if": "which swaync-client",
