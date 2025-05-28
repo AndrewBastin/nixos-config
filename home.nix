@@ -21,6 +21,7 @@
 
     # Custom Packages
     nvim
+    (pkgs.callPackage ./apps/docker-scout.nix {})
 
     file
     firefox
