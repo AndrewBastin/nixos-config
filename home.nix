@@ -1,8 +1,12 @@
 # NOTE: nvim is the custom neovim package passed in via 'extraSpecialArgs'
 #       check out its code in apps/nvim.nix
-{ pkgs, pkgs-unstable, lib, nvim, ... }:
+{ pkgs, pkgs-unstable, lib, nvim, inputs, ... }:
 
 {
+  imports = [
+    inputs.zen-browser.homeModules.beta
+  ];
+
   home.username = "andrew";
   home.homeDirectory = "/home/andrew";
 
@@ -179,6 +183,13 @@
 
       source <(fzf --bash)
     '';
+  };
+
+  programs.zen-browser = {
+    enable = true;
+    policies = {
+      DisableAppUpdate = true;
+    };
   };
 
   home.stateVersion = "24.11";

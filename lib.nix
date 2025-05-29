@@ -33,7 +33,7 @@ home-manager.nixosModules.home-manager {
         
 
             home-manager.extraSpecialArgs = {
-              inherit pkgs-unstable;
+              inherit pkgs-unstable inputs;
 
               nvim = provideNvimForSystem machineConfig.system;
             };
