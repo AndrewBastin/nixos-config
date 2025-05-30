@@ -16,7 +16,10 @@
   boot.kernelModules = [ "kvm-amd" ];
 
   boot.extraModulePackages = [ ];
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+
+  # Pin kernel version to 6.14 due to Nvidia drivers
+  # not building in 6.15
+  boot.kernelPackages = pkgs.linuxPackages_6_14;
   boot.kernelParams = [
     "amdgpu.dcdebugmask=0x10" # This kernel flag removes pink glitchy graphics when things happen in screen
   ];
