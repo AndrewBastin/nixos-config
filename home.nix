@@ -37,6 +37,7 @@
     rustc
     nil
     hyprland
+    libnotify # For notify-send
     swaynotificationcenter
     hyprshot
     polkit_gnome
