@@ -169,6 +169,12 @@
   };
   home.file.".config/qutebrowser/config.py".source = ./config/qutebrowser/config.py;
 
+  # SwayNotificationCenter config
+  home.file.".config/swaync" = {
+    source = ./config/swaync;
+    recursive = true;
+  };
+
   programs.direnv = {
     enable = true;
     enableBashIntegration = true;
