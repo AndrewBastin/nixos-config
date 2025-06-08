@@ -1,9 +1,11 @@
 # Things to think about when setting up Aerospace:
 #  1. If you are seeing windows not being hidden correctly, check if the windows have a good corner to tuck stuff in, see: https://nikitabobko.github.io/AeroSpace/guide#proper-monitor-arrangement
 
-{ lib, ... }:
+{ lib, pkgs, ... }:
 
 {
+  # Install autoraise for focus-follows-mouse functionality
+  home.packages = with pkgs; [ autoraise ];
   # Create helper scripts for hyprsplit-style workspace emulation
   home.file.".local/bin/aerospace-workspace.sh" = {
     text = lib.readFile ./scripts/aerospace-workspace.sh;
@@ -25,12 +27,56 @@
     executable = true;
   };
 
+  # AutoRaise management script
+  home.file.".local/bin/aerospace-autoraise.sh" = {
+    text = /* bash */ ''
+      #!/bin/bash
+      PIDFILE="$HOME/.cache/aerospace-autoraise.pid"
+      
+      case "$1" in
+        start)
+          if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+            echo "AutoRaise already running"
+            exit 0
+          fi
+          ${lib.getExe pkgs.autoraise} &
+          echo $! > "$PIDFILE"
+          echo "AutoRaise started with PID $(cat "$PIDFILE")"
+          ;;
+        stop)
+          if [ -f "$PIDFILE" ]; then
+            PID=$(cat "$PIDFILE")
+            if kill -0 "$PID" 2>/dev/null; then
+              kill "$PID"
+              echo "AutoRaise stopped (PID $PID)"
+            fi
+            rm -f "$PIDFILE"
+          else
+            # Fallback: kill any autoraise process
+            pkill -f autoraise || true
+            echo "AutoRaise stopped (fallback)"
+          fi
+          ;;
+        *)
+          echo "Usage: $0 {start|stop}"
+          exit 1
+          ;;
+      esac
+    '';
+    executable = true;
+  };
+
   # AeroSpace window manager configuration
   programs.aerospace = {
     enable = true;
     userSettings = {
       # Start AeroSpace at login
       start-at-login = true;
+      
+      # Start autoraise after aerospace startup
+      after-startup-command = [
+        "exec-and-forget ~/.local/bin/aerospace-autoraise.sh start"
+      ];
       
       # Mouse follows focus (closest we can get to focus-follows-mouse for now)
       on-focused-monitor-changed = ["move-mouse monitor-lazy-center"];
@@ -114,7 +160,7 @@
         # Application launchers
         # TODO: Probably move this out to the main home.nix and be passed in here as an arg
         "alt-t" = "exec-and-forget open -a kitty -n"; # Terminal
-        "alt-f" = "exec-and-forget open -a Zen\\ Browser";  # Browser
+        "alt-f" = "exec-and-forget open -a 'Zen Browser'";  # Browser
         "alt-e" = "exec-and-forget open -a Finder";   # File manager
       };
     };
