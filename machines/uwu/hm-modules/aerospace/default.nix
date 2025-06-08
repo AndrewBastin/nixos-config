@@ -105,16 +105,17 @@
         "alt-shift-0" = "exec-and-forget ~/.local/bin/aerospace-move-to-workspace.sh 0";
         
         # Window management
-        "alt-f" = "fullscreen";
+        "alt-space" = "fullscreen";
         "alt-shift-space" = "layout floating tiling"; # toggle floating
         
         # Grab rogue windows from disconnected monitors (similar to Hyprland's Super+Shift+G)
         "alt-shift-g" = "exec-and-forget ~/.local/bin/aerospace-grab-rogue-windows.sh";
         
         # Application launchers
-        "alt-t" = "exec-and-forget open -a kitty"; # Terminal
-        # "alt-b" = "exec-and-forget open -a Firefox";  # Browser
-        # "alt-e" = "exec-and-forget open -a Finder";   # File manager
+        # TODO: Probably move this out to the main home.nix and be passed in here as an arg
+        "alt-t" = "exec-and-forget open -a kitty -n"; # Terminal
+        "alt-f" = "exec-and-forget open -a Zen\\ Browser";  # Browser
+        "alt-e" = "exec-and-forget open -a Finder";   # File manager
       };
     };
   };
