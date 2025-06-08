@@ -1,4 +1,7 @@
-{lib, ...}:
+# Things to think about when setting up Aerospace:
+#  1. If you are seeing windows not being hidden correctly, check if the windows have a good corner to tuck stuff in, see: https://nikitabobko.github.io/AeroSpace/guide#proper-monitor-arrangement
+
+{ lib, ... }:
 
 {
   # Create helper scripts for hyprsplit-style workspace emulation
@@ -108,8 +111,8 @@
         # Grab rogue windows from disconnected monitors (similar to Hyprland's Super+Shift+G)
         "alt-shift-g" = "exec-and-forget ~/.local/bin/aerospace-grab-rogue-windows.sh";
         
-        # TODO: Application launchers (commented for future implementation)
-        # "alt-t" = "exec-and-forget open -a Terminal"; # Terminal
+        # Application launchers
+        "alt-t" = "exec-and-forget open -a kitty"; # Terminal
         # "alt-b" = "exec-and-forget open -a Firefox";  # Browser
         # "alt-e" = "exec-and-forget open -a Finder";   # File manager
       };

@@ -1,10 +1,11 @@
 #!/bin/bash
 # Get focused monitor ID and calculate workspace offset dynamically
-monitor_id=$(aerospace list-monitors --focused | cut -d' ' -f1)
+AEROSPACE="/etc/profiles/per-user/andrew/bin/aerospace"
+monitor_id=$($AEROSPACE list-monitors --focused | cut -d' ' -f1)
 workspace_num=$1
 
 # Get all monitor IDs and sort them to create consistent ordering
-all_monitors=$(aerospace list-monitors | cut -d' ' -f1 | sort -n)
+all_monitors=$($AEROSPACE list-monitors | cut -d' ' -f1 | sort -n)
 
 # Find the position of current monitor in the sorted list (0-based)
 monitor_position=0
@@ -24,4 +25,4 @@ if [ "$workspace_num" -eq 0 ]; then
   target_workspace=$((offset + 10))
 fi
 
-aerospace workspace "$target_workspace"
+$AEROSPACE workspace "$target_workspace"
