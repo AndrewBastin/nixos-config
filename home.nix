@@ -61,6 +61,9 @@
     tig
     devenv
     thunderbird
+    anytype
+    dino
+    dissent
   ];
 
   home.pointerCursor = {
