@@ -26,6 +26,8 @@
       url = "github:0xc000022070/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    mac-app-util.url = "github:hraban/mac-app-util";
   };
 
   outputs = { self, nixpkgs, nixvim, nixpkgs-unstable, nix-darwin, flake-utils, home-manager, ... }@inputs:
@@ -76,7 +78,7 @@
         darwinConfigurations =
           let
             mkDarwinConfigFromMachineDef = lib.buildDarwinConfigFromMachineDef {
-              inherit nix-darwin nixpkgs-unstable home-manager;
+              inherit nix-darwin nixpkgs-unstable home-manager inputs;
               
               flake = self;
 

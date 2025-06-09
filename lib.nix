@@ -25,7 +25,7 @@
       commonModules =
         [
           ./configuration.nix
-home-manager.nixosModules.home-manager {
+          home-manager.nixosModules.home-manager {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
 
@@ -59,10 +59,10 @@ home-manager.nixosModules.home-manager {
           ++ (machineConfig.nixos.additionalModules or []);
       };
       
-  buildDarwinConfigFromMachineDef = { flake, nixpkgs-unstable, home-manager, nix-darwin, provideNvimForSystem }: machineName: machineConfig:
+  buildDarwinConfigFromMachineDef = { flake, nixpkgs-unstable, home-manager, nix-darwin, provideNvimForSystem, inputs }: machineName: machineConfig:
     nix-darwin.lib.darwinSystem {
       specialArgs = {
-        inherit flake home-manager;
+        inherit flake home-manager inputs;
 
         pkgs-unstable = import nixpkgs-unstable {
           system = machineConfig.system; 
@@ -73,6 +73,7 @@ home-manager.nixosModules.home-manager {
         nvim = provideNvimForSystem machineConfig.system;
       };
 
-      modules = machineConfig.darwin.modules;
+      # mac-app-util is assumed as a default for now
+      modules = [inputs.mac-app-util.darwinModules.default] ++ machineConfig.darwin.modules;
     };
 }

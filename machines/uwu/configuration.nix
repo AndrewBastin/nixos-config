@@ -1,5 +1,5 @@
 # NOTE: This is a nix-darwin configuration module, as opposed to a nixos configuration module
-{ flake, nvim, pkgs-unstable, home-manager, ... }: 
+{ flake, nvim, pkgs-unstable, home-manager, inputs, ... }: 
 {
   users.users.andrew = {
     name = "andrew";
@@ -10,6 +10,10 @@
     home-manager.darwinModules.home-manager {
       home-manager.useGlobalPkgs = true;
       home-manager.useUserPackages = true;
+
+      home-manager.sharedModules = [
+        inputs.mac-app-util.homeManagerModules.default
+      ];
 
       home-manager.users.andrew = import ./home.nix;
     }
