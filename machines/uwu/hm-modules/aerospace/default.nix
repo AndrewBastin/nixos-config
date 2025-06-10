@@ -27,6 +27,16 @@
     executable = true;
   };
 
+  home.file.".local/bin/aerospace-open-zen.sh" = {
+    text = lib.readFile ./scripts/aerospace-open-zen.sh;
+    executable = true;
+  };
+
+  home.file.".local/bin/aerospace-open-finder.sh" = {
+    text = lib.readFile ./scripts/aerospace-open-finder.sh;
+    executable = true;
+  };
+
   # AutoRaise management script
   home.file.".local/bin/aerospace-autoraise.sh" = {
     text = /* bash */ ''
@@ -159,9 +169,9 @@
         
         # Application launchers
         # TODO: Probably move this out to the main home.nix and be passed in here as an arg
-        "alt-t" = "exec-and-forget open -a kitty -n"; # Terminal
-        "alt-f" = "exec-and-forget open -a 'Zen Browser'";  # Browser
-        "alt-e" = "exec-and-forget open -a Finder";   # File manager
+        "alt-t" = "exec-and-forget /etc/profiles/per-user/andrew/bin/kitty --single-instance --directory ~"; # Terminal
+        "alt-f" = "exec-and-forget ~/.local/bin/aerospace-open-zen.sh";  # Browser (new window)
+        "alt-e" = "exec-and-forget ~/.local/bin/aerospace-open-finder.sh";   # File manager
       };
     };
   };
