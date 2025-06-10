@@ -24,6 +24,7 @@
     };
     keybindings = {
       "ctrl+shift+t" = "launch --cwd=current --type=tab";
+      "cmd+t" = "launch --cwd=current --type=tab";
     };
     shellIntegration = {
       enableBashIntegration = true;
