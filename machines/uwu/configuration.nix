@@ -6,10 +6,17 @@
     home = "/Users/andrew";
   };
 
+  system.primaryUser = "andrew";
+
   imports = [
+    ./homebrew.nix
     home-manager.darwinModules.home-manager {
       home-manager.useGlobalPkgs = true;
       home-manager.useUserPackages = true;
+
+      home-manager.extraSpecialArgs = {
+        inherit pkgs-unstable;
+      };
 
       home-manager.sharedModules = [
         inputs.mac-app-util.homeManagerModules.default
@@ -28,7 +35,6 @@
   ];
 
   environment.variables.EDITOR = "nvim";
-
 
   system.configurationRevision = flake.rev or flake.dirtyRev or null;
   system.stateVersion = 6;
