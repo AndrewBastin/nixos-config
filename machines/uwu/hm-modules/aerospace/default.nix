@@ -3,9 +3,13 @@
 
 { lib, pkgs, ... }:
 
+let
+  # Custom autoraise with focus-without-raising support
+  autoraise = pkgs.callPackage ../../../../patches/autoraise { };
+in
 {
-  # Install autoraise for focus-follows-mouse functionality
-  home.packages = with pkgs; [ autoraise ];
+  # Install custom autoraise for focus-follows-mouse functionality
+  home.packages = [ autoraise ];
   # Create helper scripts for hyprsplit-style workspace emulation
   home.file.".local/bin/aerospace-workspace.sh" = {
     text = lib.readFile ./scripts/aerospace-workspace.sh;
@@ -49,7 +53,7 @@
             echo "AutoRaise already running"
             exit 0
           fi
-          ${lib.getExe pkgs.autoraise} &
+          ${lib.getExe autoraise} -delay 0 &
           echo $! > "$PIDFILE"
           echo "AutoRaise started with PID $(cat "$PIDFILE")"
           ;;
