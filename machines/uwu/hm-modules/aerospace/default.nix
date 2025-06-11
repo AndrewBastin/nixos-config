@@ -176,6 +176,7 @@ in
         "alt-t" = "exec-and-forget /etc/profiles/per-user/andrew/bin/kitty --single-instance --directory ~"; # Terminal
         "alt-f" = "exec-and-forget ~/.local/bin/aerospace-open-zen.sh";  # Browser (new window)
         "alt-e" = "exec-and-forget ~/.local/bin/aerospace-open-finder.sh";   # File manager
+        "alt-c" = "exec-and-forget open -a Numi"; # Calculator (Numi)
       };
     };
   };

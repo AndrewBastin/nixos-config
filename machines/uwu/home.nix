@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, pkgs-unstable, ... }:
 
 {
   imports = [
@@ -8,6 +8,7 @@
 
   home.packages = with pkgs; [
     nh
+    pkgs-unstable.numi
   ];
 
   home.stateVersion = "24.11";
