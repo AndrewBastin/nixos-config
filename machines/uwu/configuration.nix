@@ -36,6 +36,14 @@
 
   environment.variables.EDITOR = "nvim";
 
+  # Custom launchd agent for aerospace startup
+  launchd.user.agents.aerospace = {
+    command = "open -a AeroSpace";
+    serviceConfig = {
+      RunAtLoad = true;
+    };
+  };
+
   system.configurationRevision = flake.rev or flake.dirtyRev or null;
   system.stateVersion = 6;
   nixpkgs.hostPlatform = "aarch64-darwin";
