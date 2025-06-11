@@ -92,9 +92,9 @@ in
         "exec-and-forget ~/.local/bin/aerospace-autoraise.sh start"
       ];
       
-      # Mouse follows focus (closest we can get to focus-follows-mouse for now)
-      on-focused-monitor-changed = ["move-mouse monitor-lazy-center"];
-      on-focus-changed = ["move-mouse window-lazy-center"];
+      # Disable mouse auto-centering - let the user control mouse position
+      # on-focused-monitor-changed = ["move-mouse monitor-lazy-center"];
+      # on-focus-changed = ["move-mouse window-lazy-center"];
       
       # Disable built-in macOS spaces since we're using AeroSpace workspaces
       enable-normalization-flatten-containers = true;
