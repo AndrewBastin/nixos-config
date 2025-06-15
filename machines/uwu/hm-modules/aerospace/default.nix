@@ -3,13 +3,7 @@
 
 { lib, pkgs, ... }:
 
-let
-  # Custom autoraise with focus-without-raising support
-  autoraise = pkgs.callPackage ../../../../patches/autoraise { };
-in
 {
-  # Install custom autoraise for focus-follows-mouse functionality
-  home.packages = [ autoraise ];
   # Create helper scripts for hyprsplit-style workspace emulation
   home.file.".local/bin/aerospace-workspace.sh" = {
     text = lib.readFile ./scripts/aerospace-workspace.sh;
@@ -41,44 +35,6 @@ in
     executable = true;
   };
 
-  # AutoRaise management script
-  home.file.".local/bin/aerospace-autoraise.sh" = {
-    text = /* bash */ ''
-      #!/bin/bash
-      PIDFILE="$HOME/.cache/aerospace-autoraise.pid"
-      
-      case "$1" in
-        start)
-          if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
-            echo "AutoRaise already running"
-            exit 0
-          fi
-          ${lib.getExe autoraise} -delay 0 &
-          echo $! > "$PIDFILE"
-          echo "AutoRaise started with PID $(cat "$PIDFILE")"
-          ;;
-        stop)
-          if [ -f "$PIDFILE" ]; then
-            PID=$(cat "$PIDFILE")
-            if kill -0 "$PID" 2>/dev/null; then
-              kill "$PID"
-              echo "AutoRaise stopped (PID $PID)"
-            fi
-            rm -f "$PIDFILE"
-          else
-            # Fallback: kill any autoraise process
-            pkill -f autoraise || true
-            echo "AutoRaise stopped (fallback)"
-          fi
-          ;;
-        *)
-          echo "Usage: $0 {start|stop}"
-          exit 1
-          ;;
-      esac
-    '';
-    executable = true;
-  };
 
   # AeroSpace window manager configuration
   programs.aerospace = {
@@ -87,14 +43,7 @@ in
       # Start AeroSpace at login
       start-at-login = true;
       
-      # Start autoraise after aerospace startup
-      after-startup-command = [
-        "exec-and-forget ~/.local/bin/aerospace-autoraise.sh start"
-      ];
       
-      # Disable mouse auto-centering - let the user control mouse position
-      # on-focused-monitor-changed = ["move-mouse monitor-lazy-center"];
-      # on-focus-changed = ["move-mouse window-lazy-center"];
       
       # Disable built-in macOS spaces since we're using AeroSpace workspaces
       enable-normalization-flatten-containers = true;
