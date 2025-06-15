@@ -38,6 +38,7 @@
       neo-tree.enable = true;
       noice.enable = true;
       gitsigns.enable = true;
+      diffview.enable = true;
       which-key.enable = true;
       nvim-surround.enable = true;
       neoconf.enable = true;
@@ -325,6 +326,8 @@
           (silentNMap "<leader>cf"        "Change filetype"                     "<cmd>lua require('fzf-lua').filetypes()<CR>")
           (silentNMap "<leader>Gc"        "Git commits of this file"            "<cmd>lua require('fzf-lua').git_bcommits()<CR>")
           (silentNMap "<leader>GG"        "Git status"                          "<cmd>lua require('fzf-lua').git_status()<CR>")
+          (silentNMap "<leader>Gdo"       "Open Diff view"                      "<cmd>DiffviewOpen<CR>")
+          (silentNMap "<leader>Gdc"       "Close Diff view"                     "<cmd>DiffviewClose<CR>")
           (silentNMap "<leader>a"         "Toggle AI Chat"                      "<cmd>CodeCompanionChat Toggle<CR>")
         ];
   }
