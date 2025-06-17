@@ -8,6 +8,7 @@
 
   home.packages = with pkgs; [
     nh
+    nix-output-monitor
     pkgs-unstable.numi
   ];
 
