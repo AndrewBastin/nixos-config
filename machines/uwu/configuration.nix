@@ -10,6 +10,7 @@
 
   imports = [
     ./homebrew.nix
+    ./system-defaults.nix
     home-manager.darwinModules.home-manager {
       home-manager.useGlobalPkgs = true;
       home-manager.useUserPackages = true;
