@@ -20,4 +20,14 @@
       ];
     };
   };
+
+  winry = {
+    system = "aarch64-darwin";
+
+    darwin = {
+      modules = [
+        ./winry/configuration.nix
+      ];
+    };
+  };
 }
