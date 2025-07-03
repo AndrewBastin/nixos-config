@@ -44,6 +44,22 @@
     nix-direnv.enable = true;
   };
 
+  # Set wallpaper using LaunchAgent
+  launchd.user.agents.setWallpaper = let
+    desktoppr = pkgs-unstable.callPackage ../../apps/desktoppr.nix {};
+    wallpaper = ./wallpaper.png;
+  in {
+    serviceConfig = {
+      ProgramArguments = [
+        "${desktoppr}/bin/desktoppr"
+        "${wallpaper}"
+      ];
+      RunAtLoad = true;
+      StandardOutPath = "/tmp/wallpaper-set.log";
+      StandardErrorPath = "/tmp/wallpaper-set.log";
+    };
+  };
+
   system.configurationRevision = flake.rev or flake.dirtyRev or null;
   system.stateVersion = 6;
   nixpkgs.hostPlatform = "aarch64-darwin";
