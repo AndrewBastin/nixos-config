@@ -24,7 +24,9 @@
       "firefox"
       "obsidian"
       "orbstack"
+      "slack"
       "vlc"
+      "whatsapp"
       "zen"
     ];
   };

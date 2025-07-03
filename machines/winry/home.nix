@@ -12,6 +12,7 @@
     pkgs-unstable.numi
     tig
     gh
+    nodejs_20
   ];
 
   programs.git = {
