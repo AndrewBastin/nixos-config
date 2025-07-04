@@ -13,6 +13,7 @@
     tig
     gh
     nodejs_20
+    hidden-bar
   ];
 
   programs.git = {
