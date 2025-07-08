@@ -28,6 +28,8 @@
       "vlc"
       "whatsapp"
       "zen"
+      "granola"
+      "notion"
     ];
   };
 }
