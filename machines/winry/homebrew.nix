@@ -4,12 +4,15 @@
   homebrew = {
     enable = true;
 
+    onActivation.cleanup = "zap";
+
     taps = [];
 
     brews = [];
 
     masApps = {
       "Things 3" = 904280696;
+      "Wireguard" = 1451685025;
     };
 
     casks = [
