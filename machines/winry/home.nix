@@ -22,5 +22,19 @@
     userEmail = "andrewbastin.k@gmail.com";
   };
 
+  programs.fzf = {
+    enable = true;
+    enableZshIntegration = true;
+    enableBashIntegration = true;
+  };
+
+  programs.zsh = {
+    enable = true;
+    enableCompletion = true;
+
+    autosuggestion.enable = true;
+    syntaxHighlighting.enable = true;
+  };
+
   home.stateVersion = "24.11";
 }
