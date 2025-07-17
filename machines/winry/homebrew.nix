@@ -33,6 +33,7 @@
       "zen"
       "granola"
       "notion"
+      "aldente"
     ];
   };
 }
