@@ -14,6 +14,7 @@
     gh
     nodejs_20
     hidden-bar
+    bat
   ];
 
   programs.git = {
