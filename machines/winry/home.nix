@@ -15,6 +15,7 @@
     nodejs_20
     hidden-bar
     bat
+    aria2
   ];
 
   programs.git = {
