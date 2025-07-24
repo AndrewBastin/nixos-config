@@ -34,6 +34,7 @@
       "granola"
       "notion"
       "aldente"
+      "cloudflare-warp"
     ];
   };
 }
