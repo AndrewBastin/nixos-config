@@ -3,6 +3,9 @@
 {
   # System defaults configuration for uwu
   system.defaults = {
+    # Click wallpaper to show desktop -> Only in Stage Manager
+    WindowManager.EnableStandardClickToShowDesktop = false;
+
     # Dock settings
     dock = {
       autohide = true;
