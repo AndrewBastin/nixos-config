@@ -39,6 +39,11 @@
       strategy = ["completion"];
     };
 
+    shellAliases = {
+      # zoxide
+      cd = "z";
+    };
+
     syntaxHighlighting.enable = true;
   };
 
