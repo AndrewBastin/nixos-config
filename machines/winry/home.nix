@@ -22,6 +22,8 @@
     enable = true;
     userName = "Andrew Bastin";
     userEmail = "andrewbastin.k@gmail.com";
+
+    difftastic.enable = true;
   };
 
   programs.fzf = {
