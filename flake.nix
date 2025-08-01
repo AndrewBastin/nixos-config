@@ -66,8 +66,6 @@
               inherit inputs home-manager nixpkgs-unstable;
 
               pkgs = nixpkgs;
-
-              provideNvimForSystem = system: self.packages.${system}.nvim;
             };
 
           in
@@ -81,8 +79,6 @@
               inherit nix-darwin nixpkgs-unstable home-manager inputs;
               
               flake = self;
-
-              provideNvimForSystem = system: self.packages.${system}.nvim;
             };
           in
             nixpkgs.lib.mapAttrs
