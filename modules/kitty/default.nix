@@ -25,11 +25,18 @@
 {
   options = { lib, ... }: {
     kitty = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Whether to enable kitty";
+      };
+
       fontSize = lib.mkOption {
         type = lib.types.int;
         default = 14;
         description = "Font size for Kitty terminal";
       };
+
     };
   };
 
@@ -39,7 +46,7 @@
     in
       {
         programs.kitty = {
-          enable = true;
+          enable = universalConfig.kitty.enable or true;
           themeFile = "adwaita_darker";
           font = {
             package = pkgs.nerd-fonts.fira-code;
