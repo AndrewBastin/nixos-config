@@ -30,6 +30,8 @@
       wrap = false;
     };
 
+    dependencies.gcc.enable = true;
+
     plugins = {
       web-devicons.enable = true;
 
