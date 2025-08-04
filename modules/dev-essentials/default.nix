@@ -22,8 +22,13 @@
 # - Project environment management via direnv
 {
   imports = [
-    ../kitty        # Kitty is the terminal I use
+    ../kitty
   ];
+
+  nixos = { pkgs, ... }: {
+    programs.zsh.enable = true;
+    users.users.andrew.shell = pkgs.zsh;
+  };
 
   home = { pkgs, pkgs-unstable, inputs, ... }:
     let
