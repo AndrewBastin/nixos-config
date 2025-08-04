@@ -200,6 +200,7 @@ rec {
         modules = 
           [machineConfig.nixos.hardwareConfiguration]
           ++ commonModules
+          ++ (machineConfig.nixos.modules or [])
           ++ (machineConfig.nixos.additionalModules or [])
           ++ nixosUniversalModules
           ++ [
@@ -307,3 +308,4 @@ rec {
         ];
     };
 }
+
