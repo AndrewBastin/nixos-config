@@ -99,9 +99,23 @@
       ghostty
       gtkmm3
       st
+      dconf
     ];
 
     virtualisation.vmware.guest.enable = true;
+
+    fileSystems."/mac" = {
+      fsType = "fuse./run/current-system/sw/bin/vmhgfs-fuse";
+      device = ".host:/";
+      options = [
+        "umask=22"
+        "uid=1000"
+        "gid=1000"
+        "allow_other"
+        "auto_unmount"
+        "defaults"
+      ];
+    };
 
     # Some programs need SUID wrappers, can be configured further or are
     # started in user sessions.

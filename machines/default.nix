@@ -71,6 +71,7 @@
       ../modules/ghostty
       ../modules/dev-essentials
       ../modules/dwm
+      ./winry-nixos/modules/theming.nix
     ];
 
     nixos = {
