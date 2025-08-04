@@ -48,4 +48,37 @@
       ];
     };
   };
+
+  winry-nixos = {
+    system = "aarch64-linux";
+    stateVersion = "25.05";
+    homeStateVersion = "25.05";
+
+    config = {
+      ghostty.fontSize = 24;
+
+      dwm = {
+        enable = true;
+        dpi = 196;
+        autoLogin = {
+          enable = true;
+          user = "andrew";
+        };
+      };
+    };
+
+    modules = [
+      ../modules/ghostty
+      ../modules/dev-essentials
+      ../modules/dwm
+    ];
+
+    nixos = {
+      hardwareConfiguration = import ./winry-nixos/modules/hardware-configuration.nix;
+
+      modules = [
+        ./winry-nixos/modules/configuration.nix
+      ];
+    };
+  };
 }
