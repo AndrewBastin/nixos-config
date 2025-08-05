@@ -76,8 +76,13 @@
 
     # macOS System Defaults configuration
     system.defaults = {
-      # Click wallpaper to show desktop -> Only in Stage Manager
-      WindowManager.EnableStandardClickToShowDesktop = false;
+      WindowManager = {
+        # Click wallpaper to show desktop -> Only in Stage Manager
+        EnableStandardClickToShowDesktop = false;
+        
+        # Tiled windows have margins -> Unchecked
+        EnableTiledWindowMargins = false;
+      };
 
       # Dock settings
       dock = {
