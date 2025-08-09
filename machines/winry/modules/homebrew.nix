@@ -35,6 +35,8 @@
         "notion"
         "aldente"
         "cloudflare-warp"
+        "steam"
+        "element"
       ];
     };
   };
