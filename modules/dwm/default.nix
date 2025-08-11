@@ -109,7 +109,9 @@
       
       # Set DPI for high resolution displays
       services.xserver.dpi = dpi;
-      
+
+      services.xserver.upscaleDefaultCursor = true;
+
       # Enable LightDM display manager
       services.xserver.displayManager.lightdm.enable = true;
       
