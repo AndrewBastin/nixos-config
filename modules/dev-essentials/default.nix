@@ -35,7 +35,6 @@
       my_nvim = import ../../apps/nvim.nix {
         nixvim = inputs.nixvim.legacyPackages."${pkgs.stdenv.system}";
       };
-      claude-code = pkgs-unstable.callPackage ../../patches/claude-code {};
     in
       {
         home.packages = with pkgs; [
@@ -43,7 +42,7 @@
           nodejs_20
           bat
           my_nvim
-          claude-code
+          pkgs-unstable.claude-code
         ];
 
         programs.gh = {
