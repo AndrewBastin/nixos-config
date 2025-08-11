@@ -13,6 +13,7 @@
       masApps = {
         "Things 3" = 904280696;
         "Wireguard" = 1451685025;
+        "Flighty" = 1358823008;
       };
 
       casks = [
