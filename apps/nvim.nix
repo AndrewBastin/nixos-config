@@ -10,8 +10,17 @@
 #       };
 #    --
 
-{ nixvim, noLSP ? false, ... }:
+{ nixvim, pkgs-unstable, noLSP ? false, ... }:
   nixvim.makeNixvim {
+
+    extraPlugins = [
+      pkgs-unstable.vimPlugins.claudecode-nvim
+    ];
+
+    extraConfigLua = /* lua */ ''
+      require('claudecode').setup({})
+    '';
+
     colorschemes.kanagawa = {
       enable = true;
       settings.theme = "dragon";
@@ -98,32 +107,6 @@
           };
         };
 
-      };
-
-      codecompanion = {
-        enable = true;
-
-        settings = {
-          adapters = {
-            anthropic = {
-              __raw = /* lua */ ''
-                function ()
-                  return require("codecompanion.adapters").extend("anthropic", {
-                    env = {
-                      api_key = "cmd:cat ~/.config/andrewvim/anthropic_api_key"
-                    }
-                  })
-                end
-              '';
-            };
-          };
-
-          strategies = {
-            inline.adapter = "anthropic";
-            chat.adapter = "anthropic";
-            agent.adapter = "anthropic";
-          };
-        };
       };
 
       gitblame = {

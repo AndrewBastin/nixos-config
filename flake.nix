@@ -34,28 +34,36 @@
     let
       lib = import ./lib.nix;
 
+
       # Custom apps that I use with special configurations (for example, nvim)
       exportedApps = flake-utils.lib.eachDefaultSystem (system:
-        {
-          packages = {
-            nvim = import ./apps/nvim.nix {
-              nixvim = (import nixvim).legacyPackages."${system}";
+        let
+          pkgs-unstable = nixpkgs-unstable.legacyPackages.${system};
+        in
+          {
+            packages = {
+              nvim = import ./apps/nvim.nix {
+                inherit pkgs-unstable;
+
+                nixvim = (import nixvim).legacyPackages."${system}";
+              };
+
+              nvim-mini = import ./apps/nvim.nix {
+                inherit pkgs-unstable;
+
+                nixvim = (import nixvim).legacyPackages."${system}";
+                noLSP = true;
+              };
             };
 
-            nvim-mini = import ./apps/nvim.nix {
-              nixvim = (import nixvim).legacyPackages."${system}";
-              noLSP = true;
+            apps = {
+              nvim = flake-utils.lib.mkApp {
+                drv = self.packages.${system}.nvim;
+                name = "nvim";
+                exePath = "/bin/nvim";
+              };
             };
-          };
-
-          apps = {
-            nvim = flake-utils.lib.mkApp {
-              drv = self.packages.${system}.nvim;
-              name = "nvim";
-              exePath = "/bin/nvim";
-            };
-          };
-        }
+          }
       );
 
       # Configurations for NixOS and Darwin machines

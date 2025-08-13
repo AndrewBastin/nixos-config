@@ -33,6 +33,8 @@
   home = { pkgs, pkgs-unstable, inputs, ... }:
     let
       my_nvim = import ../../apps/nvim.nix {
+        inherit pkgs-unstable;
+
         nixvim = inputs.nixvim.legacyPackages."${pkgs.stdenv.system}";
       };
     in
