@@ -5,6 +5,7 @@
       nh
       nix-output-monitor
       aria2
+      (pkgs.callPackage ../../../apps/cursor-cli.nix {})
     ];
   };
 }

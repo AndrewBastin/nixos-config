@@ -4,4 +4,6 @@
 {
   # All common Darwin setup (users, home-manager) is now in lib.nix
   # Machine-specific modules are loaded through the universal module system
+
+  nixpkgs.config.allowUnfree = true;
 }
