@@ -75,10 +75,18 @@
             strategy = ["completion"];
           };
 
-          shellAliases = {
-            # zoxide
-            cd = "z";
-          };
+          # A fix for the issue with Claude Code's Bash Tool failing when using cd: https://github.com/anthropics/claude-code/issues/2407
+          initContent = /* sh */ ''
+            if [[ "$CLAUDECODE" != "1" ]]; then
+              eval "$(zoxide init --cmd cd zsh)"
+            fi
+          '';
+
+          # Commented out to enable the custom fix for Claude Code. See `programs.zsh.initContent` definition in this file for more info
+          # shellAliases = {
+          #   # zoxide
+          #   cd = "z";
+          # };
 
           syntaxHighlighting.enable = true;
 
@@ -90,7 +98,9 @@
         programs.zoxide = {
           enable = true;
           enableBashIntegration = true;
-          enableZshIntegration = true;
+
+          # Commented out to enable the custom fix for Claude Code. See `programs.zsh.initContent` definition in this file for more info
+          # enableZshIntegration = true;
         };
 
         programs.direnv = {
