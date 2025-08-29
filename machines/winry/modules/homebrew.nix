@@ -40,6 +40,7 @@
         "steam"
         "element"
         "figma"
+        "todoist-app"
       ];
     };
   };
