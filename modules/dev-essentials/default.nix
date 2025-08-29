@@ -45,6 +45,9 @@
           bat
           my_nvim
           pkgs-unstable.claude-code
+          jq
+          lazygit
+          ripgrep
         ];
 
         programs.gh = {
@@ -82,11 +85,13 @@
             fi
           '';
 
-          # Commented out to enable the custom fix for Claude Code. See `programs.zsh.initContent` definition in this file for more info
-          # shellAliases = {
-          #   # zoxide
-          #   cd = "z";
-          # };
+          shellAliases = {
+            # Commented out to enable the custom fix for Claude Code. See `programs.zsh.initContent` definition in this file for more info
+            # zoxide
+            # cd = "z";
+
+            lg = "lazygit";
+          };
 
           syntaxHighlighting.enable = true;
 
