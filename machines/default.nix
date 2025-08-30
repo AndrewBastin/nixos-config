@@ -82,4 +82,25 @@
       ];
     };
   };
+
+  fern = {
+    system = "x86_64-linux";
+    stateVersion = "25.05";
+    homeStateVersion = "25.05";
+
+    config = { 
+    };
+
+    modules = [
+      ../modules/dev-essentials
+    ];
+
+    nixos = {
+      hardwareConfiguration = import ./fern/hardware-configuration.nix;
+
+      modules = [
+        ./fern/configuration.nix
+      ];
+    };
+  };
 }
