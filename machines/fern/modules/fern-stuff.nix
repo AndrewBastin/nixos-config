@@ -8,4 +8,10 @@
       pkgs-unstable.cider-2
     ];
   };
+
+  nixos = { ... }: {
+    virtualisation.docker.enable = true;
+
+    users.users.andrew.extraGroups = [ "docker" ];
+  };
 }
