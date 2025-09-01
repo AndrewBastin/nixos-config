@@ -88,11 +88,18 @@
     stateVersion = "25.05";
     homeStateVersion = "25.05";
 
-    config = { 
+    config = {
+      kitty.fontSize = 10;
+      andrew-shell.monitorRules = [
+        # Built in monitor - Default configs with a 1.6 scale
+        "eDP-1, preferred, auto, 1.6"
+      ];
     };
 
     modules = [
       ../modules/dev-essentials
+      ../modules/andrew-shell
+      ./fern/modules/fern-stuff.nix
     ];
 
     nixos = {

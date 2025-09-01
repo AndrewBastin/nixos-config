@@ -2,7 +2,7 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, inputs, ... }:
+{ pkgs, inputs, ... }:
 
 {
   imports =
@@ -15,9 +15,6 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  # Use the 6.15 kernel (there was issues building Nvidia kmods in 6.16)
-  boot.kernelPackages = pkgs.linuxPackages_6_15;
-
   nix.settings.experimental-features = ["nix-command" "flakes"];
 
   networking.hostName = "fern"; # Define your hostname.
@@ -29,6 +26,11 @@
 
   # Enable networking
   networking.networkmanager.enable = true;
+
+  hardware.bluetooth.enable = true;
+
+  # Firmware Updater
+  services.fwupd.enable = true;
 
   # Set your time zone.
   time.timeZone = "Asia/Kolkata";
@@ -47,13 +49,6 @@
     LC_TELEPHONE = "en_IN";
     LC_TIME = "en_IN";
   };
-
-  # Enable the X11 windowing system.
-  services.xserver.enable = true;
-
-  # Enable the XFCE Desktop Environment.
-  services.xserver.displayManager.lightdm.enable = true;
-  services.xserver.desktopManager.xfce.enable = true;
 
   # Configure keymap in X11
   services.xserver.xkb = {
@@ -93,21 +88,8 @@
     ];
   };
 
-  # Install firefox.
-  programs.firefox.enable = true;
-
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
-
-  # List packages installed in system profile. To search, run:
-  # $ nix search wget
-  environment.systemPackages = with pkgs; [
-  #  vim # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
-  #  wget
-    neovim
-    git
-    nh
-  ];
 
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
