@@ -281,13 +281,6 @@
             ",XF86MonBrightnessDown, exec, ${brightness_decrease}"
           ];
 
-        input = {
-          touchpad = {
-            natural_scroll = true;
-          };
-        };
-
-
         bindl = let
           playerctl = lib.getExe pkgs.playerctl;
         in
@@ -297,6 +290,16 @@
             ", XF86AudioPlay, exec, ${playerctl} play-pause"
             ", XF86AudioPrev, exec, ${playerctl} previous"
           ];
+
+        input = {
+          touchpad = {
+            natural_scroll = true;
+          };
+        };
+        
+        xwayland = {
+          force_zero_scaling = true;
+        };
       };
     };
   };
