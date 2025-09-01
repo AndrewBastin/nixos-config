@@ -6,6 +6,12 @@
         default = [ ", preferred, auto, 1" ];
         description = "Sets the rules for how monitors should be laid out. Follows https://wiki.hypr.land/Configuring/Monitors/";
       };
+
+      wallpaper = lib.mkOption {
+        type = lib.types.nullOr lib.types.path;
+        default = null;
+        description = "Sets the wallpaper. If set to null (default) it will render a blank black background";
+      };
     };
   };
 
@@ -58,6 +64,14 @@
       enable = true;
       platformTheme.name = "adwaita";
       style.name = "adwaita-dark";
+    };
+
+    services.hyprpaper = {
+      enable = universalConfig.andrew-shell.wallpaper != null;
+      settings = {
+       preload = "${universalConfig.andrew-shell.wallpaper}";
+       wallpaper = ",${universalConfig.andrew-shell.wallpaper}";
+      };
     };
 
 
