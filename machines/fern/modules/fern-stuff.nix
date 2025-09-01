@@ -4,8 +4,10 @@
       nh
       dino
       firefox
+      pkgs-unstable.thunderbird
       pkgs-unstable.slack
       pkgs-unstable.cider-2
+      pkgs-unstable.todoist-electron
     ];
   };
 
