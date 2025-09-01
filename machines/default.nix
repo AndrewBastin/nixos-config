@@ -94,6 +94,8 @@
         # Built in monitor - Default configs with a 1.6 scale
         "eDP-1, preferred, auto, 1.6"
       ];
+
+      andrew-shell.wallpaper = ./fern/wallpaper.jpg;
     };
 
     modules = [
