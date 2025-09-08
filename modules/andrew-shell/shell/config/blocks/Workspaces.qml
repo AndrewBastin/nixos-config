@@ -35,22 +35,53 @@ RowLayout {
         Repeater {
           model: workspaceParent.modelData.toplevels
 
-          Image {
+          Item {
+            implicitWidth: appIconSource !== ""
+              ? imageItem.implicitWidth
+              : fallbackItem.implicitWidth
+
+            implicitHeight: appIconSource !== ""
+              ? imageItem.implicitHeight
+              : fallbackItem.implicitHeight
+
             required property HyprlandToplevel modelData
+            readonly property string appIconSource: {
+              // Try directly with the app-id first
+              let iconSource = Quickshell.iconPath(modelData.wayland?.appId, true)
 
-            source: {
-              var iconSource = Quickshell.iconPath(modelData.wayland?.appId, true)
-
+              // Try lowercasing the app-id next, for e.g, Slack needs this
               if (iconSource === "") {
-                iconSource = Quickshell.iconPath(modelData.wayland?.appId.toLowerCase())
+                iconSource = Quickshell.iconPath(modelData.wayland?.appId.toLowerCase(), true)
               }
 
               return iconSource
             }
-            sourceSize.width: 8
-            sourceSize.height: 8
 
-            mipmap: true
+            // Icon rendered if window icon is found
+            Image {
+              id: imageItem
+
+              visible: appIconSource !== ""
+              enabled: visible
+
+              source: appIconSource
+              sourceSize.width: 8
+              sourceSize.height: 8
+
+              mipmap: true
+            }
+
+            // Fallback Icon
+            Text {
+              id: fallbackItem
+
+              visible: appIconSource === ""
+              enabled: visible
+
+              text: ""
+              font.pointSize: Theme.statusIconsFontSize - 2
+              color: Theme.barTextColor
+            }
           }
         }
       }
