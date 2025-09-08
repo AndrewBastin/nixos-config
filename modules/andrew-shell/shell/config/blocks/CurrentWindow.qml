@@ -66,8 +66,16 @@ RowLayout {
   }
 
   Text {
+    function ellipsize(str, n) {
+      if (str.length > n) {
+        return str.slice(0, n - 3) + '...';
+      } else {
+        return str;
+      }
+    }
+
     visible: !reportedTopLevelIsNotThere
-    text: Hyprland.activeToplevel?.title ?? ""
+    text: ellipsize(Hyprland.activeToplevel?.title ?? "", Theme.windowTitleCharsLimit)
     color: Theme.barTextColor
   }
 }

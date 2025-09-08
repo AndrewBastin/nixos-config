@@ -17,4 +17,8 @@ Singleton {
 
   property int statusIconsFontSize: 10
   property int statusIconsSpacing: 11
+
+  // The number of characters in the current window title after 
+  // which the title is ellipsized.
+  property int windowTitleCharsLimit: 120
 }
