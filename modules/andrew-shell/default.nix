@@ -21,8 +21,12 @@
     # We use ly as the display manager
     services.displayManager.ly.enable = true;
 
+    # We need upower daemon for battery info
+    services.upower.enable = true;
+
     environment.systemPackages = with pkgs; [
       blueman         # Bluetooth management
+      swaynotificationcenter
     ];
 
     # Hint to Electron apps to use Wayland
@@ -33,7 +37,8 @@
     imports = [
       inputs.zen-browser.homeModules.beta
 
-      ./waybar.nix
+      # ./waybar.nix
+      ./shell
       ./lock.nix
     ];
 
@@ -85,7 +90,9 @@
       settings = {
         monitor = universalConfig.andrew-shell.monitorRules or [ ", preferred, auto, 1" ];
 
-        exec-once = "${lib.getExe pkgs.hyprpaper} & ${lib.getExe pkgs.swaynotificationcenter} & ${lib.getExe pkgs.waybar}";
+        exec-once = [
+          "${lib.getExe pkgs.hyprpaper} & ${lib.getExe pkgs.swaynotificationcenter}"
+        ];
 
         plugin = {
           hyprsplit = {
