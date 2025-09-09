@@ -30,7 +30,7 @@ Scope {
 
       screen: modelData
 
-      implicitHeight: 32
+      implicitHeight: 33
 
       color: Theme.barBgColor
 
