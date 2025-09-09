@@ -99,6 +99,7 @@
     };
 
     modules = [
+      ../modules/nixos-essentials
       ../modules/dev-essentials
       ../modules/andrew-shell
       ./fern/modules/fern-stuff.nix

@@ -5,17 +5,13 @@
 { pkgs, inputs, ... }:
 
 {
-  imports =
-    [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
-      inputs.nixos-hardware.nixosModules.lenovo-thinkpad-p14s-intel-gen5
-    ];
+  imports = [ 
+    inputs.nixos-hardware.nixosModules.lenovo-thinkpad-p14s-intel-gen5
+  ];
 
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-
-  nix.settings.experimental-features = ["nix-command" "flakes"];
 
   networking.hostName = "fern"; # Define your hostname.
 
@@ -23,9 +19,6 @@
   networking.networkmanager.enable = true;
 
   hardware.bluetooth.enable = true;
-
-  # Firmware Updater
-  services.fwupd.enable = true;
 
   # Set your time zone.
   time.timeZone = "Asia/Kolkata";
@@ -78,9 +71,6 @@
     extraGroups = [ "networkmanager" "wheel" ];
     packages = [];
   };
-
-  # Allow unfree packages
-  nixpkgs.config.allowUnfree = true;
 
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
