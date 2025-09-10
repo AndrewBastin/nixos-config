@@ -48,6 +48,8 @@
           jq
           lazygit
           ripgrep
+          zip
+          unzip
         ];
 
         programs.gh = {
