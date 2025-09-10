@@ -1,6 +1,14 @@
 # Essential configuration that is present in pretty much
 # all my NixOS systems
 {
+  home = { pkgs, ... }: {
+    # Comma and nix-index is used to index nixpkgs
+    home.packages = with pkgs; [
+      nix-index
+      comma
+    ];
+  };
+
   nixos = { pkgs, ... }: {
     nix.settings.experimental-features = ["nix-command" "flakes"];
 
