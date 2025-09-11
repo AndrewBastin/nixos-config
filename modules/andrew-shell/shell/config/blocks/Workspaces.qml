@@ -7,7 +7,7 @@ import "../singletons"
 RowLayout {
   Repeater {
     // `hyprlandMonitor` comes from shell.qml
-    model: Hyprland.workspaces.values.filter((x) => x.monitor.id == hyprlandMonitor.id)
+    model: Hyprland.workspaces.values.filter((x) => x.monitor.id == hyprlandMonitor.id || x.name == "special:magic")
 
     Rectangle {
       id: workspaceParent
@@ -28,7 +28,13 @@ RowLayout {
         Text {
           id: textItem
 
-          text: workspaceParent.modelData.name
+          text: {
+            if (workspaceParent.modelData.name !== "special:magic") {
+              return workspaceParent.modelData.name
+            } else {
+              return "SP"
+            }
+          }
           color: Theme.barTextColor
         }
 
