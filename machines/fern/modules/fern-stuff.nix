@@ -8,6 +8,7 @@
       pkgs-unstable.slack
       pkgs-unstable.cider-2
       pkgs-unstable.todoist-electron
+      pkgs-unstable.obsidian
     ];
   };
 
