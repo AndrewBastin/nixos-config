@@ -20,7 +20,7 @@
 
     nixvim = {
       url = "github:nix-community/nixvim";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
 
     zen-browser = {
@@ -44,16 +44,14 @@
           {
             packages = {
               nvim = import ./apps/nvim.nix {
-                inherit pkgs-unstable;
-
                 nixvim = (import nixvim).legacyPackages."${system}";
+                pkgs = pkgs-unstable;
               };
 
               nvim-mini = import ./apps/nvim.nix {
-                inherit pkgs-unstable;
-
                 nixvim = (import nixvim).legacyPackages."${system}";
                 noLSP = true;
+                pkgs = pkgs-unstable;
               };
             };
 

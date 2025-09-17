@@ -9,12 +9,13 @@
 #          nixvim = (import nixvim-flake).legacyPackages."${system}";
 #       };
 #    --
+# NOTE: This is expected to be built with pkgs pointing to nixos-unstable nixpkgs
 
-{ nixvim, pkgs-unstable, noLSP ? false, ... }:
+{ nixvim, pkgs, noLSP ? false, ... }:
   nixvim.makeNixvim {
 
     extraPlugins = [
-      pkgs-unstable.vimPlugins.claudecode-nvim
+      pkgs.vimPlugins.claudecode-nvim
     ];
 
     extraConfigLua = /* lua */ ''
