@@ -42,6 +42,12 @@
       ./lock.nix
     ];
 
+    # They need to be present here so they show up in the app opening view
+    home.packages = with pkgs; [
+      xfce.thunar
+      kitty
+    ];
+
     programs.zen-browser.enable = true;
 
     home.pointerCursor = {
@@ -274,8 +280,8 @@
             "$mod SHIFT, S, movetoworkspace, special:magic"
 
             # Scroll through existing workspaces with mainMod + scroll
-            "$mod, mouse_down, workspace, e+1"
-            "$mod, mouse_up, workspace, e-1"
+            "$mod, left, movefocus, l"
+            "$mod, right, movefocus, r"
           ];
 
         bindm = [
@@ -304,12 +310,21 @@
 
         bindl = let
           playerctl = lib.getExe pkgs.playerctl;
+
+          play_next = "${playerctl} next";
+          play_pause = "${playerctl} play-pause";
+          play_prev = "${playerctl} previous";
         in
           [
-            ", XF86AudioNext, exec, ${playerctl} next"
-            ", XF86AudioPause, exec, ${playerctl} play-pause"
-            ", XF86AudioPlay, exec, ${playerctl} play-pause"
-            ", XF86AudioPrev, exec, ${playerctl} previous"
+            ", XF86AudioNext, exec, ${play_next}"
+            ", XF86AudioPause, exec, ${play_pause}"
+            ", XF86AudioPlay, exec, ${play_pause}"
+            ", XF86AudioPrev, exec, ${play_prev}"
+
+            # Additional binds for keyboards that don't have media control buttons
+            "$mod, bracketright, exec, ${play_prev}"
+            "$mod, bracketleft, exec, ${play_next}"
+            "$mod SHIFT, bracketright, exec, ${play_pause}"
           ];
 
         input = {
