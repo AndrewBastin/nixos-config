@@ -45,6 +45,7 @@
           bat
           my_nvim
           pkgs-unstable.claude-code
+          pkgs-unstable.amp-cli
           jq
           lazygit
           ripgrep
