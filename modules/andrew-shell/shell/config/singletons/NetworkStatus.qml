@@ -35,7 +35,6 @@ Singleton {
             return
           }
         }
-        status = "Disconnected"
       }
     }
   }
