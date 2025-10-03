@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell.Services.Pipewire
 import "../singletons"
+import "../components" as Components
 
 // NOTE: Pipewire actually has data about whether the device is a bluetooth device or a headphone/headset
 // and stuff, but the `defaultAudioSink` returns a Pipewire Node instead of a Pipewire Device with no built in
@@ -26,6 +27,18 @@ Text {
   }
   color: Theme.barTextColor
   font.pointSize: Theme.statusIconsFontSize
+
+  Components.Tooltip {
+    text: {
+      const vol = Math.ceil(sink.audio.volume * 100)
+      const deviceName = sink.properties["node.description"] || sink.properties["node.name"] || "Audio Device"
+      
+      if (sink.audio.muted) {
+        return `${deviceName} - Muted`
+      }
+      return `${deviceName} - ${vol}%`
+    }
+  }
 
   PwObjectTracker {
     objects: [sink]

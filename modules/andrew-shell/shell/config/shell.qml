@@ -6,6 +6,7 @@ import Quickshell.Hyprland
 import QtQuick
 import QtQuick.Layouts
 import "blocks" as Blocks
+import "components" as Components
 import "singletons"
 
 Scope {
@@ -16,52 +17,62 @@ Scope {
   Variants {
     model: Quickshell.screens;
 
-    PanelWindow {
-      id: rootWindow
+    Scope {
       required property var modelData
+      
+      PanelWindow {
+        id: rootWindow
 
-      property var hyprlandMonitor: Hyprland.monitorFor(modelData)
+        property var hyprlandMonitor: Hyprland.monitorFor(modelData)
 
-      anchors {
-        top: true
-        left: true
-        right: true
-      }
-
-      screen: modelData
-
-      implicitHeight: 33
-
-      color: Theme.barBgColor
-
-      RowLayout {
         anchors {
-          fill: parent
-          leftMargin: 10
-          rightMargin: 10
+          top: true
+          left: true
+          right: true
         }
 
-        // Left Items
-        RowLayout {
-          Layout.alignment: Qt.AlignLeft
-          Layout.fillWidth: true
+        screen: modelData
 
-          Blocks.Workspaces {}
-          Blocks.CurrentWindow {}
-        }
+        implicitHeight: 33
 
-        // Right Items
-        RowLayout {
-          Layout.alignment: Qt.AlignRight
-          Layout.fillWidth: true
-          spacing: Theme.statusIconsSpacing
+        color: Theme.barBgColor
+
+        Components.TooltipProvider {
+          window: rootWindow
+          anchors.fill: parent
           
-          Blocks.ConcealedGroup {}
-          Blocks.Audio {}
-          Blocks.Network {}
-          Blocks.Battery {}
-          Blocks.Notifications {}
-          Blocks.Clock {}
+          RowLayout {
+            anchors {
+              fill: parent
+              leftMargin: 10
+              rightMargin: 10
+            }
+
+            // Left Items
+            RowLayout {
+              Layout.alignment: Qt.AlignLeft
+              Layout.fillWidth: true
+
+              Blocks.Workspaces {
+                property var hyprlandMonitor: rootWindow.hyprlandMonitor
+              }
+              Blocks.CurrentWindow {}
+            }
+
+            // Right Items
+            RowLayout {
+              Layout.alignment: Qt.AlignRight
+              Layout.fillWidth: true
+              spacing: Theme.statusIconsSpacing
+              
+              Blocks.ConcealedGroup {}
+              Blocks.Audio {}
+              Blocks.Network {}
+              Blocks.Battery {}
+              Blocks.Notifications {}
+              Blocks.Clock {}
+            }
+          }
         }
       }
     }

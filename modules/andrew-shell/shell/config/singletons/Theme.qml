@@ -21,4 +21,10 @@ Singleton {
   // The number of characters in the current window title after 
   // which the title is ellipsized.
   property int windowTitleCharsLimit: 120
+
+  // Tooltip
+  property int tooltipPaddingX: 8
+  property int tooltipPaddingY: 4
+  property string tooltipBgColor: "white"
+  property string tooltipTextColor: "black"
 }
