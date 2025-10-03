@@ -64,27 +64,16 @@
       which-key.enable = true;
       nvim-surround.enable = true;
       neoconf.enable = true;
-      blink-cmp-copilot.enable = true;
 
       blink-cmp = {
         enable = true;
 
         settings = {
           sources = {
-            providers = {
-              copilot = {
-                async = true;
-                module = "blink-cmp-copilot";
-                name = "copilot";
-                score_offset = 100;
-              };
-            };
-
             default = [
               "lsp"
               "buffer"
               "path"
-              "copilot"
             ];
           };
 
@@ -250,8 +239,6 @@
           auto_install = true;
         };
       };
-
-      copilot-lua.enable = true;
 
       lsp = if noLSP then { enable = false; } else {
         enable = true;
