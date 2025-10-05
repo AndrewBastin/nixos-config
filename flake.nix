@@ -41,7 +41,7 @@
           pkgs= nixpkgs.legacyPackages.${system};
           pkgs-unstable = nixpkgs-unstable.legacyPackages.${system};
         in
-          rec {
+          {
             packages = {
               nvim = import ./apps/nvim.nix {
                 nixvim = (import nixvim).legacyPackages."${system}";
@@ -66,15 +66,13 @@
             };
 
             devShells.default = pkgs.mkShell {
-              packages = (with pkgs; [
+              packages = with pkgs; [
                 # Required for hyprland-icon-resolver development
                 cargo
                 rustc
 
                 # Usually used on all of the NixOS/Darwin setups
                 nh
-              ]) ++ [
-                packages.nvim
               ];
             };
           }
