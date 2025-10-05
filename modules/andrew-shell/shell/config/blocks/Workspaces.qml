@@ -52,15 +52,8 @@ RowLayout {
 
             required property HyprlandToplevel modelData
             readonly property string appIconSource: {
-              // Try directly with the app-id first
-              let iconSource = Quickshell.iconPath(modelData.wayland?.appId, true)
-
-              // Try lowercasing the app-id next, for e.g, Slack needs this
-              if (iconSource === "") {
-                iconSource = Quickshell.iconPath(modelData.wayland?.appId.toLowerCase(), true)
-              }
-
-              return iconSource
+              const iconName = IconResolver.resolveIcon(modelData.wayland?.appId)
+              return iconName ? Quickshell.iconPath(iconName, true) : ""
             }
 
             // Icon rendered if window icon is found

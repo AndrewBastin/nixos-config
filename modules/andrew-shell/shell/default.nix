@@ -2,6 +2,11 @@
 { lib, pkgs, pkgs-unstable, ... }:
 
 {
+  home.packages = [
+    # The quickshell config depends on hyprland-icon-resolver to resolve icons
+    # for the workspace list and current window components.
+    (pkgs.callPackage ./utils/hyprland-icon-resolver {})
+  ];
 
   wayland.windowManager.hyprland.settings = {
     exec-once = [

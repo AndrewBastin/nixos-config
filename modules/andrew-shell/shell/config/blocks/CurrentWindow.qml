@@ -33,17 +33,9 @@ RowLayout {
     return true
   }
 
-  // Either will have the Image source string for the app icon or empty string if a match is not found.
   readonly property string appIconSource: {
-    // Try directly with the app-id first
-    let iconSource = Quickshell.iconPath(Hyprland.activeToplevel?.wayland?.appId, true)
-
-    // Try lowercasing the app-id next, for e.g, Slack needs this
-    if (iconSource === "") {
-      iconSource = Quickshell.iconPath(Hyprland.activeToplevel?.wayland?.appId.toLowerCase(), true)
-    }
-
-    return iconSource
+    const iconName = IconResolver.resolveIcon(Hyprland.activeToplevel?.wayland?.appId)
+    return iconName ? Quickshell.iconPath(iconName, true) : ""
   }
   
   Image {

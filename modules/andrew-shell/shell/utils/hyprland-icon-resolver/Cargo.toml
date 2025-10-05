@@ -1,0 +1,12 @@
+[package]
+name = "hyprland-icon-resolver"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = { version = "4.5", features = ["derive"] }
+hyprland = "0.4.0-beta.3"
+lru = "0.12"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+walkdir = "2.4"

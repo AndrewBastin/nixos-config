@@ -36,12 +36,12 @@
       lib = import ./lib.nix;
 
 
-      # Custom apps that I use with special configurations (for example, nvim)
-      exportedApps = flake-utils.lib.eachDefaultSystem (system:
+      platformSpecificStuff = flake-utils.lib.eachDefaultSystem (system:
         let
+          pkgs= nixpkgs.legacyPackages.${system};
           pkgs-unstable = nixpkgs-unstable.legacyPackages.${system};
         in
-          {
+          rec {
             packages = {
               nvim = import ./apps/nvim.nix {
                 nixvim = (import nixvim).legacyPackages."${system}";
@@ -63,6 +63,19 @@
                 name = "nvim";
                 exePath = "/bin/nvim";
               };
+            };
+
+            devShells.default = pkgs.mkShell {
+              packages = (with pkgs; [
+                # Required for hyprland-icon-resolver development
+                cargo
+                rustc
+
+                # Usually used on all of the NixOS/Darwin setups
+                nh
+              ]) ++ [
+                packages.nvim
+              ];
             };
           }
       );
@@ -95,6 +108,6 @@
               (lib.getDarwinMachines nixpkgs);
       };
     in
-      exportedApps // osConfigs;
+      platformSpecificStuff // osConfigs;
 }
 
