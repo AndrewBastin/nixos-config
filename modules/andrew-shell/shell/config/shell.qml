@@ -56,7 +56,9 @@ Scope {
               Blocks.Workspaces {
                 property var hyprlandMonitor: rootWindow.hyprlandMonitor
               }
-              Blocks.CurrentWindow {}
+              Blocks.CurrentWindow {
+                property var hyprlandMonitor: rootWindow.hyprlandMonitor
+              }
             }
 
             // Right Items
