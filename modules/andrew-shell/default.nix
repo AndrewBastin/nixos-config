@@ -46,6 +46,7 @@
     home.packages = with pkgs; [
       xfce.thunar
       kitty
+      wl-clipboard
     ];
 
     programs.zen-browser.enable = true;
