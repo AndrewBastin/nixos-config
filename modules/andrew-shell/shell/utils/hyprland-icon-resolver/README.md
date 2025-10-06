@@ -34,23 +34,29 @@ If no desktop file is found or it doesn't contain an icon, the resolver searches
 **Step 2a:** Search for the exact app identifier
 - Checks icon directories for files matching `{app_identifier}.{png,svg,xpm}`
 
-**Step 2b:** Try with `-desktop` suffix
+**Step 2b:** Try lowercase variant
+- If the app identifier contains uppercase letters, tries the lowercase version
+- Example: `"Firefox"` → searches for `"firefox"`
+
+**Step 2c:** Try with `-desktop` suffix
 - Checks for `{app_identifier}-desktop.{png,svg,xpm}`
 
-**Step 2c:** Try first word before space
+**Step 2d:** Try first word before space
 - If the app identifier contains spaces, extracts the first word (lowercased)
 - Example: `"Google Chrome"` → searches for `"google"`
 
-**Step 2d:** Try first segment before dash
+**Step 2e:** Try first segment before dash
 - If the app identifier contains dashes, extracts the first segment (lowercased)
 - Example: `"org-gnome-terminal"` → searches for `"org"`
 
 ### Icon Search Locations
 
 The resolver recursively searches the following directories and all subdirectories:
-- `/usr/share/icons/hicolor`
-- `/usr/share/pixmaps`
-- `~/.local/share/icons`
+- User directories:
+  - `~/.local/share/icons`
+- System directories (from XDG_DATA_DIRS):
+  - `{data_dir}/icons/hicolor`
+  - `{data_dir}/pixmaps`
 
 Supported icon formats: `.png`, `.svg`, `.xpm`
 

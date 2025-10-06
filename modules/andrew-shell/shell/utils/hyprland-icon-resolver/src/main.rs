@@ -121,6 +121,11 @@ fn has_icon_in_theme(icon_name: &str) -> bool {
         icon_dirs.push(PathBuf::from(home).join(".local/share/icons"));
     }
 
+    for data_dir in get_system_data_dirs() {
+        icon_dirs.push(data_dir.join("icons/hicolor"));
+        icon_dirs.push(data_dir.join("pixmaps"));
+    }
+
     for icon_dir in icon_dirs {
         if !icon_dir.exists() {
             continue;
@@ -189,6 +194,11 @@ fn get_icon_name(app_identifier: &str, alternative_app_identifier: &str) -> Opti
 
     if has_icon_in_theme(app_identifier) {
         return Some(app_identifier.to_string());
+    }
+
+    let app_identifier_lower = app_identifier.to_lowercase();
+    if app_identifier_lower != app_identifier && has_icon_in_theme(&app_identifier_lower) {
+        return Some(app_identifier_lower);
     }
 
     let app_identifier_desktop = format!("{}-desktop", app_identifier);
