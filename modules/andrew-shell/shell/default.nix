@@ -6,6 +6,10 @@
     # The quickshell config depends on hyprland-icon-resolver to resolve icons
     # for the workspace list and current window components.
     (pkgs.callPackage ./utils/hyprland-icon-resolver {})
+
+    # The quickshell config depends on nm-status to resolve live NetworkManager
+    # status info for the tooltip in particular
+    (pkgs.callPackage ./utils/nm-status {})
   ];
 
   wayland.windowManager.hyprland.settings = {

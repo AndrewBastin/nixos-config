@@ -21,10 +21,6 @@ Repeater {
       hoverEnabled: true
 
       required property SystemTrayItem modelData
-      
-      onEntered: {
-        NetworkStatus.refresh()
-      }
 
     Text {
         id: child
