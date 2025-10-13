@@ -1,17 +1,19 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Hyprland
 import "../singletons"
 
 RowLayout {
+  // `monitorName` comes from shell.qml
+  readonly property var monitorData: HyprlandState.monitors[monitorName]
+  readonly property var workspaces: monitorData?.workspaces ?? []
+
   Repeater {
-    // `hyprlandMonitor` comes from shell.qml
-    model: Hyprland.workspaces.values.filter((x) => x.monitor.id == hyprlandMonitor.id || x.name == "special:magic")
+    model: workspaces
 
     Rectangle {
       id: workspaceParent
-      required property HyprlandWorkspace modelData
+      required property var modelData
 
       color: modelData.active ? Theme.barAccentColor : "transparent"
 
@@ -29,10 +31,10 @@ RowLayout {
           id: textItem
 
           text: {
-            if (workspaceParent.modelData.name !== "special:magic") {
-              return workspaceParent.modelData.name
-            } else {
+            if (workspaceParent.modelData.name === "special:magic") {
               return "SP"
+            } else {
+              return workspaceParent.modelData.name
             }
           }
           color: Theme.barTextColor
@@ -50,9 +52,9 @@ RowLayout {
               ? imageItem.implicitHeight
               : fallbackItem.implicitHeight
 
-            required property HyprlandToplevel modelData
+            required property var modelData
             readonly property string appIconSource: {
-              const iconName = IconResolver.resolveIcon(modelData.wayland?.appId)
+              const iconName = modelData.icon_name
               return iconName ? Quickshell.iconPath(iconName, true) : ""
             }
 
@@ -77,7 +79,7 @@ RowLayout {
               visible: appIconSource === ""
               enabled: visible
 
-              text: ""
+              text: ""
               font.pointSize: Theme.statusIconsFontSize - 2
               color: Theme.barTextColor
             }

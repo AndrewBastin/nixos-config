@@ -3,9 +3,9 @@
 
 {
   home.packages = [
-    # The quickshell config depends on hyprland-icon-resolver to resolve icons
+    # The quickshell config depends on hyprland-info for workspace and icon information
     # for the workspace list and current window components.
-    (pkgs.callPackage ./utils/hyprland-icon-resolver {})
+    (pkgs.callPackage ./utils/hyprland-info {})
 
     # The quickshell config depends on nm-status to resolve live NetworkManager
     # status info for the tooltip in particular

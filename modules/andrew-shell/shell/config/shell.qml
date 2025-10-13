@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 //@ pragma UseQApplication
 
 import Quickshell
-import Quickshell.Hyprland
 import QtQuick
 import QtQuick.Layouts
 import "blocks" as Blocks
@@ -23,7 +22,7 @@ Scope {
       PanelWindow {
         id: rootWindow
 
-        property var hyprlandMonitor: Hyprland.monitorFor(modelData)
+        property string monitorName: modelData.name
 
         anchors {
           top: true
@@ -54,11 +53,9 @@ Scope {
               Layout.fillWidth: true
 
               Blocks.Workspaces {
-                property var hyprlandMonitor: rootWindow.hyprlandMonitor
+                property string monitorName: rootWindow.monitorName
               }
-              Blocks.CurrentWindow {
-                property var hyprlandMonitor: rootWindow.hyprlandMonitor
-              }
+              Blocks.CurrentWindow {}
             }
 
             // Right Items

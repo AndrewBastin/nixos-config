@@ -1,16 +1,22 @@
-# Hyprland Icon Resolver
+# Hyprland Info
 
-A utility to resolve and map application icons for Hyprland windows based on their window class and initial class identifiers.
+A utility to provide workspace and window information for Hyprland, including icon resolution for application windows.
 
 ## Usage
 
 ```bash
-# One-shot mode: emit current window icons as JSON
-hyprland-icon-resolver
+# One-shot mode: emit current workspace and window state as JSON, then exit
+hyprland-info
 
-# Watch mode: emit JSON on initial run and on window open/close events
-hyprland-icon-resolver --watch
+# Monitor mode: continuously watch and emit JSON on every change
+hyprland-info --monitor
 ```
+
+The tool outputs JSON containing:
+- Workspace information grouped by monitor
+- Active workspace per monitor
+- Window titles and application IDs
+- Resolved icon names for each window
 
 ## Icon Resolution Algorithm
 
