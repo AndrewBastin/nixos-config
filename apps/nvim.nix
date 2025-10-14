@@ -23,7 +23,7 @@
     extraPlugins = [
       pkgs.vimPlugins.claudecode-nvim
     ] ++ pkgs.lib.optionals (!noAmp) [
-      (pkgs.callPackage ./nvim-packages/amp-nvim.nix {})
+      pkgs.vimPlugins.amp-nvim
     ];
 
     extraConfigLua = /* lua */ ''
