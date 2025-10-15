@@ -79,7 +79,7 @@ RowLayout {
               visible: appIconSource === ""
               enabled: visible
 
-              text: ""
+              text: ""
               font.pointSize: Theme.statusIconsFontSize - 2
               color: Theme.barTextColor
             }
