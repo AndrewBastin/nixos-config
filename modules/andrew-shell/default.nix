@@ -24,6 +24,9 @@
     # We need upower daemon for battery info
     services.upower.enable = true;
 
+    # used by Thunar and Ristretto for thumbnail generation
+    services.tumbler.enable = true;
+
     environment.systemPackages = with pkgs; [
       blueman         # Bluetooth management
       swaynotificationcenter
@@ -37,16 +40,17 @@
     imports = [
       inputs.zen-browser.homeModules.beta
 
-      # ./waybar.nix
       ./shell
       ./lock.nix
     ];
 
     # They need to be present here so they show up in the app opening view
     home.packages = with pkgs; [
-      xfce.thunar
+      xfce.thunar         # File Manager
+      xfce.ristretto      # Image viewer
+
       kitty
-      wl-clipboard
+      wl-clipboard        # Needed for copy pasting to work on various apps
     ];
 
     programs.zen-browser.enable = true;
