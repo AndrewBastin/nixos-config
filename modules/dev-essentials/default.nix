@@ -63,6 +63,12 @@
           userName = "Andrew Bastin";
           userEmail = "andrewbastin.k@gmail.com";
 
+          extraConfig = {
+            init = {
+              defaultBranch = "main";
+            };
+          };
+
           difftastic.enable = true;
         };
 
