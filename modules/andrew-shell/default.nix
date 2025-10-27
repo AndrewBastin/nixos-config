@@ -32,6 +32,16 @@
       swaynotificationcenter
     ];
 
+
+
+    # Stuff related to GPG Agent
+    programs.mtr.enable = true;
+
+    programs.gnupg.agent = {
+      enable = true;
+      enableSSHSupport = true;
+    };
+
     # Hint to Electron apps to use Wayland
     environment.sessionVariables.NIXOS_OZONE_WL = "1";
   };
@@ -51,6 +61,14 @@
 
       kitty
       wl-clipboard        # Needed for copy pasting to work on various apps
+
+      (
+        pass-wayland.withExtensions (exts: with exts; [
+          pass-otp
+          pass-update
+        ])
+      )
+      rofi-pass-wayland
     ];
 
     programs.zen-browser.enable = true;
