@@ -245,6 +245,10 @@
           screenshot = /* sh */ ''
             ${lib.getExe pkgs.hyprshot} -m region --clipboard-only
           '';
+
+          password-manager = /* sh */ ''
+            ${lib.getExe pkgs.rofi-pass-wayland}
+          '';
         in
           [
             # TODO: Power shortcuts
@@ -297,6 +301,7 @@
             # "$mod SHIFT, D, split:swapactiveworkspaces, current +1"
 
             "$mod SHIFT, P, exec, ${screenshot}"
+            "$mod SHIFT, C, exec, ${password-manager}"
 
             # Example special workspace (scratchpad)
             "$mod, S, togglespecialworkspace, magic"
