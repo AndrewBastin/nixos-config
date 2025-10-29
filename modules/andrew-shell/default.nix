@@ -62,6 +62,9 @@
       kitty
       wl-clipboard        # Needed for copy pasting to work on various apps
 
+      rofi-wayland
+      rofimoji
+
       (
         pass-wayland.withExtensions (exts: with exts; [
           pass-otp
@@ -249,6 +252,10 @@
           password-manager = /* sh */ ''
             ${lib.getExe pkgs.rofi-pass-wayland}
           '';
+
+          emoji-picker = /* sh */ ''
+            ${lib.getExe pkgs.rofimoji}
+          '';
         in
           [
             # TODO: Power shortcuts
@@ -302,6 +309,7 @@
 
             "$mod SHIFT, P, exec, ${screenshot}"
             "$mod SHIFT, C, exec, ${password-manager}"
+            "$mod SHIFT, E, exec, ${emoji-picker}"
 
             # Example special workspace (scratchpad)
             "$mod, S, togglespecialworkspace, magic"
