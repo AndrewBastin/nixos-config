@@ -111,6 +111,9 @@
       };
     };
 
+    # We use Pass as the keyring exposed via pass-secret-service
+    services.pass-secret-service.enable = true;
+
 
     wayland.windowManager.hyprland = {
       enable = true;
