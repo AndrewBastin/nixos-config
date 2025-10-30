@@ -9,6 +9,7 @@
       pkgs-unstable.cider-2
       pkgs-unstable.todoist-electron
       pkgs-unstable.obsidian
+      pkgs-unstable.fractal
     ];
   };
 
