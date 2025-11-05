@@ -260,6 +260,7 @@
           docker_compose_language_service.enable = true;
           bashls.enable = true;
           qmlls.enable = true;
+          zls.enable = true;
         };
 
         keymaps = {
