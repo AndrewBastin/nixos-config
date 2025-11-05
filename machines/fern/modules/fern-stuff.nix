@@ -10,6 +10,7 @@
       pkgs-unstable.todoist-electron
       pkgs-unstable.obsidian
       pkgs-unstable.fractal
+      pkgs-unstable.vlc
     ];
   };
 
