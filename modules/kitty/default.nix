@@ -60,6 +60,7 @@
             macos_show_window_title_in = "window";
           };
           keybindings = {
+            "ctrl+shift+n" = "launch --cwd=current --type=os-window";
             "ctrl+shift+t" = "launch --cwd=current --type=tab";
             "cmd+t" = "launch --cwd=current --type=tab";
           };
