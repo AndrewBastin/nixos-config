@@ -55,7 +55,32 @@
     plugins = {
       web-devicons.enable = true;
 
-      lualine.enable = true;
+      lualine = {
+        enable = true;
+        settings = {
+          sections.lualine_c.__raw = /* lua */ ''
+            {
+              {
+                'filename',
+                path = 1,
+              }
+            }
+          '';
+
+          options = {
+            section_separators = {
+              left = "";
+              right = "";
+            };
+
+            component_separators = {
+              left = "";
+              right = "";
+            };
+          };
+        };
+      };
+
       fzf-lua.enable = true;
       neo-tree.enable = true;
       noice.enable = true;
