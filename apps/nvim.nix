@@ -256,12 +256,6 @@
               repeat_jump = ";";
             };
           };
-
-          jump2d = {
-            mappings = {
-              start_jumping = "\\";
-            };
-          };
         };
       };
 
