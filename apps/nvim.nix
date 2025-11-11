@@ -58,14 +58,12 @@
       lualine = {
         enable = true;
         settings = {
-          sections.lualine_c.__raw = /* lua */ ''
+          sections.lualine_c = [
             {
-              {
-                'filename',
-                path = 1,
-              }
+              __unkeyed-1 = "filename";
+              path = 1;
             }
-          '';
+          ];
 
           options = {
             section_separators = {
