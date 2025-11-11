@@ -79,6 +79,17 @@
         };
       };
 
+      # https://github.com/folke/snacks.nvim
+      snacks = {
+        enable = true;
+        settings = {
+          bigfile = { # Disable syntax highlighting and LSP when file is too big for preventing perf issues
+            enable = true;
+            notify = true;
+          };
+        };
+      };
+
       fzf-lua.enable = true;
       neo-tree.enable = true;
       noice.enable = true;
