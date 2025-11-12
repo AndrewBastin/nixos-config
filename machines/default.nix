@@ -90,12 +90,16 @@
 
     config = {
       kitty.fontSize = 10;
-      andrew-shell.monitorRules = [
-        # Built in monitor - Default configs with a 1.6 scale
-        "eDP-1, preferred, auto, 1.6"
-      ];
-
-      andrew-shell.wallpaper = ./fern/wallpaper.jpg;
+      andrew-shell = {
+        monitorRules = [
+          # Built in monitor - Default configs with a 1.6 scale
+          "eDP-1, preferred, auto, 1.6"
+        ];
+        
+        use-unstable-hyprland = true;
+        
+        wallpaper = ./fern/wallpaper.jpg;
+      };
     };
 
     modules = [
