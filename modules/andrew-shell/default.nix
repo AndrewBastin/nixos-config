@@ -12,11 +12,24 @@
         default = null;
         description = "Sets the wallpaper. If set to null (default) it will render a blank black background";
       };
+
+      use-unstable-hyprland = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "If enabled, uses hyprland (and hyprland plugins) provided by nixpkgs-unstable, else uses the defined nixpkgs one";
+      };
     };
   };
 
-  nixos = { pkgs, ... }: {
-    programs.hyprland.enable = true;
+  nixos = { pkgs, pkgs-unstable, universalConfig ? {}, ... }: {
+    programs.hyprland = let
+      hyprlandPkgs = if universalConfig.andrew-shell.use-unstable-hyprland then pkgs-unstable else pkgs;
+    in 
+      {
+        enable = true;
+        package = hyprlandPkgs.hyprland;
+        portalPackage = hyprlandPkgs.xdg-desktop-portal-hyprland;
+      };
 
     # We use ly as the display manager
     services.displayManager.ly.enable = true;
@@ -46,7 +59,7 @@
     environment.sessionVariables.NIXOS_OZONE_WL = "1";
   };
 
-  home = { pkgs, lib, inputs, universalConfig ? {}, ... }: {
+  home = { pkgs, pkgs-unstable, lib, inputs, universalConfig ? {}, ... }: {
     imports = [
       inputs.zen-browser.homeModules.beta
 
@@ -118,9 +131,16 @@
     wayland.windowManager.hyprland = {
       enable = true;
 
-      plugins = with pkgs.hyprlandPlugins; [
-        hyprsplit
-      ];
+      # Setting this to null will make it so the packages gets sourced from the NixOS module
+      package = null;
+      portalPackage = null;
+
+      plugins = let
+        hyprlandPkgs = if universalConfig.andrew-shell.use-unstable-hyprland then pkgs-unstable else pkgs;
+      in
+        with hyprlandPkgs.hyprlandPlugins; [
+          hyprsplit
+        ];
 
       settings = {
         monitor = universalConfig.andrew-shell.monitorRules or [ ", preferred, auto, 1" ];
