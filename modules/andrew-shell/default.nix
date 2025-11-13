@@ -89,6 +89,13 @@
 
     programs.zen-browser.enable = true;
 
+      dconf.settings = {
+        "org/gnome/desktop/interface" = {
+          color-scheme = "prefer-dark";
+          gtk-theme = "Adwaita-dark";
+        };
+      };
+
     home.pointerCursor = {
       gtk.enable = true;
       size = 24;
