@@ -62,6 +62,12 @@
           keybindings = {
             "ctrl+shift+n" = "launch --cwd=current --type=os-window";
             "ctrl+shift+t" = "launch --cwd=current --type=tab";
+            "ctrl+shift+h" = "move_window left";
+            "ctrl+shift+j" = "move_window down";
+            "ctrl+shift+k" = "move_window up";
+            "ctrl+shift+l" = "move_window right";
+            "alt+enter" = "launch --cwd=current --location=vsplit";
+            "ctrl+shift+enter" = "launch --cwd=current --location=hsplit";
             "cmd+t" = "launch --cwd=current --type=tab";
           };
           shellIntegration = {
