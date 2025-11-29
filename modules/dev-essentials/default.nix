@@ -117,6 +117,38 @@
           # enableZshIntegration = true;
         };
 
+        programs.yazi = {
+          enable = true;
+
+          shellWrapperName = "y";
+          
+          enableBashIntegration = true;
+          enableZshIntegration = true;
+
+          flavors =
+            let
+              flavorsRepo = pkgs.fetchFromGitHub {
+                owner = "yazi-rs";
+                repo = "flavors";
+                rev = "3edeb49597e1080621a9b0b50d9f0a938b8f62bb";
+                hash = "sha256-twgXHeIj52EfpMpLrhxjYmwaPnIYah3Zk/gqCNTb2SQ=";
+              };
+            in
+              {
+                catppuccin-mocha = "${flavorsRepo}/catppuccin-mocha.yazi";
+              };
+
+          theme.flavor = 
+            let
+              theme = "catppuccin-mocha";
+            in 
+              {
+                dark = theme;
+                light = theme;
+              };
+
+        };
+
         programs.direnv = {
           enable = true;
           nix-direnv.enable = true;
