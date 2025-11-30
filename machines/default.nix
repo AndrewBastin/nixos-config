@@ -85,8 +85,8 @@
 
   fern = {
     system = "x86_64-linux";
-    stateVersion = "25.05";
-    homeStateVersion = "25.05";
+    stateVersion = "25.11";
+    homeStateVersion = "25.11";
 
     config = {
       kitty.fontSize = 10;
@@ -101,8 +101,6 @@
           # Lenovo Monitor on office desk
           "desc:Lenovo Group Limited L24i-30 UPB4NZH2, 1920x1080@75, auto, 1"
         ];
-        
-        use-unstable-hyprland = true;
         
         wallpaper = ./fern/wallpaper.jpg;
       };
