@@ -75,7 +75,7 @@
       kitty
       wl-clipboard        # Needed for copy pasting to work on various apps
 
-      rofi-wayland
+      rofi
       rofimoji
 
       (
@@ -273,7 +273,7 @@
         bind = let
           quickmenu = pkgs.callPackage ./quickmenu.nix {};
           app_runner = /* sh */ ''
-            ${lib.getExe pkgs.rofi-wayland} -show combi -modes combi -combi-modes "window,drun,run" -show-icons
+            ${lib.getExe pkgs.rofi} -show combi -modes combi -combi-modes "window,drun,run" -show-icons
           '';
           screenshot = /* sh */ ''
             ${lib.getExe pkgs.hyprshot} -m region --clipboard-only

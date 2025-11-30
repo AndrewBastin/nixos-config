@@ -60,16 +60,20 @@
 
         programs.git = {
           enable = true;
-          userName = "Andrew Bastin";
-          userEmail = "andrewbastin.k@gmail.com";
 
-          extraConfig = {
-            init = {
-              defaultBranch = "main";
+          settings = {
+            user = {
+              name = "Andrew Bastin";
+              email = "andrewbastin.k@gmail.com";
             };
-          };
 
-          difftastic.enable = true;
+            init.defaultBranch = "main";
+          };
+        };
+
+        programs.difftastic = {
+          enable = true;
+          git.enable = true; # Use difftastic as the diff program for `git diff` and friends
         };
 
         programs.fzf = {
