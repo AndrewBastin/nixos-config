@@ -32,7 +32,13 @@
       };
 
     # We use ly as the display manager
-    services.displayManager.ly.enable = true;
+    services.displayManager.ly = {
+      enable = true;
+      settings = {
+        session_log = ".local/state/ly-session.log";
+        hide_version_string = true;
+      };
+    };
 
     # We need upower daemon for battery info
     services.upower.enable = true;
