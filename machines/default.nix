@@ -51,8 +51,8 @@
 
   winry-nixos = {
     system = "aarch64-linux";
-    stateVersion = "25.05";
-    homeStateVersion = "25.05";
+    stateVersion = "25.11";
+    homeStateVersion = "25.11";
 
     config = {
       ghostty.fontSize = 24;
