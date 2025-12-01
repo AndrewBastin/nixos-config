@@ -8,10 +8,8 @@
 
     flake-utils.url = "github:numtide/flake-utils";
 
-    # NOTE: nix-darwin doesn't seem to have 25.11 version of it yet.
-    # TODO: Need to check out how to get around this.
     nix-darwin = {
-      url = "github:LnL7/nix-darwin/nix-darwin-25.05";
+      url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
