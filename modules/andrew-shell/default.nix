@@ -78,6 +78,8 @@
       xfce.thunar         # File Manager
       xfce.ristretto      # Image viewer
 
+      pavucontrol         # Volume and Audio Control
+
       kitty
       wl-clipboard        # Needed for copy pasting to work on various apps
 
