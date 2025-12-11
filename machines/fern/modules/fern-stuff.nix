@@ -17,6 +17,9 @@
   nixos = { ... }: {
     virtualisation.docker.enable = true;
 
-    users.users.andrew.extraGroups = [ "docker" ];
+    users.users.andrew.extraGroups = [ "docker" "libvirtd" ];
+
+    virtualisation.libvirtd.enable = true;
+    programs.virt-manager.enable = true;
   };
 }

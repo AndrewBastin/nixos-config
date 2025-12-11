@@ -41,6 +41,7 @@
       confirm = true;
       number = true;
       relativenumber = true;
+      showmode = false;
 
       shiftwidth = 2;
       shiftround = true;
@@ -92,7 +93,6 @@
 
       fzf-lua.enable = true;
       neo-tree.enable = true;
-      noice.enable = true;
       gitsigns.enable = true;
       diffview.enable = true;
       which-key.enable = true;
