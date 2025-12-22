@@ -265,6 +265,7 @@
         settings = {
           highlight.enable = true;
           auto_install = true;
+          parser_install_dir.__raw = "vim.fs.joinpath(vim.fn.stdpath('data'), 'site')";
         };
       };
 
