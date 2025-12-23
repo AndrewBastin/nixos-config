@@ -1,6 +1,14 @@
-# NOTE: This is a home manager module
+# Hyprlock configuration
+# NOTE: This is a home manager module that accepts fontFamily as an argument
+{
+  fontFamily ? "BerkeleyMono Nerd Font Mono"
+}:
+
 {...}:
 
+let
+  fontBold = "${fontFamily} Bold";
+in
 {
   programs.hyprlock = {
     enable = true;
@@ -35,7 +43,7 @@
           shadow_color = "rgb(0,0,0)";
           shadow_boost = 1.2;
           font_size = 150;
-          font_family = "JetBrains Mono Nerd Font Mono Bold";
+          font_family = fontBold;
           position = "0, -250";
           halign = "center";
           valign = "top";
@@ -47,7 +55,7 @@
           text = ''cmd[update:1000] echo -e "$(date +"%M")"'';
           color = "rgba(255, 255, 255, 1)";
           font_size = 150;
-          font_family = "JetBrains Mono Nerd Font Mono Bold";
+          font_family = fontBold;
           position = "0, -420";
           halign = "center";
           valign = "top";
@@ -59,7 +67,7 @@
           text = ''cmd[update:1000] echo -e "$(date +"%e %B, %A %Y")"'';
           color = "rgba(255, 255, 255, 1)";
           font_size = 17;
-          font_family = "JetBrains Mono Nerd Font Mono Bold";
+          font_family = fontBold;
           position = "0, -130";
           halign = "center";
           valign = "center";
@@ -70,7 +78,7 @@
           monitor = "";
           text = ''cmd[update:5000] echo "Battery at $(cat /sys/class/power_supply/BAT0/capacity)% ($(cat /sys/class/power_supply/BAT0/status))"'';
           font_size = 14;
-          font_family = "JetBrains Mono Nerd Font Mono";
+          font_family = fontFamily;
           position = "0, -0.005";
           halign = "center";
           valign = "bottom";
@@ -88,8 +96,8 @@
           inner_color = "rgba(0, 0, 0, 0)";
           font_color = "rgba(200, 200, 200, 1)";
           fade_on_empty = false;
-          font_family = "JetBrains Mono Nerd Font Mono";
-          placeholder_text = "<span> $USER</span>";
+          font_family = fontFamily;
+          placeholder_text = "<span> $USER</span>";
           hide_input = false;
           position = "0, -470";
           halign = "center";
@@ -99,4 +107,3 @@
     };
   };
 }
-

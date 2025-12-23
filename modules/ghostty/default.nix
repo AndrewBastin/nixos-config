@@ -4,13 +4,13 @@
 #
 # What this module does:
 # - Installs and configures Ghostty terminal emulator
-# - Sets up FiraCode Nerd Font with configurable font size
-# - Applies Adwaita Darker theme for consistent dark mode
+# - Uses monospace font from fonts module
+# - Applies Builtin Pastel Dark theme
 # - Configures macOS-specific titlebar and behavior settings
 # - Sets up convenient keybindings for tab management
 # - Enables shell integration for bash and zsh
 #
-# Imports: None
+# Imports: fonts
 #
 # Platforms: Home Manager
 #
@@ -33,16 +33,20 @@
     };
   };
 
+  imports = [
+    ../fonts
+  ];
+
   home = { pkgs, universalConfig ? {}, ... }: 
     let
       fontSize = universalConfig.ghostty.fontSize or 14;
+      fontName = universalConfig.fonts.monospace.name;
     in
       {
         programs.ghostty = {
           enable = true;
           settings = {
-            # Font configuration
-            font-family = "FiraCode Nerd Font Mono";
+            font-family = fontName;
             font-size = fontSize;
             
             # Theme - using Builtin Pastel Dark theme
@@ -89,10 +93,5 @@
           enableBashIntegration = true;
           enableZshIntegration = true;
         };
-        
-        # Ensure the font package is installed
-        home.packages = with pkgs; [
-          nerd-fonts.fira-code
-        ];
       };
 }

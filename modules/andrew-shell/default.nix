@@ -65,12 +65,20 @@
     environment.sessionVariables.NIXOS_OZONE_WL = "1";
   };
 
-  home = { pkgs, pkgs-unstable, lib, inputs, universalConfig ? {}, ... }: {
+  imports = [
+    ../fonts
+  ];
+
+  home = { pkgs, pkgs-unstable, lib, inputs, universalConfig ? {}, ... }: 
+    let
+      fontName = universalConfig.fonts.monospace.name;
+    in
+    {
     imports = [
       inputs.zen-browser.homeModules.beta
 
       ./shell
-      ./lock.nix
+      (import ./lock.nix { fontFamily = fontName; })
     ];
 
     # They need to be present here so they show up in the app opening view
@@ -279,7 +287,7 @@
         "$mod" = "SUPER";
 
         bind = let
-          quickmenu = pkgs.callPackage ./quickmenu.nix {};
+          quickmenu = pkgs.callPackage ./quickmenu.nix { fontFamily = fontName; };
           app_runner = /* sh */ ''
             ${lib.getExe pkgs.rofi} -show combi -modes combi -combi-modes "window,drun,run" -show-icons
           '';

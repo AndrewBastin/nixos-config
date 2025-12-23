@@ -8,7 +8,9 @@
   bemenu,
   bluez,
   libnotify,
-  hyprlock
+  hyprlock,
+
+  fontFamily ? "BerkeleyMono Nerd Font Mono"
 }:
 
 let
@@ -20,7 +22,7 @@ let
       --cw '2'  # Width of the cursor
       --ch '18' # Height of the cursor
       --hp '8'  # Horizontal padding for the entries in single line mode
-      --fn 'JetBrains Mono 16px'
+      --fn '${fontFamily} 16px'
       --tb '#161616' --tf '#be95ff'
       --fb '#161616' --ff '#ffffff'
       --cb '#161616' --cf '#525252'

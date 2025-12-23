@@ -4,13 +4,13 @@
 #
 # What this module does:
 # - Installs and configures Kitty terminal emulator
-# - Sets up FiraCode Nerd Font with configurable font size
+# - Uses monospace font from fonts module
 # - Applies Adwaita Darker theme for consistent dark mode
 # - Configures macOS-specific titlebar and behavior settings
 # - Sets up convenient keybindings for tab management
 # - Enables shell integration for bash and zsh
 #
-# Imports: None
+# Imports: fonts
 #
 # Platforms: Home Manager
 #
@@ -40,17 +40,22 @@
     };
   };
 
+  imports = [
+    ../fonts
+  ];
+
   home = { pkgs, universalConfig ? {}, ... }: 
     let
       fontSize = universalConfig.kitty.fontSize or 14;
+      fontName = universalConfig.fonts.monospace.name;
     in
       {
         programs.kitty = {
           enable = universalConfig.kitty.enable or true;
           themeFile = "adwaita_darker";
           font = {
-            package = pkgs.nerd-fonts.fira-code;
-            name = "FiraCode Nerd Font Mono";
+            package = null;
+            name = fontName;
             size = fontSize;
           };
           settings = {
