@@ -59,14 +59,29 @@
       lualine = {
         enable = true;
         settings = {
-          sections.lualine_c = [
-            {
-              __unkeyed-1 = "filename";
-              path = 1;
-            }
-          ];
+          sections = {
+            lualine_b = [
+              {
+                __unkeyed-1 = "branch";
+                icon = "";
+              }
+              "diff"
+              "diagnostics"
+            ];
+
+            lualine_c = [
+              {
+                __unkeyed-1 = "filename";
+                path = 1;
+              }
+            ];
+          };
 
           options = {
+            disabled_filetypes = {
+              __unkeyed-1 = "neo-tree";
+            };
+
             section_separators = {
               left = "";
               right = "";
