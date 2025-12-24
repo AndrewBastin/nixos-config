@@ -89,7 +89,7 @@
     homeStateVersion = "25.11";
 
     config = {
-      kitty.fontSize = 10;
+      kitty.fontSize = 11;
       andrew-shell = {
         monitorRules = [
           # Built in monitor - Default configs with a 1.6 scale
