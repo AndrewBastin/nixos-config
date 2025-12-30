@@ -157,5 +157,24 @@
           enable = true;
           nix-direnv.enable = true;
         };
+
+        programs.tmux = {
+          enable = true;
+          keyMode = "vi";
+          focusEvents = true;
+          mouse = true;
+          baseIndex = 1;
+          extraConfig = ''
+            set -g status-style bg=black,fg=white
+            set -g renumber-windows on
+            set -g set-titles on
+            set -g window-status-format '#I:#{=20:pane_title}'
+            set -g window-status-style fg=colour240
+            set -g window-status-current-format '#I:#{=20:pane_title}'
+            set -g window-status-current-style fg=white
+            set -g status-left ""
+            set -g status-right ""
+          '';
+        };
       };
 }
