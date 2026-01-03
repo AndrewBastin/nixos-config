@@ -55,23 +55,23 @@
     homeStateVersion = "25.11";
 
     config = {
-      ghostty.fontSize = 24;
+      andrew-shell = {
+        # VMWare Fusion on ARM Macs have an issue with their graphics driver not passing
+        # some validations that Hyprland does on rendering out buffers from the GPU
+        # making stuff like Kitty and Quickshell (in Andrew Shell) crash on start
+        patches.vmwgfx-workaround = true;
 
-      dwm = {
-        enable = true;
-        dpi = 196;
-        autoLogin = {
-          enable = true;
-          user = "andrew";
-        };
+        monitorRules = [
+          ", preferred, auto, 2.0"
+        ];
+        wallpaper = ./fern/wallpaper.jpg;
       };
     };
 
     modules = [
-      ../modules/ghostty
+      ../modules/nixos-essentials
       ../modules/dev-essentials
-      ../modules/dwm
-      ./winry-nixos/modules/theming.nix
+      ../modules/andrew-shell
     ];
 
     nixos = {
