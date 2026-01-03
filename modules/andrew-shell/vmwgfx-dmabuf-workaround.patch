@@ -1,0 +1,69 @@
+From bb466a3726390d82283af4578cac4a45cb3f7377 Mon Sep 17 00:00:00 2001
+From: Andrew Bastin <andrewbastin.k@gmail.com>
+Date: Sat, 3 Jan 2026 20:22:31 +0530
+Subject: [PATCH] Add vmwgfx DMA-BUF compatibility workaround
+
+---
+ src/protocols/LinuxDMABUF.cpp | 26 ++++++++++++++++++++++++++
+ src/protocols/LinuxDMABUF.hpp |  1 +
+ 2 files changed, 27 insertions(+)
+
+diff --git a/src/protocols/LinuxDMABUF.cpp b/src/protocols/LinuxDMABUF.cpp
+index 4f59e4b..32df2b6 100644
+--- a/src/protocols/LinuxDMABUF.cpp
++++ b/src/protocols/LinuxDMABUF.cpp
+@@ -233,6 +233,16 @@ bool CLinuxDMABUFParamsResource::commence() {
+     if (!PROTO::linuxDma->m_mainDeviceFD.isValid())
+         return true;
+ 
++    // Skip PRIME validation for vmwgfx driver - it has known issues with
++    // DMA-BUF import that cause valid buffers to be rejected. The EGL import
++    // path in CDMABuffer will handle the actual validation.
++    // See: https://github.com/hyprwm/Hyprland/issues/7658
++    //      https://gitlab.freedesktop.org/wlroots/wlroots/-/issues/1791
++    if (PROTO::linuxDma->m_isVmwgfx) {
++        LOGM(LOG, "Skipping PRIME validation for vmwgfx driver");
++        return true;
++    }
++
+     for (int i = 0; i < m_attrs->planes; i++) {
+         uint32_t handle = 0;
+ 
+@@ -460,6 +470,22 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const
+ 
+         m_formatTable = makeUnique<CDMABUFFormatTable>(eglTranche, tches);
+ 
++        // Detect vmwgfx driver for quirks
++        drmVersion* version = drmGetVersion(rendererFD);
++        if (version) {
++            if (version->name && std::string(version->name) == "vmwgfx") {
++                m_isVmwgfx = true;
++                LOGM(WARN, "Detected vmwgfx driver - enabling compatibility workarounds for DMA-BUF handling");
++            }
++            drmFreeVersion(version);
++        }
++
++        // Also check via env var override
++        if (const char* env = getenv("HYPRLAND_DMABUF_SKIP_PRIME_CHECK"); env && std::string(env) == "1") {
++            m_isVmwgfx = true;
++            LOGM(WARN, "HYPRLAND_DMABUF_SKIP_PRIME_CHECK=1 - skipping PRIME validation");
++        }
++
+         drmDevice* device = nullptr;
+         if (drmGetDeviceFromDevId(m_mainDevice, 0, &device) != 0) {
+             LOGM(Log::ERR, "failed to get drm dev, disabling linux dmabuf");
+diff --git a/src/protocols/LinuxDMABUF.hpp b/src/protocols/LinuxDMABUF.hpp
+index 296ef04..f4ef6f9 100644
+--- a/src/protocols/LinuxDMABUF.hpp
++++ b/src/protocols/LinuxDMABUF.hpp
+@@ -131,6 +131,7 @@ class CLinuxDMABufV1Protocol : public IWaylandProtocol {
+     UP<CDMABUFFormatTable>                        m_formatTable;
+     dev_t                                         m_mainDevice;
+     Hyprutils::OS::CFileDescriptor                m_mainDeviceFD;
++    bool                                          m_isVmwgfx = false;
+ 
+     friend class CLinuxDMABUFResource;
+     friend class CLinuxDMABUFFeedbackResource;
+-- 
+2.51.2
+

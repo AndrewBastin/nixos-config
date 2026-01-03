@@ -18,16 +18,28 @@
         default = false;
         description = "If enabled, uses hyprland (and hyprland plugins) provided by nixpkgs-unstable, else uses the defined nixpkgs one";
       };
+
+      patches = {
+        vmwgfx-workaround = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = "If enabled, applies a patch to Hyprland to work around dmabuf validation issues with the vmwgfx driver (VMware VMs)";
+        };
+      };
     };
   };
 
   nixos = { pkgs, pkgs-unstable, universalConfig ? {}, ... }: {
     programs.hyprland = let
       hyprlandPkgs = if universalConfig.andrew-shell.use-unstable-hyprland then pkgs-unstable else pkgs;
+      patches = if universalConfig.andrew-shell.patches.vmwgfx-workaround then [ ./vmwgfx-dmabuf-workaround.patch ] else [];
+      hyprlandPackage = hyprlandPkgs.hyprland.overrideAttrs (oldAttrs: {
+        patches = (oldAttrs.patches or []) ++ patches;
+      });
     in 
       {
         enable = true;
-        package = hyprlandPkgs.hyprland;
+        package = hyprlandPackage;
         portalPackage = hyprlandPkgs.xdg-desktop-portal-hyprland;
       };
 
