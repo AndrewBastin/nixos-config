@@ -55,11 +55,16 @@
     homeStateVersion = "25.11";
 
     config = {
+      kitty.fontSize = 10;
+
       andrew-shell = {
         # VMWare Fusion on ARM Macs have an issue with their graphics driver not passing
         # some validations that Hyprland does on rendering out buffers from the GPU
         # making stuff like Kitty and Quickshell (in Andrew Shell) crash on start
         patches.vmwgfx-workaround = true;
+
+        # Makes the UI nicer to be used in a VM
+        vm-mode = true;
 
         monitorRules = [
           ", preferred, auto, 2.0"

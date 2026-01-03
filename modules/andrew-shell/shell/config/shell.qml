@@ -25,7 +25,8 @@ Scope {
         property string monitorName: modelData.name
 
         anchors {
-          top: true
+          top: !VmMode.enabled
+          bottom: VmMode.enabled
           left: true
           right: true
         }
@@ -65,11 +66,11 @@ Scope {
               spacing: Theme.statusIconsSpacing
               
               Blocks.ConcealedGroup {}
-              Blocks.Audio {}
-              Blocks.Network {}
-              Blocks.Battery {}
+              Blocks.Audio { visible: !VmMode.enabled }
+              Blocks.Network { visible: !VmMode.enabled }
+              Blocks.Battery { visible: !VmMode.enabled }
               Blocks.Notifications {}
-              Blocks.Clock {}
+              Blocks.Clock { visible: !VmMode.enabled }
             }
           }
         }

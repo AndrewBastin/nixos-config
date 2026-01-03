@@ -26,6 +26,12 @@
           description = "If enabled, applies a patch to Hyprland to work around dmabuf validation issues with the vmwgfx driver (VMware VMs)";
         };
       };
+
+      vm-mode = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Enable VM mode - a mode optimised for VMs: bottom bar, minimal status components, auto-login without display manager";
+      };
     };
   };
 
@@ -43,8 +49,8 @@
         portalPackage = hyprlandPkgs.xdg-desktop-portal-hyprland;
       };
 
-    # We use ly as the display manager
-    services.displayManager.ly = {
+    # Display manager configuration - use Ly normally, greetd auto-login in VM mode
+    services.displayManager.ly = pkgs.lib.mkIf (!(universalConfig.andrew-shell.vm-mode or false)) {
       enable = true;
       settings = {
         session_log = ".local/state/ly-session.log";
@@ -52,8 +58,19 @@
       };
     };
 
-    # We need upower daemon for battery info
-    services.upower.enable = true;
+    # Auto-login via greetd in VM mode
+    services.greetd = pkgs.lib.mkIf (universalConfig.andrew-shell.vm-mode or false) {
+      enable = true;
+      settings = {
+        default_session = {
+          command = "Hyprland";
+          user = "andrew";
+        };
+      };
+    };
+
+    # We need upower daemon for battery info (not needed in VM mode)
+    services.upower.enable = !(universalConfig.andrew-shell.vm-mode or false);
 
     # used by Thunar and Ristretto for thumbnail generation
     services.tumbler.enable = true;
@@ -74,7 +91,11 @@
     };
 
     # Hint to Electron apps to use Wayland
-    environment.sessionVariables.NIXOS_OZONE_WL = "1";
+    environment.sessionVariables = {
+      NIXOS_OZONE_WL = "1";
+    } // pkgs.lib.optionalAttrs (universalConfig.andrew-shell.vm-mode or false) {
+      ANDREW_SHELL_VM_MODE = "1";
+    };
   };
 
   imports = [
@@ -181,7 +202,8 @@
         monitor = universalConfig.andrew-shell.monitorRules or [ ", preferred, auto, 1" ];
 
         exec-once = [
-          "${lib.getExe pkgs.hyprpaper} & ${lib.getExe pkgs.swaynotificationcenter}"
+          # Note: hyprpaper is started via services.hyprpaper when wallpaper is set
+          "${lib.getExe pkgs.swaynotificationcenter}"
         ];
 
         plugin = {
@@ -299,6 +321,7 @@
         "$mod" = "SUPER";
 
         bind = let
+          isVmMode = universalConfig.andrew-shell.vm-mode or false;
           quickmenu = pkgs.callPackage ./quickmenu.nix { fontFamily = fontName; };
           app_runner = /* sh */ ''
             ${lib.getExe pkgs.rofi} -show combi -modes combi -combi-modes "window,drun,run" -show-icons
@@ -324,8 +347,6 @@
 
             # TODO: This should be Zen by default
             "$mod, F, exec, zen"
-
-            "$mod, B, exec, ${quickmenu.bluetooth}"
 
             "$mod, V, togglefloating"
             "$mod, R, exec, ${app_runner}"
@@ -376,7 +397,7 @@
             # Scroll through existing workspaces with mainMod + scroll
             "$mod, left, movefocus, l"
             "$mod, right, movefocus, r"
-          ];
+          ] ++ lib.optional (!isVmMode) "$mod, B, exec, ${quickmenu.bluetooth}";
 
         bindm = [
           "$mod, mouse:272, movewindow"
@@ -430,6 +451,7 @@
         xwayland = {
           force_zero_scaling = true;
         };
+
       };
     };
   };
