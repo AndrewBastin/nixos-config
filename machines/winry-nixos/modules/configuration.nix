@@ -39,7 +39,7 @@
     users.users.andrew = {
       isNormalUser = true;
       description = "Andrew";
-      extraGroups = [ "networkmanager" "wheel" ];
+      extraGroups = [ "networkmanager" "wheel" "docker" ];
       packages = [];
     };
 
@@ -59,6 +59,8 @@
     ];
 
     virtualisation.vmware.guest.enable = true;
+
+    virtualisation.docker.enable = true;
 
     fileSystems."/mac" = {
       fsType = "fuse./run/current-system/sw/bin/vmhgfs-fuse";
