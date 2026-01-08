@@ -175,8 +175,8 @@
     services.hyprpaper = {
       enable = universalConfig.andrew-shell.wallpaper != null;
       settings = {
-       preload = "${universalConfig.andrew-shell.wallpaper}";
-       wallpaper = ",${universalConfig.andrew-shell.wallpaper}";
+        preload = [ "${universalConfig.andrew-shell.wallpaper}" ];
+        wallpaper = [ ",${universalConfig.andrew-shell.wallpaper}" ];
       };
     };
 
