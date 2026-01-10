@@ -172,12 +172,20 @@
       style.name = "adwaita-dark";
     };
 
-    services.hyprpaper = {
-      enable = universalConfig.andrew-shell.wallpaper != null;
-      settings = {
-        preload = [ "${universalConfig.andrew-shell.wallpaper}" ];
-        wallpaper = [ ",${universalConfig.andrew-shell.wallpaper}" ];
-      };
+    # Hyprpaper config - we don't use services.hyprpaper because its systemd service
+    # starts before Hyprland's IPC socket is ready. Instead, we write the config
+    # manually and launch via exec-once.
+    xdg.configFile."hypr/hyprpaper.conf" = lib.mkIf (universalConfig.andrew-shell.wallpaper != null) {
+      text = ''
+        preload = ${universalConfig.andrew-shell.wallpaper}
+        wallpaper = ,${universalConfig.andrew-shell.wallpaper}
+      '';
+      # Reload wallpaper on config activation
+      onChange = ''
+        ${pkgs.hyprland}/bin/hyprctl hyprpaper unload all
+        ${pkgs.hyprland}/bin/hyprctl hyprpaper preload ${universalConfig.andrew-shell.wallpaper}
+        ${pkgs.hyprland}/bin/hyprctl hyprpaper wallpaper ,${universalConfig.andrew-shell.wallpaper}
+      '';
     };
 
     # We use Pass as the keyring exposed via pass-secret-service
@@ -202,9 +210,8 @@
         monitor = universalConfig.andrew-shell.monitorRules or [ ", preferred, auto, 1" ];
 
         exec-once = [
-          # Note: hyprpaper is started via services.hyprpaper when wallpaper is set
           "${lib.getExe pkgs.swaynotificationcenter}"
-        ];
+        ] ++ lib.optional (universalConfig.andrew-shell.wallpaper != null) (lib.getExe pkgs.hyprpaper);
 
         plugin = {
           hyprsplit = {
