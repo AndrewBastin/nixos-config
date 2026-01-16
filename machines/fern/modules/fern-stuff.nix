@@ -12,6 +12,21 @@
       pkgs-unstable.fractal
       pkgs-unstable.vlc
     ];
+
+    # As part of the Jujutsu experiment, should graduate into
+    # dev-essentials if deemed useful
+    programs.jujutsu = {
+      enable = true;
+      package = pkgs-unstable.jujutsu;
+      settings = {
+        user = {
+          email = "andrewbastin.k@gmail.com";
+          name = "Andrew Bastin";
+        };
+
+        ui.default-command = "log";
+      };
+    };
   };
 
   nixos = { ... }: {
