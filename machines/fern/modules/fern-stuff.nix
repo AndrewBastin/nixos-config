@@ -32,6 +32,13 @@
       enable = true;
       package = pkgs-unstable.jjui;
     };
+
+    # As part of the Carapace experiment, should graduate into
+    # dev-essentials if deemed useful
+    programs.carapace = {
+      enable = true;
+      enableZshIntegration = true;
+    };
   };
 
   nixos = { ... }: {
