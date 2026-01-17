@@ -27,6 +27,11 @@
         ui.default-command = "log";
       };
     };
+
+    programs.jjui = {
+      enable = true;
+      package = pkgs-unstable.jjui;
+    };
   };
 
   nixos = { ... }: {
