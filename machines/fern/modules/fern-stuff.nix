@@ -11,6 +11,9 @@
       pkgs-unstable.obsidian
       pkgs-unstable.fractal
       pkgs-unstable.vlc
+
+      # used by jujutsu for change tracking
+      watchman
     ];
 
     # As part of the Jujutsu experiment, should graduate into
@@ -25,6 +28,14 @@
         };
 
         ui.default-command = "log";
+
+        # Use watchman for auto snapshotting
+        fsmonitor = {
+          backend = "watchman";
+
+          # Use watchman hooks for snapshotting
+          watchman.register-snapshot-trigger = true;
+        };
       };
     };
 
