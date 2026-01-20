@@ -51,6 +51,9 @@
           ripgrep
           zip
           unzip
+
+          # used by jujutsu for change tracking
+          watchman
         ];
 
         programs.gh = {
@@ -82,6 +85,32 @@
           enableBashIntegration = true;
         };
 
+        programs.jujutsu = {
+          enable = true;
+          package = pkgs-unstable.jujutsu;
+          settings = {
+            user = {
+              email = "andrewbastin.k@gmail.com";
+              name = "Andrew Bastin";
+            };
+
+            ui.default-command = "log";
+
+            # Use watchman for auto snapshotting
+            fsmonitor = {
+              backend = "watchman";
+
+              # Use watchman hooks for snapshotting
+              watchman.register-snapshot-trigger = true;
+            };
+          };
+        };
+
+        programs.jjui = {
+          enable = true;
+          package = pkgs-unstable.jjui;
+        };
+
         programs.zsh = {
           enable = true;
           enableCompletion = true;
@@ -111,6 +140,12 @@
           sessionVariables = {
             EDITOR = "nvim";
           };
+        };
+
+        # Really good completions!
+        programs.carapace = {
+          enable = true;
+          enableZshIntegration = true;
         };
 
         programs.zoxide = {

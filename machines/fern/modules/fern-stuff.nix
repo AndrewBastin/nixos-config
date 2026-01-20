@@ -11,45 +11,7 @@
       pkgs-unstable.obsidian
       pkgs-unstable.fractal
       pkgs-unstable.vlc
-
-      # used by jujutsu for change tracking
-      watchman
     ];
-
-    # As part of the Jujutsu experiment, should graduate into
-    # dev-essentials if deemed useful
-    programs.jujutsu = {
-      enable = true;
-      package = pkgs-unstable.jujutsu;
-      settings = {
-        user = {
-          email = "andrewbastin.k@gmail.com";
-          name = "Andrew Bastin";
-        };
-
-        ui.default-command = "log";
-
-        # Use watchman for auto snapshotting
-        fsmonitor = {
-          backend = "watchman";
-
-          # Use watchman hooks for snapshotting
-          watchman.register-snapshot-trigger = true;
-        };
-      };
-    };
-
-    programs.jjui = {
-      enable = true;
-      package = pkgs-unstable.jjui;
-    };
-
-    # As part of the Carapace experiment, should graduate into
-    # dev-essentials if deemed useful
-    programs.carapace = {
-      enable = true;
-      enableZshIntegration = true;
-    };
   };
 
   nixos = { ... }: {
