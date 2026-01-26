@@ -41,7 +41,7 @@
       {
         home.packages = with pkgs; [
           tig
-          nodejs_20
+          nodejs_24
           bat
           my_nvim
           pkgs-unstable.claude-code
