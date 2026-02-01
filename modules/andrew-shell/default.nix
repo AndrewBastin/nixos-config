@@ -362,6 +362,8 @@
 
             "$mod SHIFT, left, movewindow, mon:l"
             "$mod SHIFT, right, movewindow, mon:r"
+            "$mod SHIFT, H, movewindow, mon:l"
+            "$mod SHIFT, L, movewindow, mon:r"
 
             
             "$mod, 1, split:workspace, 1"
@@ -404,6 +406,8 @@
             # Scroll through existing workspaces with mainMod + scroll
             "$mod, left, movefocus, l"
             "$mod, right, movefocus, r"
+            "$mod, H, movefocus, l"
+            "$mod, L, movefocus, r"
           ] ++ lib.optional (!isVmMode) "$mod, B, exec, ${quickmenu.bluetooth}";
 
         bindm = [
