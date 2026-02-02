@@ -128,6 +128,11 @@
             if [[ "$CLAUDECODE" != "1" ]]; then
               eval "$(zoxide init --cmd cd zsh)"
             fi
+
+            # Ctrl+e to edit current command in $EDITOR
+            autoload -Uz edit-command-line
+            zle -N edit-command-line
+            bindkey '^e' edit-command-line
           '';
 
           shellAliases = {
