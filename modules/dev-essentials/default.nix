@@ -37,6 +37,8 @@
 
         nixvim = inputs.nixvim.legacyPackages."${pkgs.stdenv.system}";
       };
+
+      llm-agents = inputs.llm-agents.packages."${pkgs.stdenv.system}";
     in
       {
         home.packages = with pkgs; [
@@ -44,8 +46,6 @@
           nodejs_24
           bat
           my_nvim
-          pkgs-unstable.claude-code
-          pkgs-unstable.amp-cli
           jq
           lazygit
           ripgrep
@@ -54,6 +54,9 @@
 
           # used by jujutsu for change tracking
           watchman
+
+          llm-agents.claude-code
+          llm-agents.amp
         ];
 
         programs.gh = {

@@ -28,6 +28,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    llm-agents.url = "github:numtide/llm-agents.nix";
+
     mac-app-util.url = "github:hraban/mac-app-util";
   };
 
