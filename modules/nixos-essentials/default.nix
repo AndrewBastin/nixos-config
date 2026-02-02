@@ -9,8 +9,12 @@
     ];
   };
 
-  nixos = { pkgs, ... }: {
+  nixos = { pkgs, inputs, ... }: {
     nix.settings.experimental-features = ["nix-command" "flakes"];
+
+    # Register all flake inputs in the nix registry
+    # Enables: nix run nixpkgs#hello, nix run nixpkgs-unstable#firefox, etc.
+    nix.registry = builtins.mapAttrs (_name: flake: { inherit flake; }) inputs;
 
     nixpkgs.config.allowUnfree = true;
     

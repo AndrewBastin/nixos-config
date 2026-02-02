@@ -43,12 +43,26 @@
     };
   };
 
-  home = { pkgs-unstable, ... }: {
-    home.packages = with pkgs-unstable; [
-      numi
-      hidden-bar
-    ];
-  };
+  home = { pkgs-unstable, inputs, ... }:
+    let
+      # Generate registry.json content from flake inputs
+      registryJson = builtins.toJSON {
+        version = 2;
+        flakes = pkgs-unstable.lib.mapAttrsToList (name: flake: {
+          from = { type = "indirect"; id = name; };
+          to = { type = "path"; path = "${flake}"; };
+        }) (pkgs-unstable.lib.filterAttrs (_: v: v ? outPath) inputs);
+      };
+    in {
+      home.packages = with pkgs-unstable; [
+        numi
+        hidden-bar
+      ];
+
+      # Write registry.json to ~/.config/nix/
+      # Works with both nix-darwin managed nix AND Determinate Nix
+      home.file.".config/nix/registry.json".text = registryJson;
+    };
 
   darwin = { pkgs-unstable, universalConfig ? {}, ... }: 
     let
