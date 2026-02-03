@@ -59,6 +59,7 @@
             size = fontSize;
           };
           settings = {
+            enabled_layouts = "splits";
             cursor_trail = 1;
             macos_titlebar_color = "background";
             macos_quit_when_last_window_closed = "yes";
@@ -71,8 +72,16 @@
             "ctrl+shift+j" = "move_window down";
             "ctrl+shift+k" = "move_window up";
             "ctrl+shift+l" = "move_window right";
+            "alt+shift+h" = "neighboring_window left";
+            "alt+shift+j" = "neighboring_window down";
+            "alt+shift+k" = "neighboring_window up";
+            "alt+shift+l" = "neighboring_window right";
             "alt+enter" = "launch --cwd=current --location=vsplit";
             "ctrl+shift+enter" = "launch --cwd=current --location=hsplit";
+            "ctrl+alt+h" = "resize_window narrower";
+            "ctrl+alt+l" = "resize_window wider";
+            "ctrl+alt+j" = "resize_window shorter";
+            "ctrl+alt+k" = "resize_window taller";
             "cmd+t" = "launch --cwd=current --type=tab";
           };
           shellIntegration = {
