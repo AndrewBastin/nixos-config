@@ -115,6 +115,7 @@
       ../modules/nixos-essentials
       ../modules/dev-essentials
       ../modules/andrew-shell
+      ../modules/tailscale
       ./fern/modules/fern-stuff.nix
     ];
 
