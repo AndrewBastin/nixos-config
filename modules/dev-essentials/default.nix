@@ -141,6 +141,7 @@
             # cd = "z";
 
             lg = "lazygit";
+            maniyan = "claude --allow-dangerously-skip-permissions";
           };
 
           syntaxHighlighting.enable = true;
