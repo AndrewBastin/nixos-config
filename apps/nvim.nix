@@ -304,7 +304,7 @@
           docker_compose_language_service.enable = true;
           bashls.enable = true;
           qmlls.enable = true;
-          zls.enable = true;
+          # zls.enable = true; # Disabled: broken on nixos-unstable, see https://github.com/NixOS/nixpkgs/issues/488701
         };
 
         keymaps = {
