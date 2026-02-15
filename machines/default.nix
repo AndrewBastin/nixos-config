@@ -33,6 +33,7 @@
       ../modules/mac-essentials
       ./winry/modules/homebrew.nix
       ./winry/modules/machine-home.nix
+      ../modules/tailscale
     ];
 
     config = {
