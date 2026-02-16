@@ -1,17 +1,32 @@
 # Tailscale Module
-# Enables Tailscale VPN and trusts the tailscale0 interface in the firewall.
+# Enables Tailscale VPN with optional Tailscale SSH support.
 {
-  options = { ... }: {
+  options = { lib, ... }: {
+    tailscale = {
+      ssh = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Enable Tailscale SSH";
+      };
+    };
   };
 
-  nixos = { ... }: {
-    services.tailscale.enable = true;
+  nixos = { lib, universalConfig ? {}, ... }:
+    let
+      enableSSH = universalConfig.tailscale.ssh or false;
+    in
+    {
+      services.tailscale.enable = true;
+      services.tailscale.extraUpFlags = lib.optionals enableSSH [ "--ssh" ];
 
-    # Don't block boot for waiting on networking
-    systemd.network.wait-online.enable = false;
-    boot.initrd.systemd.network.wait-online.enable = false;
-  };
+      networking.firewall.trustedInterfaces = lib.optionals enableSSH [ "tailscale0" ];
 
+      # Don't block boot for waiting on networking
+      systemd.network.wait-online.enable = false;
+      boot.initrd.systemd.network.wait-online.enable = false;
+    };
+
+  # TODO: Tailscale SSH on Darwin
   darwin = { ... }: {
     services.tailscale.enable = true;
   };
