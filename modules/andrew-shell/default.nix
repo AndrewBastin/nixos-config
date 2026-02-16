@@ -353,7 +353,7 @@
             "$mod, E, exec, ${lib.getExe pkgs.xfce.thunar}"
 
             # TODO: This should be Zen by default
-            "$mod, F, exec, zen"
+            "$mod, F, exec, zen-beta"
 
             "$mod, V, togglefloating"
             "$mod, R, exec, ${app_runner}"
