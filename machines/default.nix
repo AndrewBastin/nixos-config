@@ -96,6 +96,9 @@
 
     config = {
       kitty.fontSize = 11;
+
+      tailscale.ssh = true;
+
       andrew-shell = {
         monitorRules = [
           # Built in monitor - Default configs with a 1.6 scale
