@@ -10,7 +10,8 @@
   ];
 
   # Bootloader.
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  # Temporarily pinned to 6.18 until this issue gets resolved: https://github.com/nixos/nixpkgs/issues/489947
+  boot.kernelPackages = pkgs.linuxPackages_6_18;
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
