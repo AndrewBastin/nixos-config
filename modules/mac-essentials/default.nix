@@ -68,7 +68,7 @@
     let
       wallpaperPath = universalConfig.mac-essentials.wallpaper or null;
       usesDeterminateNix = universalConfig.mac-essentials.macUsesDeterminateNix or false;
-      desktoppr = pkgs-unstable.callPackage ../../apps/desktoppr.nix {};
+      desktoppr = pkgs-unstable.callPackage ../../packages/desktoppr/package.nix {};
     in {
     # Disable nix-darwin's nix management if using Determinate Nix
     nix.enable = !usesDeterminateNix;

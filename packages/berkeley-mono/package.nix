@@ -48,7 +48,7 @@ stdenvNoCC.mkDerivation {
       Then run:
         nix-prefetch-url file:///path/to/berkeley-mono.zip
 
-      Update the sha256 in apps/berkeley-mono.nix if the hash differs.
+      Update the sha256 in packages/berkeley-mono/package.nix if the hash differs.
     '';
   };
 
@@ -78,6 +78,8 @@ stdenvNoCC.mkDerivation {
 
     runHook postInstall
   '';
+
+  passthru.skipAutoUpdate = true;
 
   meta = with lib; {
     description = "Berkeley Mono font patched with Nerd Fonts";

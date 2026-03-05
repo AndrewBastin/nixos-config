@@ -31,6 +31,11 @@
     llm-agents.url = "github:numtide/llm-agents.nix";
 
     mac-app-util.url = "github:hraban/mac-app-util";
+
+    naersk = {
+      url = "github:nix-community/naersk";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, nixvim, nixpkgs-unstable, nix-darwin, flake-utils, home-manager, ... }@inputs:
@@ -44,20 +49,27 @@
           pkgs-unstable = nixpkgs-unstable.legacyPackages.${system};
         in
           {
-            packages = {
-              nvim = import ./apps/nvim.nix {
-                nixvim = (import nixvim).legacyPackages."${system}";
-                pkgs = pkgs-unstable;
-              };
+            packages =
+              let
+                packageDirs = builtins.attrNames (builtins.readDir ./packages);
+                autoPackages = builtins.listToAttrs (map (name: {
+                  inherit name;
+                  value = pkgs.callPackage ./packages/${name}/package.nix {};
+                }) packageDirs);
+              in autoPackages // {
+                nvim = import ./apps/nvim.nix {
+                  nixvim = (import nixvim).legacyPackages."${system}";
+                  pkgs = pkgs-unstable;
+                };
 
-              nvim-mini = import ./apps/nvim.nix {
-                nixvim = (import nixvim).legacyPackages."${system}";
-                noLSP = true;
-                noAmp = true;
+                nvim-mini = import ./apps/nvim.nix {
+                  nixvim = (import nixvim).legacyPackages."${system}";
+                  noLSP = true;
+                  noAmp = true;
 
-                pkgs = pkgs-unstable;
+                  pkgs = pkgs-unstable;
+                };
               };
-            };
 
             apps = {
               nvim = flake-utils.lib.mkApp {
@@ -75,6 +87,10 @@
 
                 # Usually used on all of the NixOS/Darwin setups
                 nh
+
+                # Package management
+                just
+                nix-update
               ];
             };
           }

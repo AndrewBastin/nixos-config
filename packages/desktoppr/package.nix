@@ -2,7 +2,7 @@
   lib,
   stdenv,
   fetchurl,
-  unzip
+  unzip,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -11,7 +11,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   src = fetchurl {
     url = "https://github.com/scriptingosx/desktoppr/releases/download/v${finalAttrs.version}/desktoppr-${finalAttrs.version}-218.zip";
-    sha256 = "sha256-Oa9gAQjOaJHYyT5JBUiFCxL1sQP1dqlFBm+GdmLHNNM=";
+    hash = "sha256-Oa9gAQjOaJHYyT5JBUiFCxL1sQP1dqlFBm+GdmLHNNM=";
   };
 
   nativeBuildInputs = [ unzip ];
@@ -20,9 +20,9 @@ stdenv.mkDerivation (finalAttrs: {
 
   installPhase = ''
     runHook preInstall
-    
+
     install -D -m755 desktoppr $out/bin/desktoppr
-    
+
     runHook postInstall
   '';
 

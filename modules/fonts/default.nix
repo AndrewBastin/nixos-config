@@ -16,7 +16,7 @@
 # - fonts.monospace.package: Font package to install, or null to use default Berkeley Mono
 #
 # Note: The default uses Berkeley Mono which must be added to the Nix store.
-# See apps/berkeley-mono.nix for setup instructions.
+# See packages/berkeley-mono/package.nix for setup instructions.
 #
 # To use a different font:
 #   fonts.monospace.name = "FiraCode Nerd Font Mono";
@@ -41,7 +41,7 @@
 
   home = { lib, pkgs, universalConfig ? {}, ... }:
     let
-      berkeleyMono = pkgs.callPackage ../../apps/berkeley-mono.nix {};
+      berkeleyMono = pkgs.callPackage ../../packages/berkeley-mono/package.nix {};
       
       monospaceConfig = universalConfig.fonts.monospace or {};
       useDefaultPackage = monospaceConfig.package or null == null;

@@ -10,6 +10,7 @@
 # - Enables direnv for project-specific environments
 # - Provides consistent shell aliases and environment variables
 # - Manages AI tool skills (Claude Code + Amp) declaratively
+# - Manages Claude Code plugins declaratively via shell aliases
 #
 # Imports: ../kitty (terminal emulator)
 #
@@ -17,6 +18,7 @@
 #
 # Configuration options:
 # - dev-essentials.additionalSkills: Extra skill directories to install for AI tools
+# - dev-essentials.additionalPlugins: Extra Claude Code plugin directories to load
 #
 # Key features:
 # - Self-contained Neovim built from nixvim input
@@ -25,6 +27,7 @@
 # - Enhanced terminal experience with syntax highlighting
 # - Project environment management via direnv
 # - Shared AI skills across Claude Code and Amp
+# - Claude Code plugins loaded via shell aliases (--plugin-dir)
 {
   imports = [
     ../kitty
@@ -41,6 +44,18 @@
           - A path to a .nix file: resolved via callPackage, must return a path/derivation containing <skill-name>/SKILL.md subdirectories
           - A path to a directory: used directly, should contain <skill-name>/SKILL.md subdirectories
           - A derivation: used directly, should contain <skill-name>/SKILL.md subdirectories
+        '';
+      };
+
+      additionalPlugins = lib.mkOption {
+        type = lib.types.listOf lib.types.anything;
+        default = [];
+        description = ''
+          Additional Claude Code plugins to load via --plugin-dir.
+          Each entry can be:
+          - A path to a .nix file: resolved via callPackage, must return a plugin directory (containing .claude-plugin/plugin.json)
+          - A path to a directory: used directly
+          - A derivation: used directly
         '';
       };
     };
@@ -65,7 +80,7 @@
       builtinSkills = let
         skillDir = ./ai/skills;
         entries = builtins.readDir skillDir;
-        nixFiles = pkgs.lib.filterAttrs (_: type: type == "regular") entries;
+        nixFiles = pkgs.lib.filterAttrs (name: type: type == "regular" && pkgs.lib.hasSuffix ".nix" name) entries;
       in map (name: skillDir + "/${name}") (builtins.attrNames nixFiles);
 
       rawAdditionalSkills = universalConfig.dev-essentials.additionalSkills or [];
@@ -87,6 +102,26 @@
             [ -d "$skill" ] && ln -s "$skill" "$out/$(basename "$skill")"
           done
         '') allSkillSources));
+
+      # Claude Code plugins: auto-discover from ./ai/plugins/ and merge with additional
+      builtinPlugins = let
+        pluginDir = ./ai/plugins;
+        entries = builtins.readDir pluginDir;
+        nixFiles = pkgs.lib.filterAttrs (name: type: type == "regular" && pkgs.lib.hasSuffix ".nix" name) entries;
+      in map (name: pluginDir + "/${name}") (builtins.attrNames nixFiles);
+
+      rawAdditionalPlugins = universalConfig.dev-essentials.additionalPlugins or [];
+
+      resolvePlugin = entry:
+        let
+          isNixFile = builtins.isPath entry && pkgs.lib.hasSuffix ".nix" (toString entry);
+        in
+          if isNixFile then pkgs.callPackage entry {}
+          else entry;
+
+      allPluginSources = map resolvePlugin (builtinPlugins ++ rawAdditionalPlugins);
+
+      pluginDirFlags = builtins.concatStringsSep " " (map (p: "--plugin-dir ${p}") allPluginSources);
     in
       {
         home.packages = with pkgs; [
@@ -200,8 +235,11 @@
             # cd = "z";
 
             lg = "lazygit";
+          } // (if allPluginSources != [] then {
+            maniyan = "claude ${pluginDirFlags} --allow-dangerously-skip-permissions";
+          } else {
             maniyan = "claude --allow-dangerously-skip-permissions";
-          };
+          });
 
           syntaxHighlighting.enable = true;
 
@@ -232,18 +270,9 @@
           enableBashIntegration = true;
           enableZshIntegration = true;
 
-          flavors =
-            let
-              flavorsRepo = pkgs.fetchFromGitHub {
-                owner = "yazi-rs";
-                repo = "flavors";
-                rev = "3edeb49597e1080621a9b0b50d9f0a938b8f62bb";
-                hash = "sha256-twgXHeIj52EfpMpLrhxjYmwaPnIYah3Zk/gqCNTb2SQ=";
-              };
-            in
-              {
-                catppuccin-mocha = "${flavorsRepo}/catppuccin-mocha.yazi";
-              };
+          flavors = {
+            catppuccin-mocha = pkgs.callPackage ../../packages/yazi-catppuccin-mocha/package.nix {};
+          };
 
           theme.flavor = 
             let
