@@ -7,13 +7,13 @@
 
 stdenvNoCC.mkDerivation {
   pname = "frontend-design-skills";
-  version = "2.1.71-unstable-2026-03-07";
+  version = "2.1.72-unstable-2026-03-10";
 
   src = fetchFromGitHub {
     owner = "anthropics";
     repo = "claude-code";
-    rev = "53a5f3ee0703c2ab1b6d1dd18d8ab65187f9b8ad";
-    hash = "sha256-GY/S9cPYd/Vu9u0OLvn2S0r5I4J+PuVSVE54i55YegM=";
+    rev = "f6dbf44cd5f5a90f8fd2608c13f3d7bcf15bfe6f";
+    hash = "sha256-OuXzqIGJvSlIULaqwfjxr1C60dDrOGbGXPLupvperIU=";
   };
 
   dontBuild = true;
