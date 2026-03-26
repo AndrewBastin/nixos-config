@@ -304,6 +304,19 @@ rec {
             system.stateVersion = machineConfig.stateVersion or 6;
             system.configurationRevision = flake.rev or flake.dirtyRev or null;
             nixpkgs.hostPlatform = machineConfig.system;
+
+            # TODO: Remove once NixOS/nixpkgs#502769 lands in nixos-25.11
+            # Fixes: -linkmode=external requires external (cgo) linking, but cgo is not enabled
+            # Tracking issue: https://github.com/NixOS/nixpkgs/issues/502464
+            nixpkgs.overlays = [
+              (final: prev: {
+                direnv = prev.direnv.overrideAttrs (old: {
+                  postPatch = (old.postPatch or "") + ''
+                    substituteInPlace GNUmakefile --replace-fail " -linkmode=external" ""
+                  '';
+                });
+              })
+            ];
           }
         ];
     };
