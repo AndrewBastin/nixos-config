@@ -24,7 +24,7 @@
   hardware.bluetooth.enable = true;
 
   # Set your time zone.
-  time.timeZone = "America/Toronto";
+  time.timeZone = "Asia/Kolkata";
 
   # Select internationalisation properties.
   i18n = {
