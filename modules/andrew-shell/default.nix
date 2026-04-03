@@ -80,7 +80,15 @@
       swaynotificationcenter
     ];
 
+    programs.thunar = {
+      enable = true;
+      plugins = with pkgs.xfce; [
+        thunar-volman
+      ];
+    };
 
+    # Service allows auto mounting of removable media devices.
+    services.udisks2.enable = true;
 
     # Stuff related to GPG Agent
     programs.mtr.enable = true;
@@ -116,7 +124,6 @@
 
     # They need to be present here so they show up in the app opening view
     home.packages = with pkgs; [
-      xfce.thunar         # File Manager
       xfce.ristretto      # Image viewer
 
       pavucontrol         # Volume and Audio Control
