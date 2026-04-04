@@ -117,6 +117,7 @@
     {
     imports = [
       inputs.zen-browser.homeModules.beta
+      inputs.stochos.homeModules.stochos
 
       ./shell
       (import ./lock.nix { fontFamily = fontName; })
@@ -198,6 +199,15 @@
     # We use Pass as the keyring exposed via pass-secret-service
     services.pass-secret-service.enable = true;
 
+    # stochos: keyboard-driven mouse grid overlay for Wayland
+    programs.stochos = {
+      enable = true;
+      settings = {
+        grid = {
+          target_cell_size = 90;
+        };
+      };
+    };
 
     wayland.windowManager.hyprland = {
       enable = true;
@@ -362,6 +372,7 @@
             # TODO: This should be Zen by default
             "$mod, F, exec, zen-beta"
 
+            "$mod, D, exec, stochos"
             "$mod, V, togglefloating"
             "$mod, R, exec, ${app_runner}"
             "$mod, P, pseudo"
