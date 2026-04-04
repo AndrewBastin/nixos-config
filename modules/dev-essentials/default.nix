@@ -76,6 +76,10 @@
 
       llm-agents = inputs.llm-agents.packages."${pkgs.stdenv.system}";
 
+      maniyan = pkgs.callPackage ../../apps/maniyan {
+        pi = llm-agents.pi;
+      };
+
       # AI tool skills: combine built-in skill packages with any additional ones from config
       builtinSkills = let
         skillDir = ./ai/skills;
@@ -140,6 +144,8 @@
 
           llm-agents.claude-code
           llm-agents.amp
+
+          maniyan
         ];
 
         # Place AI skills for both Claude Code and Amp
@@ -236,9 +242,9 @@
 
             lg = "lazygit";
           } // (if allPluginSources != [] then {
-            maniyan = "claude ${pluginDirFlags} --allow-dangerously-skip-permissions";
+            migu = "claude ${pluginDirFlags} --allow-dangerously-skip-permissions";
           } else {
-            maniyan = "claude --allow-dangerously-skip-permissions";
+            migu = "claude --allow-dangerously-skip-permissions";
           });
 
           syntaxHighlighting.enable = true;

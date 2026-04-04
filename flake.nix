@@ -71,6 +71,10 @@
 
                   pkgs = pkgs-unstable;
                 };
+
+                maniyan = pkgs.callPackage ./apps/maniyan {
+                  pi = inputs.llm-agents.packages.${system}.pi;
+                };
               };
 
             apps = {
@@ -78,6 +82,12 @@
                 drv = self.packages.${system}.nvim;
                 name = "nvim";
                 exePath = "/bin/nvim";
+              };
+
+              maniyan = flake-utils.lib.mkApp {
+                drv = self.packages.${system}.maniyan;
+                name = "maniyan";
+                exePath = "/bin/maniyan";
               };
             };
 
