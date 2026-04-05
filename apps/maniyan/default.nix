@@ -12,11 +12,11 @@
 let
   # Extensions (loaded via -e)
   pi-vim = callPackage ../../packages/pi-vim/package.nix {};
-  pi-btw = callPackage ../../packages/pi-btw/package.nix {};
+  pi-amplike = callPackage ../../packages/pi-amplike/package.nix {};
 
   extensions = [
     pi-vim
-    pi-btw
+    pi-amplike
   ];
 
   # Skills (loaded via --skill)
@@ -26,7 +26,7 @@ let
   skills = [
     gh-scout-skills
     "${superpowers-plugin}/skills"
-    "${pi-btw}/skills"
+    "${pi-amplike}/skills"
   ];
 
   # Prompt templates (loaded via --prompt-template)
