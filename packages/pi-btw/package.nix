@@ -7,7 +7,7 @@
 
 stdenvNoCC.mkDerivation {
   pname = "pi-btw";
-  version = "0.2.1-unstable-2026-04-04";
+  version = "0.2.1-unstable-2026-03-16";
 
   src = fetchFromGitHub {
     owner = "dbachelder";
