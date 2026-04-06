@@ -204,7 +204,10 @@
       enable = true;
       settings = {
         grid = {
-          target_cell_size = 90;
+          # Clean QWERTY row: 10x10 grid, keys map spatially left-to-right
+          hints = ["q" "w" "e" "r" "t" "y" "u" "i" "o" "p"];
+          sub_hints = ["q" "w" "e" "r" "t" "y" "u" "i" "o" "p" "a" "s" "d" "f" "g" "h" "j" "k" "l" ";" "z" "x" "c" "v" "b"];
+          sub_cols = 5;
         };
       };
     };
