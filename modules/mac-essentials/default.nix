@@ -64,15 +64,22 @@
       home.file.".config/nix/registry.json".text = registryJson;
     };
 
-  darwin = { pkgs-unstable, universalConfig ? {}, ... }: 
+  darwin = { pkgs-unstable, inputs, universalConfig ? {}, ... }: 
     let
       wallpaperPath = universalConfig.mac-essentials.wallpaper or null;
       usesDeterminateNix = universalConfig.mac-essentials.macUsesDeterminateNix or false;
       desktoppr = pkgs-unstable.callPackage ../../packages/desktoppr/package.nix {};
     in {
+    imports = [
+      inputs.nix-index-database.nixosModules.default
+    ];
+
     # Disable nix-darwin's nix management if using Determinate Nix
     nix.enable = !usesDeterminateNix;
-    
+
+    # Provided by the nix-index-database nixos module
+    programs.nix-index-database.comma.enable = true;
+
     # Set wallpaper using LaunchAgent (if wallpaper path is provided)
     launchd.user.agents = if wallpaperPath != null then {
       setWallpaper = {

@@ -1,15 +1,11 @@
 # Essential configuration that is present in pretty much
 # all my NixOS systems
 {
-  home = { pkgs, ... }: {
-    # Comma and nix-index is used to index nixpkgs
-    home.packages = with pkgs; [
-      nix-index
-      comma
-    ];
-  };
-
   nixos = { pkgs, inputs, ... }: {
+    imports = [
+      inputs.nix-index-database.nixosModules.default
+    ];
+
     nix.settings.experimental-features = ["nix-command" "flakes"];
 
     # Register all flake inputs in the nix registry
@@ -31,6 +27,9 @@
         extraArgs = "--keep 5 --keep-since 7d";
       };
     };
+
+    # Provided by the nix-index-database nixos module
+    programs.nix-index-database.comma.enable = true;
 
     # Firmware Updater
     services.fwupd.enable = true;
