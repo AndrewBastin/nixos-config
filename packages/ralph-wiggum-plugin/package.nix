@@ -7,7 +7,7 @@
 
 stdenvNoCC.mkDerivation {
   pname = "ralph-wiggum-plugin";
-  version = "2.1.101-unstable-2026-04-10";
+  version = "2.1.104-unstable-2026-04-10";
 
   src = fetchFromGitHub {
     owner = "anthropics";
