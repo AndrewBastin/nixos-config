@@ -305,15 +305,13 @@ rec {
             system.configurationRevision = flake.rev or flake.dirtyRev or null;
             nixpkgs.hostPlatform = machineConfig.system;
 
-            # TODO: Remove once NixOS/nixpkgs#502769 lands in nixos-25.11
-            # Fixes: -linkmode=external requires external (cgo) linking, but cgo is not enabled
-            # Tracking issue: https://github.com/NixOS/nixpkgs/issues/502464
+            # TODO: Remove once NixOS/nix#15638 lands (fixes Mach-O code signature
+            # corruption after store-path rewriting on darwin).
+            # Tracking: NixOS/nixpkgs#507531 — fish gets SIGKILL during direnv checkPhase
             nixpkgs.overlays = [
               (final: prev: {
                 direnv = prev.direnv.overrideAttrs (old: {
-                  postPatch = (old.postPatch or "") + ''
-                    substituteInPlace GNUmakefile --replace-fail " -linkmode=external" ""
-                  '';
+                  doCheck = false;
                 });
               })
             ];
