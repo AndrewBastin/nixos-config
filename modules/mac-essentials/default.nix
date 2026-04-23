@@ -71,7 +71,7 @@
       desktoppr = pkgs-unstable.callPackage ../../packages/desktoppr/package.nix {};
     in {
     imports = [
-      inputs.nix-index-database.nixosModules.default
+      inputs.nix-index-database.darwinModules.default
     ];
 
     # Disable nix-darwin's nix management if using Determinate Nix
