@@ -6,7 +6,7 @@
 
 stdenvNoCC.mkDerivation {
   pname = "pi-amplike";
-  version = "1.3.4";
+  version = "1.3.6";
 
   src = fetchurl {
     url = "https://registry.npmjs.org/pi-amplike/-/pi-amplike-1.3.4.tgz";
