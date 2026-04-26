@@ -8,7 +8,7 @@
   imports = [ 
     inputs.nixos-hardware.nixosModules.lenovo-thinkpad-p14s-intel-gen5
   ];
-
+  
   # Bootloader.
   # Temporarily pinned to 6.18 until this issue gets resolved: https://github.com/nixos/nixpkgs/issues/489947
   boot.kernelPackages = pkgs.linuxPackages_6_18;
