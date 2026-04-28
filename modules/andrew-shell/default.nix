@@ -135,6 +135,8 @@
       rofi
       rofimoji
 
+      gnome-clocks        # Clock app
+
       (
         pass-wayland.withExtensions (exts: with exts; [
           pass-otp
