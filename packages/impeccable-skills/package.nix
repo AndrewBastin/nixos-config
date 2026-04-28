@@ -7,13 +7,13 @@
 
 stdenvNoCC.mkDerivation {
   pname = "impeccable-skills";
-  version = "0-unstable-2026-04-27";
+  version = "skill-v3.0.5-unstable-2026-04-29";
 
   src = fetchFromGitHub {
     owner = "pbakaus";
     repo = "impeccable";
-    rev = "62ce35ac8ed12f0129ab536152695dbd074b6c13";
-    hash = "sha256-GRHDRBtnSHBDo82DDzBTmoxmCEEuTUAyHaoTiXqBLwM=";
+    rev = "9a5d0e71a9011def4fbd011d5fca33360880b409";
+    hash = "sha256-aS8BGsSw6RcraTQQ11WI21O/1GdjRV5sGGb5w/6mnlI=";
   };
 
   dontBuild = true;
