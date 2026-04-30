@@ -154,6 +154,11 @@
           recursive = true;
         };
 
+        home.file.".claude-migu/skills" = {
+          source = combinedSkills;
+          recursive = true;
+        };
+
         home.file.".config/agents/skills" = {
           source = combinedSkills;
           recursive = true;
@@ -242,9 +247,9 @@
 
             lg = "lazygit";
           } // (if allPluginSources != [] then {
-            migu = "claude ${pluginDirFlags} --allow-dangerously-skip-permissions";
+            migu = "CLAUDE_CONFIG_DIR=$HOME/.claude-migu claude ${pluginDirFlags} --allow-dangerously-skip-permissions";
           } else {
-            migu = "claude --allow-dangerously-skip-permissions";
+            migu = "CLAUDE_CONFIG_DIR=$HOME/.claude-migu claude --allow-dangerously-skip-permissions";
           });
 
           syntaxHighlighting.enable = true;
