@@ -248,8 +248,10 @@
             lg = "lazygit";
           } // (if allPluginSources != [] then {
             migu = "CLAUDE_CONFIG_DIR=$HOME/.claude-migu claude ${pluginDirFlags} --allow-dangerously-skip-permissions";
+            clod = "claude ${pluginDirFlags} --allow-dangerously-skip-permissions";
           } else {
             migu = "CLAUDE_CONFIG_DIR=$HOME/.claude-migu claude --allow-dangerously-skip-permissions";
+            clod = "claude --allow-dangerously-skip-permissions";
           });
 
           syntaxHighlighting.enable = true;
