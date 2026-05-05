@@ -23,3 +23,16 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
 Good luck and Godspeed.
+
+
+                            Third-party code
+
+The above license applies to original work in this repository. It does
+NOT cover vendored third-party source under the following paths, which
+retain their upstream licenses:
+
+  modules/andrew-shell/librepods/source/
+      Vendored from https://github.com/kavishdevar/librepods (linux/rust
+      branch). Licensed under the GNU Affero General Public License,
+      version 3 only (AGPL-3.0-only). See
+      modules/andrew-shell/librepods/source/LICENSE for the full text.

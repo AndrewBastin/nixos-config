@@ -108,6 +108,7 @@
 
   imports = [
     ../fonts
+    ./librepods
   ];
 
   home = { pkgs, pkgs-unstable, lib, inputs, universalConfig ? {}, ... }: 

@@ -9,6 +9,7 @@
   bluez,
   libnotify,
   hyprlock,
+  jq,
 
   fontFamily ? "BerkeleyMono Nerd Font Mono"
 }:
@@ -44,6 +45,24 @@ in
     writeShellScript "andrew-bemenu-bluetooth" /* sh */ ''
       set -euo pipefail
 
+      # Pull librepods status once. For AirPods, librepods's AAP-derived
+      # battery is more accurate than what BlueZ exposes (BlueZ often shows
+      # the case battery, the lower bud, or nothing at all), so prefer it
+      # whenever the listed MAC matches librepods's view. This same JSON
+      # also drives the AirPods control sub-menu lower down.
+      LRP_STATUS='{}'
+      LRP_CONNECTED=false
+      LRP_MAC=""
+      LRP_BATTERY=""
+      if command -v librepods-ctl >/dev/null 2>&1; then
+        LRP_STATUS=$(librepods-ctl status 2>/dev/null || echo '{}')
+        LRP_CONNECTED=$(echo "$LRP_STATUS" | ${lib.getExe jq} -r '.connected // false')
+        if [ "$LRP_CONNECTED" = "true" ]; then
+          LRP_MAC=$(echo "$LRP_STATUS" | ${lib.getExe jq} -r '.mac // empty')
+          LRP_BATTERY=$(echo "$LRP_STATUS" | ${lib.getExe jq} -r '.battery // empty')
+        fi
+      fi
+
       # Get list of paired devices with connection status
       # Store device info with MAC addresses for reliable lookup
       declare -A DEVICE_MACS
@@ -53,20 +72,24 @@ in
       while IFS= read -r line; do
         MAC=$(echo "$line" | cut -d' ' -f2)
         NAME=$(echo "$line" | cut -d' ' -f3-)
-        
+
         # Store MAC address for this device name
         DEVICE_MACS["$NAME"]="$MAC"
-        
+
         # Check if device is connected and get battery info
         DEVICE_INFO=$(${bluetoothctl} info "$MAC")
         if echo "$DEVICE_INFO" | grep -q "Connected: yes"; then
-          # Try to get battery percentage
+          # Try to get battery percentage. Prefer librepods for the MAC it owns.
           BATTERY=""
-          if echo "$DEVICE_INFO" | grep -q "Battery Percentage:"; then
+          BATTERY_PCT=""
+          if [ -n "$LRP_MAC" ] && [ "$MAC" = "$LRP_MAC" ] && [ -n "$LRP_BATTERY" ]; then
+            BATTERY_PCT="$LRP_BATTERY"
+          elif echo "$DEVICE_INFO" | grep -q "Battery Percentage:"; then
             BATTERY_LEVEL=$(echo "$DEVICE_INFO" | grep "Battery Percentage:" | sed 's/.*Battery Percentage: 0x\(..\).*/\1/')
             # Convert hex to decimal
             BATTERY_PCT=$((16#$BATTERY_LEVEL))
-            
+          fi
+          if [ -n "$BATTERY_PCT" ]; then
             # Select battery icon based on percentage (matching waybar icons)
             if [ $BATTERY_PCT -le 5 ]; then
               BATTERY_ICON="󰂎"
@@ -162,6 +185,55 @@ in
           echo ""
         fi
       }
+
+      # If librepods is managing this device, peel off into an AirPods
+      # control sub-menu instead of treating "select connected device" as
+      # disconnect. Falls through to the default disconnect path when
+      # librepods is unavailable or the selection isn't its current device.
+      # LRP_STATUS / LRP_CONNECTED / LRP_MAC were populated at the top.
+      if [ "''${DEVICE_STATUS[$DEVICE_NAME]}" = "connected" ]; then
+        if [ "$LRP_CONNECTED" = "true" ] && [ "$LRP_MAC" = "$MAC" ]; then
+          MODE=$(echo "$LRP_STATUS" | ${lib.getExe jq} -r '.mode // "?"')
+          CA=$(echo "$LRP_STATUS" | ${lib.getExe jq} -r '.conversational_awareness // false')
+          OWNS=$(echo "$LRP_STATUS" | ${lib.getExe jq} -r '.owns // false')
+          PEER_COUNT=$(echo "$LRP_STATUS" | ${lib.getExe jq} -r '.peers | length')
+          PEER_OWNER=$(echo "$LRP_STATUS" | ${lib.getExe jq} -r 'first(.peers[]? | select(.owns) | .name // .mac) // empty')
+
+          mark () { local on="$1"; if [ "$on" = "true" ]; then echo "*"; else echo " "; fi; }
+
+          AP_ITEMS=()
+          AP_ITEMS+=("ANC: Off          $(mark $([ "$MODE" = off ] && echo true || echo false))")
+          AP_ITEMS+=("ANC: NC           $(mark $([ "$MODE" = anc ] && echo true || echo false))")
+          AP_ITEMS+=("ANC: Transparency $(mark $([ "$MODE" = transparency ] && echo true || echo false))")
+          AP_ITEMS+=("ANC: Adaptive     $(mark $([ "$MODE" = adaptive ] && echo true || echo false))")
+          AP_ITEMS+=("Conversational Awareness  $(mark "$CA")")
+          if [ "$OWNS" != "true" ] && [ "$PEER_COUNT" -gt 0 ]; then
+            AP_ITEMS+=("Take audio back from ''${PEER_OWNER:-other device}")
+          fi
+          AP_ITEMS+=("Disconnect")
+
+          AP_SEL=$(printf "%s\n" "''${AP_ITEMS[@]}" | ${bemenu_runner} -n -B1 -l "''${#AP_ITEMS[@]}" -p "$DEVICE_NAME") || exit 0
+
+          case "$AP_SEL" in
+            "ANC: Off"*)          librepods-ctl mode off ;;
+            "ANC: NC"*)           librepods-ctl mode anc ;;
+            "ANC: Transparency"*) librepods-ctl mode transparency ;;
+            "ANC: Adaptive"*)     librepods-ctl mode adaptive ;;
+            "Conversational Awareness"*)
+              if [ "$CA" = "true" ]; then librepods-ctl conversational-awareness off
+              else                         librepods-ctl conversational-awareness on
+              fi ;;
+            "Take audio back"*)   librepods-ctl take-back ;;
+            "Disconnect")
+              if ${bluetoothctl} disconnect "$MAC"; then
+                ${notify-send} "Bluetooth" "Disconnected from $DEVICE_NAME"
+              else
+                ${notify-send} "Bluetooth" "Failed to disconnect from $DEVICE_NAME" -u critical
+              fi ;;
+          esac
+          exit 0
+        fi
+      fi
 
       # Connect or disconnect based on current status
       if [ "''${DEVICE_STATUS[$DEVICE_NAME]}" = "connected" ]; then
