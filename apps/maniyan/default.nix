@@ -29,13 +29,6 @@ let
     "${pi-amplike}/skills"
   ];
 
-  # Prompt templates (loaded via --prompt-template)
-  superpowers-prompts = callPackage ../../packages/superpowers-prompts/package.nix {};
-
-  promptTemplates = [
-    superpowers-prompts
-  ];
-
   # Config files (immutable, Nix-managed)
   configFiles = ./config;
 
@@ -44,8 +37,6 @@ let
     (ext: "-e ${ext}") extensions;
   skillFlags = lib.concatMapStringsSep " "
     (skill: "--skill ${skill}") skills;
-  promptFlags = lib.concatMapStringsSep " "
-    (pt: "--prompt-template ${pt}") promptTemplates;
 
 in writeShellScriptBin "maniyan" ''
   MANIYAN_DIR="$HOME/.maniyan"
@@ -63,5 +54,5 @@ in writeShellScriptBin "maniyan" ''
 
   export PI_CODING_AGENT_DIR="$MANIYAN_DIR"
   export PI_SKIP_VERSION_CHECK=1
-  exec ${pi}/bin/pi ${extensionFlags} ${skillFlags} ${promptFlags} "$@"
+  exec ${pi}/bin/pi ${extensionFlags} ${skillFlags} "$@"
 ''
