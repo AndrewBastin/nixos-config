@@ -60,8 +60,24 @@
         # sub-menu when the selected device matches librepods's view.
         home.packages = [ librepodsPkg ];
 
-        wayland.windowManager.hyprland.settings.exec-once = [
-          "${librepodsPkg}/bin/librepods"
-        ];
+        # Run as a user service rather than a Hyprland exec-once so logs land
+        # in `journalctl --user -u librepods` and the daemon restarts on
+        # failure. Bound to graphical-session.target so it lifecycles with
+        # the Wayland session.
+        systemd.user.services.librepods = {
+          Unit = {
+            Description = "LibrePods AirPods integration daemon";
+            After = [ "graphical-session.target" ];
+            PartOf = [ "graphical-session.target" ];
+          };
+          Service = {
+            ExecStart = "${librepodsPkg}/bin/librepods";
+            Restart = "on-failure";
+            RestartSec = 3;
+          };
+          Install = {
+            WantedBy = [ "graphical-session.target" ];
+          };
+        };
       };
 }
