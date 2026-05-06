@@ -359,7 +359,7 @@ impl AirPodsDevice {
                         }
 
                         info!(
-                            "Audio routed away from this host (Media/Call -> None); offering take-back"
+                            "Audio routed away from this host (Media/Call -> None); debouncing before offering take-back"
                         );
 
                         let aacp_for_action = aacp_manager_clone_events.clone();
@@ -367,8 +367,31 @@ impl AirPodsDevice {
                         let mc_for_action = mc_clone.clone();
                         let command_tx_for_action = command_tx_clone.clone();
                         tokio::spawn(async move {
+                            // iPhone notification dings briefly steal audio
+                            // (Media/Call -> None -> Media within ~1s), which
+                            // would otherwise pop a take-back notification per
+                            // ding. Wait, then re-check state: if local audio
+                            // is back, the away was transient and we bail.
+                            const TAKEBACK_DEBOUNCE: Duration = Duration::from_millis(2500);
+                            sleep(TAKEBACK_DEBOUNCE).await;
+
                             let (target_mac, target_name) = {
+                                use crate::bluetooth::aacp::AudioSourceType;
                                 let state = aacp_for_action.state.lock().await;
+                                let still_away = match &state.audio_source {
+                                    Some(src) => !(src.mac == local_mac_for_action
+                                        && matches!(
+                                            src.r#type,
+                                            AudioSourceType::Media | AudioSourceType::Call
+                                        )),
+                                    None => true,
+                                };
+                                if !still_away {
+                                    debug!(
+                                        "Audio returned to this host within debounce window; skipping take-back notification"
+                                    );
+                                    return;
+                                }
                                 let mac = state
                                     .connected_devices
                                     .iter()
