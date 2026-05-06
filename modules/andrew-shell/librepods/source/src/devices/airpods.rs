@@ -378,29 +378,33 @@ impl AirPodsDevice {
                             let (target_mac, target_name) = {
                                 use crate::bluetooth::aacp::AudioSourceType;
                                 let state = aacp_for_action.state.lock().await;
-                                let still_away = match &state.audio_source {
-                                    Some(src) => !(src.mac == local_mac_for_action
-                                        && matches!(
-                                            src.r#type,
-                                            AudioSourceType::Media | AudioSourceType::Call
-                                        )),
-                                    None => true,
+                                // Local AudioSource flipping to None also
+                                // fires when local playback just stops
+                                // (pause, tab close) — not only on a peer
+                                // hijack. So gate on the positive signal: a
+                                // non-self peer must currently be the audio
+                                // source with an active type.
+                                let peer_owner = match &state.audio_source {
+                                    Some(src)
+                                        if src.mac != local_mac_for_action
+                                            && matches!(
+                                                src.r#type,
+                                                AudioSourceType::Media
+                                                    | AudioSourceType::Call
+                                            ) =>
+                                    {
+                                        Some(src.mac.clone())
+                                    }
+                                    _ => None,
                                 };
-                                if !still_away {
+                                let Some(peer_mac) = peer_owner else {
                                     debug!(
-                                        "Audio returned to this host within debounce window; skipping take-back notification"
+                                        "No peer is actively holding the audio after debounce window; skipping take-back notification"
                                     );
                                     return;
-                                }
-                                let mac = state
-                                    .connected_devices
-                                    .iter()
-                                    .find(|d| d.mac != local_mac_for_action)
-                                    .map(|d| d.mac.clone());
-                                let name = mac
-                                    .as_ref()
-                                    .and_then(|m| state.peer_names.get(m).cloned());
-                                (mac, name)
+                                };
+                                let name = state.peer_names.get(&peer_mac).cloned();
+                                (Some(peer_mac), name)
                             };
                             let Some(target_mac) = target_mac else {
                                 debug!(
