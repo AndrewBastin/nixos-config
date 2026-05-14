@@ -3,7 +3,7 @@
 # Provides essential development tools and shell configuration.
 #
 # What this module does:
-# - Installs core development tools (gh, tig, nodejs, bat, claude-code)
+# - Installs core development tools (gh, tig, nodejs, bat, claude-code, amp, codex)
 # - Builds and includes custom Neovim configuration via nixvim
 # - Configures git with user info and difftastic integration
 # - Sets up enhanced shell experience (zsh, fzf, zoxide)
@@ -39,11 +39,22 @@
         type = lib.types.listOf lib.types.anything;
         default = [];
         description = ''
-          Additional skills to install for AI tools (Claude Code, Amp).
+          Additional skills to install for AI tools (Claude Code, Amp, Codex).
           Each entry can be:
           - A path to a .nix file: resolved via callPackage, must return a path/derivation containing <skill-name>/SKILL.md subdirectories
           - A path to a directory: used directly, should contain <skill-name>/SKILL.md subdirectories
           - A derivation: used directly, should contain <skill-name>/SKILL.md subdirectories
+        '';
+      };
+
+      additionalCodexSkills = lib.mkOption {
+        type = lib.types.listOf lib.types.anything;
+        default = [];
+        description = ''
+          Additional skills to install ONLY for Codex CLI (routed to ~/.agents/skills).
+          Use this for skills that depend on codex-specific tools or conventions
+          that other agents (Claude Code, Amp) wouldn't be able to use.
+          Same entry shape as additionalSkills.
         '';
       };
 
@@ -107,6 +118,27 @@
           done
         '') allSkillSources));
 
+      # Codex-only skills: shared skills + a separate codex-only auto-discovery
+      # directory + machine-supplied codex-only additions. Routed exclusively
+      # to ~/.agents/skills so Claude Code and Amp don't see them.
+      builtinCodexSkills = let
+        codexSkillDir = ./ai/skills-codex;
+        entries = builtins.readDir codexSkillDir;
+        nixFiles = pkgs.lib.filterAttrs (name: type: type == "regular" && pkgs.lib.hasSuffix ".nix" name) entries;
+      in map (name: codexSkillDir + "/${name}") (builtins.attrNames nixFiles);
+
+      rawAdditionalCodexSkills = universalConfig.dev-essentials.additionalCodexSkills or [];
+
+      allCodexOnlySkillSources = map resolveSkill (builtinCodexSkills ++ rawAdditionalCodexSkills);
+
+      combinedCodexSkills = pkgs.runCommand "combined-codex-skills" {} (
+        "mkdir -p $out\n" +
+        builtins.concatStringsSep "\n" (map (src: ''
+          for skill in ${src}/*/; do
+            [ -d "$skill" ] && ln -s "$skill" "$out/$(basename "$skill")"
+          done
+        '') (allSkillSources ++ allCodexOnlySkillSources)));
+
       # Claude Code plugins: auto-discover from ./ai/plugins/ and merge with additional
       builtinPlugins = let
         pluginDir = ./ai/plugins;
@@ -144,6 +176,7 @@
 
           llm-agents.claude-code
           llm-agents.amp
+          llm-agents.codex
 
           maniyan
         ];
@@ -161,6 +194,15 @@
 
         home.file.".config/agents/skills" = {
           source = combinedSkills;
+          recursive = true;
+        };
+
+        # Codex CLI looks for skills under ~/.agents/skills (preferred over the
+        # legacy ~/.codex/skills location). Same SKILL.md format as Claude Code.
+        # Uses combinedCodexSkills so codex-only skills (e.g. superpowers) reach
+        # codex without being mounted into Claude Code / Amp's skill paths.
+        home.file.".agents/skills" = {
+          source = combinedCodexSkills;
           recursive = true;
         };
 
@@ -246,6 +288,11 @@
             # cd = "z";
 
             lg = "lazygit";
+
+            # Codex with permission/sandbox bypass, parallel to clod/migu.
+            # Skills (including superpowers) are auto-discovered via
+            # ~/.agents/skills/ — no marketplace install needed.
+            sama = "codex --yolo";
           } // (if allPluginSources != [] then {
             migu = "CLAUDE_CONFIG_DIR=$HOME/.claude-migu claude ${pluginDirFlags} --allow-dangerously-skip-permissions";
             clod = "claude ${pluginDirFlags} --allow-dangerously-skip-permissions";
