@@ -158,6 +158,43 @@
       allPluginSources = map resolvePlugin (builtinPlugins ++ rawAdditionalPlugins);
 
       pluginDirFlags = builtins.concatStringsSep " " (map (p: "--plugin-dir ${p}") allPluginSources);
+
+      claudeSettings = {
+        skipDangerousModePermissionPrompt = true;
+        theme = "dark";
+        editorMode = "vim";
+        agentPushNotifEnabled = true;
+
+        # Ring the terminal bell on permission prompts and on turn end.
+        # Hooks run without a controlling terminal, so we can't write BEL to
+        # /dev/tty directly — instead we return it via terminalSequence and
+        # Claude Code emits it through its own write path. Kitty
+        # (window_alert_on_bell defaults to yes) flips the urgency hint on
+        # the OS window, which andrew-shell paints orange on unselected
+        # workspaces. BEL travels through SSH TTYs, so this works for remote
+        # sessions too. Requires Claude Code v2.1.141+.
+        #
+        # We use Stop instead of the Notification `idle_prompt` matcher
+        # because idle_prompt fires only after a delay; Stop fires the
+        # instant Claude yields the turn ("I'm free now").
+        hooks = let
+          ringBell = {
+            type = "command";
+            command = "printf '%s' '{\"terminalSequence\":\"\\u0007\"}'";
+          };
+        in {
+          Notification = [{
+            matcher = "permission_prompt";
+            hooks = [ ringBell ];
+          }];
+
+          Stop = [{
+            hooks = [ ringBell ];
+          }];
+        };
+      };
+
+      claudeSettingsJson = builtins.toJSON claudeSettings;
     in
       {
         home.packages = with pkgs; [
@@ -180,6 +217,19 @@
 
           maniyan
         ];
+
+        # Claude Code settings — written to both config dirs (clod uses
+        # ~/.claude, migu uses ~/.claude-migu via CLAUDE_CONFIG_DIR).
+        # force=true because the existing settings.json is hand-written.
+        home.file.".claude/settings.json" = {
+          text = claudeSettingsJson;
+          force = true;
+        };
+
+        home.file.".claude-migu/settings.json" = {
+          text = claudeSettingsJson;
+          force = true;
+        };
 
         # Place AI skills for both Claude Code and Amp
         home.file.".claude/skills" = {
