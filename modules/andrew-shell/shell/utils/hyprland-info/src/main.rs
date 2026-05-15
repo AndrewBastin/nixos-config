@@ -4,7 +4,7 @@ use hyprland::shared::{HyprData, HyprDataActiveOptional};
 use lru::LruCache;
 use serde::Serialize;
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::fs;
 use std::num::NonZeroUsize;
@@ -22,6 +22,13 @@ struct Args {
 
 type IconCache = Rc<RefCell<LruCache<(String, String), Option<String>>>>;
 
+// Window addresses currently flagged urgent. The hyprland 0.4.0-beta.3 crate
+// doesn't expose `urgent` on Client, so we derive it from socket2 events:
+// add on `urgent>>`, remove when the focused window matches (Hyprland clears
+// the flag on focus) or when the window closes. State pre-dating daemon
+// startup is invisible to us — acceptable for a transient alert flag.
+type UrgentAddrs = Rc<RefCell<HashSet<String>>>;
+
 #[derive(Serialize)]
 struct WorkspaceState {
     monitors: HashMap<String, MonitorInfo>,
@@ -38,6 +45,7 @@ struct WorkspaceInfo {
     id: i32,
     name: String,
     active: bool,
+    urgent: bool,
     toplevels: Vec<ToplevelInfo>,
 }
 
@@ -258,7 +266,7 @@ fn get_icon_name(app_identifier: &str, alternative_app_identifier: &str) -> Opti
 
 
 
-fn get_workspace_state(cache: &IconCache) -> WorkspaceState {
+fn get_workspace_state(cache: &IconCache, urgent: &UrgentAddrs) -> WorkspaceState {
     let workspaces = match hyprland::data::Workspaces::get() {
         Ok(ws) => ws,
         Err(_) => return WorkspaceState {
@@ -298,11 +306,18 @@ fn get_workspace_state(cache: &IconCache) -> WorkspaceState {
 
     // Group workspaces by monitor
     let mut monitors_map: HashMap<String, Vec<WorkspaceInfo>> = HashMap::new();
+    let urgent_set = urgent.borrow();
 
     for workspace in workspaces.iter() {
-        let workspace_clients: Vec<ToplevelInfo> = clients
+        let workspace_clients_iter = clients
             .iter()
-            .filter(|c| c.workspace.id == workspace.id)
+            .filter(|c| c.workspace.id == workspace.id);
+
+        let is_urgent = workspace_clients_iter
+            .clone()
+            .any(|c| urgent_set.contains(&c.address.to_string()));
+
+        let workspace_clients: Vec<ToplevelInfo> = workspace_clients_iter
             .map(|c| {
                 let app_id = if c.class.is_empty() {
                     None
@@ -335,6 +350,7 @@ fn get_workspace_state(cache: &IconCache) -> WorkspaceState {
             id: workspace.id,
             name: workspace.name.clone(),
             active: is_active,
+            urgent: is_urgent,
             toplevels: workspace_clients,
         };
 
@@ -382,8 +398,8 @@ fn get_workspace_state(cache: &IconCache) -> WorkspaceState {
     }
 }
 
-fn emit_workspace_state(cache: &IconCache) {
-    let state = get_workspace_state(cache);
+fn emit_workspace_state(cache: &IconCache, urgent: &UrgentAddrs) {
+    let state = get_workspace_state(cache, urgent);
     match serde_json::to_string(&state) {
         Ok(json) => println!("{}", json),
         Err(e) => eprintln!("Error serializing workspace state: {}", e),
@@ -395,40 +411,72 @@ fn main() {
     let cache: IconCache = Rc::new(RefCell::new(LruCache::new(
         NonZeroUsize::new(128).unwrap(),
     )));
+    let urgent: UrgentAddrs = Rc::new(RefCell::new(HashSet::new()));
 
     // Emit initial workspace state
-    emit_workspace_state(&cache);
+    emit_workspace_state(&cache, &urgent);
 
     if args.monitor {
         // Set up event listener for continuous monitoring
         let mut event_listener = EventListener::new();
 
         let cache_clone = cache.clone();
-        event_listener.add_window_opened_handler(move |_| emit_workspace_state(&cache_clone));
+        let urgent_clone = urgent.clone();
+        event_listener.add_window_opened_handler(move |_| emit_workspace_state(&cache_clone, &urgent_clone));
+
+        // Window closed: also drop its urgency flag (Hyprland won't emit a
+        // clearing event for it).
+        let cache_clone = cache.clone();
+        let urgent_clone = urgent.clone();
+        event_listener.add_window_closed_handler(move |addr| {
+            urgent_clone.borrow_mut().remove(&addr.to_string());
+            emit_workspace_state(&cache_clone, &urgent_clone);
+        });
 
         let cache_clone = cache.clone();
-        event_listener.add_window_closed_handler(move |_| emit_workspace_state(&cache_clone));
+        let urgent_clone = urgent.clone();
+        event_listener.add_window_moved_handler(move |_| emit_workspace_state(&cache_clone, &urgent_clone));
+
+        // Active window changed: Hyprland clears urgency when a window gains
+        // focus, so drop our flag too.
+        let cache_clone = cache.clone();
+        let urgent_clone = urgent.clone();
+        event_listener.add_active_window_changed_handler(move |win| {
+            if let Some(w) = &win {
+                urgent_clone.borrow_mut().remove(&w.address.to_string());
+            }
+            emit_workspace_state(&cache_clone, &urgent_clone);
+        });
 
         let cache_clone = cache.clone();
-        event_listener.add_window_moved_handler(move |_| emit_workspace_state(&cache_clone));
+        let urgent_clone = urgent.clone();
+        event_listener.add_workspace_added_handler(move |_| emit_workspace_state(&cache_clone, &urgent_clone));
 
         let cache_clone = cache.clone();
-        event_listener.add_active_window_changed_handler(move |_| emit_workspace_state(&cache_clone));
+        let urgent_clone = urgent.clone();
+        event_listener.add_workspace_deleted_handler(move |_| emit_workspace_state(&cache_clone, &urgent_clone));
 
         let cache_clone = cache.clone();
-        event_listener.add_workspace_added_handler(move |_| emit_workspace_state(&cache_clone));
+        let urgent_clone = urgent.clone();
+        event_listener.add_workspace_moved_handler(move |_| emit_workspace_state(&cache_clone, &urgent_clone));
 
         let cache_clone = cache.clone();
-        event_listener.add_workspace_deleted_handler(move |_| emit_workspace_state(&cache_clone));
+        let urgent_clone = urgent.clone();
+        event_listener.add_workspace_renamed_handler(move |_| emit_workspace_state(&cache_clone, &urgent_clone));
 
         let cache_clone = cache.clone();
-        event_listener.add_workspace_moved_handler(move |_| emit_workspace_state(&cache_clone));
+        let urgent_clone = urgent.clone();
+        event_listener.add_active_monitor_changed_handler(move |_| emit_workspace_state(&cache_clone, &urgent_clone));
 
+        // Urgency requested: track the address and re-emit. The Hyprland
+        // socket2 `urgent>>` event has no inverse — clearing is driven by
+        // window-closed and active-window-changed above.
         let cache_clone = cache.clone();
-        event_listener.add_workspace_renamed_handler(move |_| emit_workspace_state(&cache_clone));
-
-        let cache_clone = cache.clone();
-        event_listener.add_active_monitor_changed_handler(move |_| emit_workspace_state(&cache_clone));
+        let urgent_clone = urgent.clone();
+        event_listener.add_urgent_state_changed_handler(move |addr| {
+            urgent_clone.borrow_mut().insert(addr.to_string());
+            emit_workspace_state(&cache_clone, &urgent_clone);
+        });
 
         if let Err(e) = event_listener.start_listener() {
             eprintln!("Error starting event listener: {}", e);

@@ -7,6 +7,7 @@ Singleton {
   property string barBgColor: "#161616"
   property string barTextColor: "#d8d8d8"
   property string barAccentColor: "#285577"
+  property string urgentColor: "#B85F40"
 
   property int barSeparatorWidth: 1
   property int barSeparatorHeight: 18

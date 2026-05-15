@@ -15,7 +15,9 @@ RowLayout {
       id: workspaceParent
       required property var modelData
 
-      color: modelData.active ? Theme.barAccentColor : "transparent"
+      color: modelData.active
+        ? Theme.barAccentColor
+        : (modelData.urgent ? Theme.urgentColor : "transparent")
 
       implicitWidth: content.implicitWidth + 10
       implicitHeight: content.implicitHeight + 8
