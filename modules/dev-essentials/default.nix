@@ -177,6 +177,9 @@
         # We use Stop instead of the Notification `idle_prompt` matcher
         # because idle_prompt fires only after a delay; Stop fires the
         # instant Claude yields the turn ("I'm free now").
+        #
+        # PreToolUse on AskUserQuestion bells the moment Claude raises an
+        # interview-style question mid-turn (which does not trigger Stop).
         hooks = let
           ringBell = {
             type = "command";
@@ -189,6 +192,11 @@
           }];
 
           Stop = [{
+            hooks = [ ringBell ];
+          }];
+
+          PreToolUse = [{
+            matcher = "AskUserQuestion";
             hooks = [ ringBell ];
           }];
         };
