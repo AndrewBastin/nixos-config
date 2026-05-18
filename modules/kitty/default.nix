@@ -62,6 +62,18 @@
     ../fonts
   ];
 
+  darwin = { pkgs, ... }: {
+    # Install kitty's terminfo system-wide so inbound SSH sessions (from remote
+    # kitty terminals) can resolve TERM=xterm-kitty. The terminfo bundled in
+    # kitty.app/Contents/Resources is only reachable via the TERMINFO env var
+    # that kitty sets for its local shells — not via TERMINFO_DIRS.
+    environment.systemPackages = [ pkgs.kitty.terminfo ];
+  };
+
+  nixos = { pkgs, ... }: {
+    environment.systemPackages = [ pkgs.kitty.terminfo ];
+  };
+
   home = { pkgs, lib, universalConfig ? {}, ... }:
     let
       fontSize = universalConfig.kitty.fontSize or 14;
