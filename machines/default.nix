@@ -41,6 +41,8 @@
         wallpaper = ./winry/wallpaper.png;
         macUsesDeterminateNix = true;
       };
+
+      tailscale.ssh = true;
     };
 
     darwin = {

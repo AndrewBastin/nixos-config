@@ -42,7 +42,6 @@
         "figma"
         "todoist-app"
         "autodesk-fusion"
-        "tailscale-app"
       ];
     };
   };

@@ -26,8 +26,21 @@
       boot.initrd.systemd.network.wait-online.enable = false;
     };
 
-  # TODO: Tailscale SSH on Darwin
-  darwin = { ... }: {
-    services.tailscale.enable = true;
-  };
+  # On Darwin we run nix's open-source tailscaled rather than the macsys GUI
+  # app, because the sandboxed GUI build refuses to run the Tailscale SSH
+  # server. This is incompatible with installing the "tailscale-app" homebrew
+  # cask alongside — the cask must be removed so the nix daemon owns the tun.
+  darwin = { lib, pkgs, universalConfig ? {}, ... }:
+    let
+      enableSSH = universalConfig.tailscale.ssh or false;
+      sshFlag = if enableSSH then "true" else "false";
+    in
+    {
+      services.tailscale.enable = true;
+
+      system.activationScripts.postActivation.text = lib.mkAfter ''
+        ${pkgs.tailscale}/bin/tailscale set --ssh=${sshFlag} 2>/dev/null \
+          || echo "note: tailscale set --ssh=${sshFlag} skipped (daemon not running or not signed in; run 'tailscale up' once)"
+      '';
+    };
 }
