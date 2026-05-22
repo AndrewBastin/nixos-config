@@ -6,7 +6,14 @@
       inputs.nix-index-database.nixosModules.default
     ];
 
-    nix.settings.experimental-features = ["nix-command" "flakes"];
+    nix.settings = {
+      experimental-features = ["nix-command" "flakes"];
+
+      # Allow wheel users to opt into extra substituters / public keys
+      # declared via flake nixConfig (otherwise nix silently ignores them
+      # client-side and falls back to building from source).
+      trusted-users = [ "root" "@wheel" ];
+    };
 
     # Register all flake inputs in the nix registry
     # Enables: nix run nixpkgs#hello, nix run nixpkgs-unstable#firefox, etc.
