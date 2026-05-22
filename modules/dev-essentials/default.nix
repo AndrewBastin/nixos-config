@@ -75,6 +75,15 @@
   nixos = { pkgs, ... }: {
     programs.zsh.enable = true;
     users.users.andrew.shell = pkgs.zsh;
+
+    # Numtide binary cache — backs llm-agents.nix (claude-code, amp, codex, …)
+    # so we pull pre-built binaries instead of rebuilding from source.
+    nix.settings = {
+      extra-substituters = [ "https://cache.numtide.com" ];
+      extra-trusted-public-keys = [
+        "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g="
+      ];
+    };
   };
 
   home = { pkgs, pkgs-unstable, inputs, universalConfig ? {}, ... }:
