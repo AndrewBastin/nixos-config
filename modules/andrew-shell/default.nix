@@ -90,6 +90,10 @@
     # Service allows auto mounting of removable media devices.
     services.udisks2.enable = true;
 
+    # GVFS provides the volume monitor backend Thunar uses to detect and
+    # display removable media (USB drives, etc.) in its sidebar.
+    services.gvfs.enable = true;
+
     # Stuff related to GPG Agent
     programs.mtr.enable = true;
 
