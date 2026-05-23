@@ -7,13 +7,13 @@
 
 stdenvNoCC.mkDerivation {
   pname = "ralph-wiggum-plugin";
-  version = "2.1.148-unstable-2026-05-22";
+  version = "2.1.150-unstable-2026-05-23";
 
   src = fetchFromGitHub {
     owner = "anthropics";
     repo = "claude-code";
-    rev = "2194e8e0904087b9f2afce41a2ec083cc71c0653";
-    hash = "sha256-5eadGqp0C1LyV75UxtfZ3v/fuUgDjGsJ6GA6Xrm2e1E=";
+    rev = "39e853e4074d90f27afdfb7ea601e0fc378bd0c5";
+    hash = "sha256-wBp8SlJ/4dxup/P584MM9nke5CtMtciPn5NvrEQr8iM=";
   };
 
   dontBuild = true;

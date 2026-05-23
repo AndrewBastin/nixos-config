@@ -7,7 +7,7 @@
 
 stdenvNoCC.mkDerivation {
   pname = "andrej-karpathy-skills-plugin";
-  version = "1.0.0-unstable-2026-04-20";
+  version = "0-unstable-2026-04-20";
 
   src = fetchFromGitHub {
     owner = "multica-ai";
