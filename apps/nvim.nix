@@ -114,6 +114,8 @@
       nvim-surround.enable = true;
       neoconf.enable = true;
 
+      render-markdown.enable = true;
+
       blink-cmp = {
         enable = true;
 
