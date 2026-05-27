@@ -16,8 +16,9 @@
 #
 # Configuration options:
 # - kitty.fontSize: Font size for terminal (default: 14)
-# - kitty.nvimIntegration: ctrl+click a path:line[:col] reference to open it in
-#   nvim at that position (default: true)
+# - kitty.nvimIntegration: ctrl+click a file reference to open it in nvim at
+#   that position. Recognizes path:line[:col], path(line[,col]), and
+#   "path", line N formats, plus quoted/spaced/bare paths (default: true)
 #
 # Key features:
 # - Nerd Font support for enhanced terminal experience
@@ -44,10 +45,13 @@
         type = lib.types.bool;
         default = true;
         description = ''
-          Whether to enable the nvim integration: ctrl+click a
-          `path:line[:col]` reference anywhere in the terminal to open it in
-          nvim at that position (installs the open_in_nvim kitten, its
-          open-actions.conf entry, and the ctrl+click mouse_map).
+          Whether to enable the nvim integration: ctrl+click a file reference
+          anywhere in the terminal to open it in nvim at that position.
+          Recognizes `path:line[:col]`, compiler `path(line[,col])`, and
+          Python-traceback `"path", line N` formats, plus quoted, spaced, and
+          bare paths (confirmed against the filesystem). Installs the
+          open_in_nvim kitten, its open-actions.conf entry, and the ctrl+click
+          mouse_map.
         '';
       };
 
@@ -65,12 +69,14 @@
       nvimIntegration = universalConfig.kitty.nvimIntegration or true;
     in
       {
-        # nvim integration (kitty.nvimIntegration): ctrl+click a `path:line[:col]`
-        # reference anywhere in the terminal to open it in nvim at that position.
-        # The kitten reads the clicked screen line, then reuses a matching nvim in
-        # the same OS window or opens a new window. file:// links opened by other
-        # means (e.g. plain left-click on a hyperlink) carry only the path, so the
-        # kitten reads the line off-screen.
+        # nvim integration (kitty.nvimIntegration): ctrl+click a file reference
+        # anywhere in the terminal to open it in nvim at that position. Recognizes
+        # `path:line[:col]`, `path(line[,col])`, and `"path", line N` formats, plus
+        # quoted/spaced/bare paths (confirmed against the filesystem). The kitten
+        # reads the clicked screen line, then reuses a matching nvim in the same OS
+        # window or opens a new window. file:// links opened by other means (e.g.
+        # plain left-click on a hyperlink) carry only the path, so the kitten reads
+        # the line off-screen.
         xdg.configFile = lib.optionalAttrs nvimIntegration {
           "kitty/open-actions.conf".text = ''
             protocol file
@@ -84,7 +90,7 @@
           enable = universalConfig.kitty.enable or true;
           themeFile = "adwaita_darker";
           # nvim integration ctrl+click handler (kitty.nvimIntegration). ctrl+left
-          # is unbound in kitty's defaults. The kitten parses the path:line[:col]
+          # is unbound in kitty's defaults. The kitten parses the file reference
           # from the clicked screen text, so it works even when the reference is
           # plain text rather than an OSC 8 link; non-references fall back to the
           # default link click. The `press grabbed` discard keeps mouse-grabbing

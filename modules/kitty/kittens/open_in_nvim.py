@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""Kitty kitten: open a clicked `path:line[:col]` file reference in nvim.
+"""Kitty kitten: open a clicked file reference in nvim.
 
 Works anywhere in the terminal, two ways:
-- ctrl+click (mouse_map): parse the `path:line[:col]` token out of the clicked
-  screen text, so plain-text references work without any hyperlink.
+- ctrl+click (mouse_map): detect a file reference under the click. Recognizes
+  `path:line[:col]`, compiler `path(line[,col])`, and Python-traceback
+  `"path", line N` formats, plus quoted, space-containing, and bare paths. The
+  path is confirmed against the filesystem (longest existing match wins), so
+  plain text works without any hyperlink and junk tokens are ignored.
 - file:// hyperlink click (open-actions.conf): the URI carries only the path
   (many tools put the line number only in the visible text, not the URI), so we
   read the clicked screen line to recover the line/col.
@@ -28,8 +31,33 @@ except ImportError:  # allow importing the pure helpers without kitty (tests)
         return deco
 
 
-# A path-like token (no spaces) followed by :line and an optional :col.
-REFERENCE_RE = re.compile(r"([~\w./\-+@]+):(\d+)(?::(\d+))?")
+# Position-suffix patterns shared by mouse_map detection and OSC 8 parsing.
+# Each captures group(1)=line and, where applicable, group(2)=col.
+_SUFFIXES = (
+    re.compile(r":(\d+)(?::(\d+))?"),       # path:L  or  path:L:C   (grep, rustc, ...)
+    re.compile(r"\((\d+)(?:,(\d+))?\)"),    # path(L) or path(L,C)   (MSVC / .NET)
+    re.compile(r",\s*line\s+(\d+)"),        # ..., line L            (Python traceback)
+)
+
+# How many whitespace-separated words to grow across when probing for a path.
+_MAX_GROW = 8
+
+
+def _words(line_text):
+    """Return (start, end) spans of each maximal non-whitespace run in line_text."""
+    return [(mt.start(), mt.end()) for mt in re.finditer(r"\S+", line_text)]
+
+
+def _strip_wrappers(s):
+    """Strip wrapping quotes/brackets and trailing punctuation from a path token.
+
+    Leading '.' is preserved (relative paths like ./foo). Handles both matched
+    wrappers ("foo", (foo)) and stray unmatched ones (file.py")."""
+    s = s.strip()
+    s = s.strip("\"'`")
+    s = s.lstrip("([{<")
+    s = s.rstrip(")]}>.,;:")
+    return s
 
 
 def parse_position(line_text, file_path):
@@ -40,35 +68,59 @@ def parse_position(line_text, file_path):
     clamped to a minimum of 1 when present (references never emit :0, but be
     defensive).
     """
-    base = os.path.basename(file_path)
-    m = re.search(re.escape(base) + r":(\d+)(?::(\d+))?", line_text)
-    if not m:
-        return 1, None
-    line = max(1, int(m.group(1)))
-    col = max(1, int(m.group(2))) if m.group(2) else None
-    return line, col
+    base = re.escape(os.path.basename(file_path))
+    # Allow an optional closing quote between the basename and the suffix
+    # (Python tracebacks render `"app.py", line 7`).
+    patterns = (
+        base + r"['\"]?" + r":(\d+)(?::(\d+))?",
+        base + r"['\"]?" + r"\((\d+)(?:,(\d+))?\)",
+        base + r"['\"]?" + r",\s*line\s+(\d+)",
+    )
+    for pat in patterns:
+        mt = re.search(pat, line_text)
+        if not mt:
+            continue
+        line = max(1, int(mt.group(1)))
+        try:
+            col = max(1, int(mt.group(2))) if mt.group(2) else None
+        except IndexError:  # line-keyword pattern has no col group
+            col = None
+        return line, col
+    return 1, None
 
 
-def find_reference_at(line_text, click_col):
-    """Find a `path:line[:col]` token in line_text (used in mouse_map mode, where
-    the reference may be plain text rather than an OSC 8 link).
+def detect_reference(line_text, click_col, cwd):
+    """Detect a clicked file reference in line_text (mouse_map mode).
 
-    Prefer the match the click column falls within; if there is exactly one match,
-    use it regardless of column; if there are several and the click is on none,
-    return None. Returns (path, line, col) with line/col clamped to >=1 (col None
-    when absent), or None when no token is found.
-    """
-    matches = list(REFERENCE_RE.finditer(line_text))
-    if not matches:
-        return None
-    chosen = next((m for m in matches if m.start() <= click_col < m.end()), None)
-    if chosen is None:
-        if len(matches) != 1:
-            return None
-        chosen = matches[0]
-    line = max(1, int(chosen.group(2)))
-    col = max(1, int(chosen.group(3))) if chosen.group(3) else None
-    return chosen.group(1), line, col
+    Tries suffix-anchored formats first (`:L:C`, `(L,C)`, `, line L`), splitting
+    the position off the path and confirming the path against the filesystem;
+    then falls back to a bare existing path under the click. Returns
+    (abs_path, line, col) with the path resolved+existing and col None when
+    absent, or None when nothing under the click resolves to a real file."""
+    best = None  # (path_len, abs_path, line, col)
+    for pat in _SUFFIXES:
+        for mt in pat.finditer(line_text):
+            line = max(1, int(mt.group(1)))
+            try:
+                col = max(1, int(mt.group(2))) if mt.group(2) else None
+            except IndexError:  # line-keyword pattern has no col group
+                col = None
+            path_end = mt.start()
+            res = _probe_left(line_text, path_end, cwd)
+            if res is None:
+                continue
+            path_start, abs_path = res
+            if path_start <= click_col < mt.end():
+                plen = path_end - path_start
+                if best is None or plen > best[0]:
+                    best = (plen, abs_path, line, col)
+    if best is not None:
+        return best[1], best[2], best[3]
+
+    bare = _probe_both(line_text, click_col, cwd)
+    if bare is not None:
+        return bare, 1, None
+    return None
 
 
 def resolve_path(raw_path, cwd):
@@ -78,6 +130,51 @@ def resolve_path(raw_path, cwd):
     if os.path.isabs(p):
         return os.path.normpath(p)
     return os.path.normpath(os.path.join(cwd or "", p))
+
+
+def _resolve_existing(line_text, start, end, cwd):
+    """Strip wrappers off line_text[start:end], resolve against cwd, and return
+    the absolute path if it exists on disk, else None."""
+    raw = _strip_wrappers(line_text[start:end])
+    if not raw:
+        return None
+    p = resolve_path(raw, cwd)
+    return p if os.path.exists(p) else None
+
+
+def _probe_left(line_text, path_end, cwd):
+    """Find the longest existing path whose text ends at path_end, growing the
+    left edge across whitespace word boundaries. Returns (start, abs_path) or
+    None. Used in the suffix-anchored case, where path_end is just before a
+    position suffix."""
+    starts = sorted({s for (s, _e) in _words(line_text) if s < path_end},
+                    reverse=True)[:_MAX_GROW]
+    best = None  # (start, abs_path); smaller start == longer path
+    for s in starts:
+        p = _resolve_existing(line_text, s, path_end, cwd)
+        if p is not None and (best is None or s < best[0]):
+            best = (s, p)
+    return best
+
+
+def _probe_both(line_text, click_col, cwd):
+    """Find the longest existing path spanning the clicked word, growing both
+    edges across whitespace word boundaries. Returns abs_path or None. Used for
+    bare paths (no position suffix)."""
+    words = _words(line_text)
+    idx = next((i for i, (s, e) in enumerate(words) if s <= click_col < e), None)
+    if idx is None:
+        return None
+    starts = [words[i][0] for i in range(max(0, idx - _MAX_GROW), idx + 1)]
+    ends = [words[j][1] for j in range(idx, min(len(words), idx + _MAX_GROW + 1))]
+    best = None  # (length, abs_path)
+    for s in starts:
+        for e in ends:
+            if s <= click_col < e:
+                p = _resolve_existing(line_text, s, e, cwd)
+                if p is not None and (best is None or (e - s) > best[0]):
+                    best = (e - s, p)
+    return best[1] if best else None
 
 
 def is_ancestor_or_equal(candidate_dir, file_dir):
@@ -311,12 +408,12 @@ def handle_result(args, answer, target_window_id, boss):
     ref = None
     if mp is not None:
         line_text = str(src.screen.visual_line(mp["cell_y"]) or "")
-        ref = find_reference_at(line_text, mp["cell_x"])
+        cwd = src.child.current_cwd or src.child.cwd or ""
+        ref = detect_reference(line_text, mp["cell_x"], cwd)
     if ref is None:
         # Not a file reference: fall back to opening a hyperlink under the mouse,
         # if any (kitty's default click-on-link behaviour).
         src.mouse_handle_click("link")
         return
-    raw_path, line, col = ref
-    cwd = src.child.current_cwd or src.child.cwd or ""
-    _route(src, resolve_path(raw_path, cwd), line, col, boss)
+    path, line, col = ref  # path is already absolute and confirmed to exist
+    _route(src, path, line, col, boss)
