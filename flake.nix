@@ -18,10 +18,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    nixvim = {
-      url = "github:nix-community/nixvim";
-      inputs.nixpkgs.follows = "nixpkgs-unstable";
-    };
+    nixvim.url = "github:nix-community/nixvim";
 
     zen-browser = {
       url = "github:0xc000022070/zen-browser-flake";
