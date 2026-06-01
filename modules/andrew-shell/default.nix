@@ -82,7 +82,7 @@
 
     programs.thunar = {
       enable = true;
-      plugins = with pkgs.xfce; [
+      plugins = with pkgs; [
         thunar-volman
       ];
     };
@@ -115,7 +115,7 @@
     ./librepods
   ];
 
-  home = { pkgs, pkgs-unstable, lib, inputs, universalConfig ? {}, ... }: 
+  home = { config, pkgs, pkgs-unstable, lib, inputs, universalConfig ? {}, ... }:
     let
       fontName = universalConfig.fonts.monospace.name;
     in
@@ -130,7 +130,7 @@
 
     # They need to be present here so they show up in the app opening view
     home.packages = with pkgs; [
-      xfce.ristretto      # Image viewer
+      ristretto           # Image viewer
 
       pavucontrol         # Volume and Audio Control
 
@@ -179,6 +179,10 @@
         name = "Adwaita-dark";
         package = pkgs.gnome-themes-extra;
       };
+
+      # HM 26.05 changed the `gtk4.theme` default from `config.gtk.theme` to null.
+      # Keep the legacy behaviour (apply our GTK3 theme to GTK4 too) explicitly.
+      gtk4.theme = config.gtk.theme;
     };
 
     qt = {
@@ -187,20 +191,29 @@
       style.name = "adwaita-dark";
     };
 
-    # Hyprpaper config - we don't use services.hyprpaper because its systemd service
-    # starts before Hyprland's IPC socket is ready. Instead, we write the config
-    # manually and launch via exec-once.
-    xdg.configFile."hypr/hyprpaper.conf" = lib.mkIf (universalConfig.andrew-shell.wallpaper != null) {
-      text = ''
-        preload = ${universalConfig.andrew-shell.wallpaper}
-        wallpaper = ,${universalConfig.andrew-shell.wallpaper}
-      '';
-      # Reload wallpaper on config activation
-      onChange = ''
-        ${pkgs.hyprland}/bin/hyprctl hyprpaper unload all
-        ${pkgs.hyprland}/bin/hyprctl hyprpaper preload ${universalConfig.andrew-shell.wallpaper}
-        ${pkgs.hyprland}/bin/hyprctl hyprpaper wallpaper ,${universalConfig.andrew-shell.wallpaper}
-      '';
+    # Wallpaper via the hyprpaper module. It renders the (block-form) config for
+    # us, so we don't have to track hyprpaper's config syntax by hand, and runs it
+    # as a systemd user service bound to graphical-session.target. The service is
+    # gated on `ConditionEnvironment=WAYLAND_DISPLAY` and has `Restart=always`,
+    # which avoids the start-before-Hyprland-is-ready race that previously pushed
+    # us to launch it via exec-once. An empty `monitor` is the all-outputs wildcard.
+    # The module also restarts it on config change (X-Restart-Triggers), so no
+    # manual reload hook is needed.
+    services.hyprpaper = lib.mkIf (universalConfig.andrew-shell.wallpaper != null) {
+      enable = true;
+      settings = {
+        # Don't render Hyprland's rotating splash text (e.g. "Check out
+        # quickshell!") on top of the wallpaper. Defaults to on in hyprpaper.
+        splash = false;
+
+        preload = [ "${universalConfig.andrew-shell.wallpaper}" ];
+        wallpaper = [
+          {
+            monitor = "";
+            path = "${universalConfig.andrew-shell.wallpaper}";
+          }
+        ];
+      };
     };
 
     # We use Pass as the keyring exposed via pass-secret-service
@@ -222,23 +235,57 @@
     wayland.windowManager.hyprland = {
       enable = true;
 
+      # Home Manager 26.05 flipped the default config format from hyprlang to lua.
+      # Our `settings` below are written for the hyprlang renderer, so pin it
+      # explicitly to keep the existing behaviour (and silence the eval warning).
+      configType = "hyprlang";
+
       # Setting this to null will make it so the packages gets sourced from the NixOS module
       package = null;
       portalPackage = null;
 
       plugins = let
         hyprlandPkgs = if universalConfig.andrew-shell.use-unstable-hyprland then pkgs-unstable else pkgs;
+
+        # nixpkgs pins hyprsplit at v0.54.2, and even the latest upstream release
+        # (v0.54.3, 2026-03-28) still uses the g_pConfigManager API that Hyprland
+        # 0.55 removed, so neither builds against the 0.55.2 that NixOS 26.05
+        # ships. Upstream main already dropped that API but hasn't cut a
+        # 0.55-compatible release yet, so we build from main as a stopgap.
+        #
+        # Auto-revert: the entire broken lineage is <= 0.54.3, so as soon as
+        # nixpkgs ships anything strictly newer than 0.54.3 (the first plausibly
+        # 0.55-compatible release) we drop the override and use the nixpkgs
+        # package directly. NB: this triggers ABOVE 0.54.3, not at it, because
+        # 0.54.3 itself is still broken.
+        hyprsplit =
+          let
+            upstreamHyprsplit = hyprlandPkgs.hyprlandPlugins.hyprsplit;
+          in
+            if lib.versionOlder "0.54.3" upstreamHyprsplit.version
+            then upstreamHyprsplit
+            else upstreamHyprsplit.overrideAttrs (old: {
+              version = "0.54.3-unstable-2026-05-22";
+              src = pkgs.fetchFromGitHub {
+                owner = "shezdy";
+                repo = "hyprsplit";
+                rev = "0fc01e7930625ecb3e069f5dc8e1d61eab929f3b";
+                hash = "sha256-XpwuFhwnfwPbzImZeUWWns///UEpoKNkpl1hN90C3Ag=";
+              };
+            });
       in
-        with hyprlandPkgs.hyprlandPlugins; [
+        [
           hyprsplit
         ];
 
       settings = {
         monitor = universalConfig.andrew-shell.monitorRules or [ ", preferred, auto, 1" ];
 
+        # hyprpaper is launched by its systemd user service (services.hyprpaper),
+        # not here.
         exec-once = [
           "${lib.getExe pkgs.swaynotificationcenter}"
-        ] ++ lib.optional (universalConfig.andrew-shell.wallpaper != null) (lib.getExe pkgs.hyprpaper);
+        ];
 
         plugin = {
           hyprsplit = {
@@ -321,24 +368,29 @@
           "f[1], gapsout:0, gapsin:0"
         ];
 
-        windowrulev2 = [
+        # Hyprland 0.55 rewrote the rule engine: windowrulev2 was merged into
+        # windowrule, effect names are now snake_case (border_size, suppress_event,
+        # no_focus), match conditions need a `match:` prefix and a space before
+        # their value (e.g. `match:float 0`), and the match props were renamed
+        # (floating -> float, onworkspace -> workspace, pinned -> pin).
+        windowrule = [
           # "Smart gaps" / "No gaps when only"
-          "bordersize 0, floating:0, onworkspace:w[tv1]"
-          "rounding 0, floating:0, onworkspace:w[tv1]"
-          "bordersize 0, floating:0, onworkspace:f[1]"
-          "rounding 0, floating:0, onworkspace:f[1]"
+          "border_size 0, match:float 0, match:workspace w[tv1]"
+          "rounding 0, match:float 0, match:workspace w[tv1]"
+          "border_size 0, match:float 0, match:workspace f[1]"
+          "rounding 0, match:float 0, match:workspace f[1]"
 
           # Ignore maximize requests from apps
-          "suppressevent maximize, class:.*"
+          "suppress_event maximize, match:class .*"
 
-          
           # Fix some dragging issues with XWayland
-          "nofocus,class:^$,title:^$,xwayland:1,floating:1,fullscreen:0,pinned:0"
+          "no_focus 1, match:class ^$, match:title ^$, match:xwayland 1, match:float 1, match:fullscreen 0, match:pin 0"
         ];
 
         # https://wiki.hyprland.org/Configuring/Dwindle-Layout/
+        # NB: Hyprland 0.55 removed the `dwindle:pseudotile` option; pseudo-tiling
+        # is now driven solely by the `pseudo` dispatcher (bound to $mod+P below).
         dwindle = {
-          pseudotile = true;
           preserve_split = true;
         };
 
@@ -377,7 +429,7 @@
             "$mod, T, exec, ${lib.getExe pkgs.kitty}"
             "$mod, Q, killactive"
             "$mod, M, exec, ${quickmenu.power}"
-            "$mod, E, exec, ${lib.getExe pkgs.xfce.thunar}"
+            "$mod, E, exec, ${lib.getExe pkgs.thunar}"
 
             # TODO: This should be Zen by default
             "$mod, F, exec, zen-beta"
@@ -386,7 +438,9 @@
             "$mod, V, togglefloating"
             "$mod, R, exec, ${app_runner}"
             "$mod, P, pseudo"
-            "$mod, J, togglesplit"
+            # Hyprland 0.55 dropped the standalone `togglesplit` dispatcher; it's
+            # now a dwindle layout message dispatched via `layoutmsg`.
+            "$mod, J, layoutmsg, togglesplit"
 
             "$mod SHIFT, left, movewindow, mon:l"
             "$mod SHIFT, right, movewindow, mon:r"

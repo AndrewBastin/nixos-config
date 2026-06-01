@@ -49,7 +49,7 @@
     # List packages installed in system profile. To search, run:
     # $ nix search wget
     environment.systemPackages = with pkgs; [
-      xfce.thunar
+      thunar
       nh
       ghostty
       gtkmm3
