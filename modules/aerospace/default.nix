@@ -59,7 +59,10 @@
     # AeroSpace window manager configuration
     programs.aerospace = {
       enable = true;
-      userSettings = {
+
+      launchd.enable = true;
+
+      settings = {
         # Start AeroSpace at login
         start-at-login = true;
         
@@ -147,16 +150,6 @@
           "alt-e" = "exec-and-forget ~/.local/bin/aerospace-open-finder.sh";   # File manager
           "alt-c" = "exec-and-forget open -a Numi"; # Calculator (Numi)
         };
-      };
-    };
-  };
-
-  darwin = { pkgs, ... }: {
-    # Custom launchd agent for aerospace startup
-    launchd.user.agents.aerospace = {
-      command = "open -a AeroSpace";
-      serviceConfig = {
-        RunAtLoad = true;
       };
     };
   };
