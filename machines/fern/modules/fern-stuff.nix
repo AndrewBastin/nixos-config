@@ -11,6 +11,7 @@
       pkgs-unstable.obsidian
       pkgs-unstable.fractal
       pkgs-unstable.vlc
+      pkgs-unstable.signal-desktop
     ];
   };
 
