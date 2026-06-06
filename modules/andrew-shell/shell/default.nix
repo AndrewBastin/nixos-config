@@ -9,11 +9,15 @@ in
     # The quickshell config depends on hyprland-info for workspace and icon information
     # for the workspace list and current window components.
     (pkgs.callPackage ./utils/hyprland-info { naersk-input = inputs.naersk; })
-  ] ++ lib.optional (!isVmMode) (
+  ] ++ lib.optionals (!isVmMode) [
     # The quickshell config depends on nm-status to resolve live NetworkManager
     # status info for the tooltip in particular (not needed in VM mode)
-    pkgs.callPackage ./utils/nm-status { naersk-input = inputs.naersk; }
-  );
+    (pkgs.callPackage ./utils/nm-status { naersk-input = inputs.naersk; })
+
+    # calendar-status reads Thunderbird's CalDAV cache to power the calendar
+    # countdown block (not needed in VM mode)
+    (pkgs.callPackage ./utils/calendar-status { naersk-input = inputs.naersk; })
+  ];
 
   wayland.windowManager.hyprland.settings = {
     exec-once = [

@@ -11,6 +11,10 @@ Singleton {
   property bool isPanelVisible
   property bool isInhibited
 
+  // False until the first state line arrives from swaync-client; lets
+  // consumers avoid acting on the default property values during startup.
+  property bool stateReceived: false
+
   Process {
     command: ["swaync-client", "-s"]
     running: true
@@ -34,6 +38,8 @@ Singleton {
         if (root.isInhibited !== parsedData.inhibited) {
           root.isInhibited = parsedData.inhibited
         }
+
+        root.stateReceived = true
       }
     }
   }

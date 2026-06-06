@@ -12,7 +12,7 @@ Scope {
   id: root
 
   property string dateTime
-  
+
   Variants {
     model: Quickshell.screens;
 
@@ -70,6 +70,7 @@ Scope {
               Blocks.Network { visible: !VmMode.enabled }
               Blocks.Battery { visible: !VmMode.enabled }
               Blocks.Notifications {}
+              Blocks.Calendar {}
               Blocks.Clock { visible: !VmMode.enabled }
             }
           }
