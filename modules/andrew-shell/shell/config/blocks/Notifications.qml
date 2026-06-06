@@ -17,14 +17,17 @@ MouseArea {
         return "󰂛"
       }
 
-      // If we have a notification, show the has notification icon, even if inhibited
+      // Inhibited (e.g. auto-inhibit while screensharing) wins over the
+      // notification count, so the suppressed state stays visible
+      if (SwayNC.isInhibited) {
+        return "󰂠"
+      }
+
       if (SwayNC.notificationsCount > 0) {
         return "󱅫"
       }
 
-      return SwayNC.isInhibited
-        ? "󰂠"
-        : ""
+      return ""
     }
     color: Theme.barTextColor
     font.pointSize: Theme.statusIconsFontSize
