@@ -43,6 +43,7 @@
       };
 
       tailscale.ssh = true;
+      tailscale.splitDnsDomains = [ "serie" ];
     };
 
     darwin = {
