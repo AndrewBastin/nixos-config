@@ -13,7 +13,7 @@ stdenvNoCC.mkDerivation {
     owner = "pbakaus";
     repo = "impeccable";
     rev = "1863a44b23bfcf28e5990c0068a0603995ab1e29";
-    hash = "sha256-ZurJEdRM7OEcoXBmZb9vTntueu9VA2qIL4PbnKDsnrY=";
+    hash = "sha256-tIZdChx0Ia/bdT5xVHPHQ7neBVW4ru8AdxpHlRbgelA=";
   };
 
   dontBuild = true;
