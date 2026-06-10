@@ -86,6 +86,21 @@
     };
   };
 
+  # Darwin mirror of the `nixos` numtide cache config above. The Macs run
+  # Determinate Nix, so this is routed through the determinate nix-darwin module's
+  # `determinateNix.customSettings` (option defined by the module imported in
+  # mac-essentials) which writes /etc/nix/nix.custom.conf.
+  darwin = { ... }: {
+    # Numtide binary cache — backs llm-agents.nix (claude-code, amp, codex, …)
+    # so we pull pre-built binaries instead of rebuilding from source.
+    determinateNix.customSettings = {
+      extra-substituters = [ "https://cache.numtide.com" ];
+      extra-trusted-public-keys = [
+        "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g="
+      ];
+    };
+  };
+
   home = { pkgs, pkgs-unstable, inputs, universalConfig ? {}, ... }:
     let
       my_nvim = import ../../apps/nvim.nix {

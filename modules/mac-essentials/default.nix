@@ -72,10 +72,25 @@
     in {
     imports = [
       inputs.nix-index-database.darwinModules.default
+      inputs.determinate.darwinModules.default
     ];
 
     # Disable nix-darwin's nix management if using Determinate Nix
     nix.enable = !usesDeterminateNix;
+
+    # On Determinate Nix, nix-darwin's `nix.settings` are ignored. The determinate
+    # module instead writes `determinateNix.customSettings` to /etc/nix/nix.custom.conf
+    # (which Determinate's nix.conf `!include`s). This is the Darwin mirror of the
+    # `trusted-users` set in nixos-essentials.
+    determinateNix = {
+      # Only take over Nix configuration when this Mac actually runs Determinate Nix.
+      enable = usesDeterminateNix;
+
+      # Trust admins so extra substituters / public keys declared via flake
+      # nixConfig are honored client-side, instead of being silently ignored
+      # (which would fall back to building from source).
+      customSettings.trusted-users = [ "root" "@admin" ];
+    };
 
     # Provided by the nix-index-database nixos module
     programs.nix-index-database.comma.enable = true;
