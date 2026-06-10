@@ -222,6 +222,15 @@
     # stochos: keyboard-driven mouse grid overlay for Wayland
     programs.stochos = {
       enable = true;
+      # Upstream package.nix only lists wayland + libx11 in buildInputs, so the
+      # binary fails to link against libxkbcommon (ld: cannot find -lxkbcommon).
+      # Add it back here, plus an rpath entry so it resolves at runtime too.
+      package = inputs.stochos.packages.${pkgs.stdenv.hostPlatform.system}.stochos.overrideAttrs (old: {
+        buildInputs = (old.buildInputs or []) ++ [ pkgs.libxkbcommon ];
+        postFixup = (old.postFixup or "") + ''
+          patchelf $out/bin/stochos --add-rpath ${lib.makeLibraryPath [ pkgs.libxkbcommon ]}
+        '';
+      });
       settings = {
         grid = {
           # Clean QWERTY row: 10x10 grid, keys map spatially left-to-right
