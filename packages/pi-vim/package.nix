@@ -6,7 +6,7 @@
 
 stdenvNoCC.mkDerivation {
   pname = "pi-vim";
-  version = "0.11.1";
+  version = "0.12.1";
 
   src = fetchurl {
     url = "https://registry.npmjs.org/pi-vim/-/pi-vim-0.3.2.tgz";
