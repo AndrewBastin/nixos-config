@@ -15,6 +15,9 @@
   nixos = { ... }: {
     virtualisation.docker.enable = true;
 
+    # Expose the NVIDIA GPU to Docker containers via CDI (for CUDA workloads).
+    hardware.nvidia-container-toolkit.enable = true;
+
     users.users.andrew.extraGroups = [ "docker" "libvirtd" "dialout" ];
 
     virtualisation.libvirtd.enable = true;
