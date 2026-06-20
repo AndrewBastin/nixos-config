@@ -15,6 +15,22 @@
 ;; evil normal state instead (mirrors evil's usual insert-state ESC binding).
 (setq evil-ghostel-escape 'terminal)
 
+;; Drop the "ghostel" prefix from buffer names (what shows in the modeline).
+;; Stock ghostel names buffers "*ghostel: TITLE*" (by title) and "*ghostel*"
+;; (no title yet); we want just the terminal's own TITLE, e.g. "*~/nixos-config*".
+;; `ghostel-buffer-name' is the title-less base; the name function renames to
+;; the TITLE on each OSC-2 title report (nil keeps the base, as upstream does).
+(setq ghostel-buffer-name "*terminal*")
+
+(defun my/ghostel-buffer-name (title)
+  "Name a ghostel buffer \"*TITLE*\", with no \"ghostel\" prefix.
+Like `ghostel-buffer-name-by-title' but without the prefix; returns nil for an
+empty TITLE so the base `ghostel-buffer-name' is kept."
+  (and title (not (string= "" title))
+       (format "*%s*" title)))
+
+(setq ghostel-buffer-name-function #'my/ghostel-buffer-name)
+
 ;; ==========================================================================
 ;; 2. Clipboard paste + evil-ghostel key bindings
 ;; ==========================================================================
