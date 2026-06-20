@@ -32,6 +32,12 @@
         default = false;
         description = "Enable VM mode - a mode optimised for VMs: bottom bar, minimal status components, auto-login without display manager";
       };
+
+      extraKeybinds = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ ];
+        description = "Additional Hyprland keybinds appended to the defaults. Each entry follows the `bind =` syntax, e.g. \"$mod, C, exec, emacs\".";
+      };
     };
   };
 
@@ -499,7 +505,8 @@
             "$mod, right, movefocus, r"
             "$mod, H, movefocus, l"
             "$mod, L, movefocus, r"
-          ] ++ lib.optional (!isVmMode) "$mod, B, exec, ${quickmenu.bluetooth}";
+          ] ++ lib.optional (!isVmMode) "$mod, B, exec, ${quickmenu.bluetooth}"
+            ++ universalConfig.andrew-shell.extraKeybinds;
 
         bindm = [
           "$mod, mouse:272, movewindow"

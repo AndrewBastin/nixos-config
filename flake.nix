@@ -45,6 +45,11 @@
       url = "https://flakehub.com/f/DeterminateSystems/determinate/3";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    emacs-overlay = {
+      url = "github:nix-community/emacs-overlay";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
+    };
   };
 
   outputs = { self, nixpkgs, nixvim, nixpkgs-unstable, nix-darwin, flake-utils, home-manager, ... }@inputs:
@@ -55,7 +60,10 @@
       platformSpecificStuff = flake-utils.lib.eachDefaultSystem (system:
         let
           pkgs= nixpkgs.legacyPackages.${system};
-          pkgs-unstable = nixpkgs-unstable.legacyPackages.${system};
+          pkgs-unstable = import nixpkgs-unstable {
+            inherit system;
+            overlays = [ inputs.emacs-overlay.overlays.default ];
+          };
         in
           {
             packages =
@@ -81,6 +89,10 @@
 
                 maniyan = pkgs.callPackage ./apps/maniyan {
                   pi = inputs.llm-agents.packages.${system}.pi;
+                };
+
+                emacs = import ./apps/emacs {
+                  pkgs = pkgs-unstable;
                 };
               };
 

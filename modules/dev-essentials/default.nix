@@ -69,6 +69,15 @@
           - A derivation: used directly
         '';
       };
+
+      emacs = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = ''
+          Install the opt-in, store-baked Emacs (apps/emacs) for this user.
+          Exploration tooling; off by default. Installs the `emacs` command.
+        '';
+      };
     };
   };
 
@@ -107,6 +116,13 @@
         pkgs = pkgs-unstable;
 
         nixvim = inputs.nixvim.legacyPackages."${pkgs.stdenv.system}";
+      };
+
+      my_emacs = import ../../apps/emacs {
+        pkgs = import inputs.nixpkgs-unstable {
+          inherit (pkgs.stdenv.hostPlatform) system;
+          overlays = [ inputs.emacs-overlay.overlays.default ];
+        };
       };
 
       llm-agents = inputs.llm-agents.packages."${pkgs.stdenv.system}";
@@ -255,7 +271,8 @@
           llm-agents.codex
 
           maniyan
-        ];
+        ] ++ pkgs.lib.optional
+          (universalConfig.dev-essentials.emacs or false) my_emacs;
 
         # Claude Code settings — written to both config dirs (clod uses
         # ~/.claude, migu uses ~/.claude-migu via CLAUDE_CONFIG_DIR).

@@ -115,7 +115,13 @@
         ];
         
         wallpaper = ./fern/wallpaper.jpg;
+
+        extraKeybinds = [
+          "$mod, Y, exec, emacs"
+        ];
       };
+
+      dev-essentials.emacs = true;
     };
 
     modules = [
