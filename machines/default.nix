@@ -44,6 +44,8 @@
 
       tailscale.ssh = true;
       tailscale.splitDnsDomains = [ "serie" ];
+
+      dev-essentials.emacs = true;
     };
 
     darwin = {

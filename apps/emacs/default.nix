@@ -8,20 +8,26 @@
 let
   inherit (pkgs) lib;
 
-  emacs = pkgs.emacs-pgtk;
+  # nixpkgs' ghostel Elisp builds its native (Zig) module from source, which
+  # fails on Darwin (DarwinSdkNotFound). This transform swaps in a prebuilt
+  # module instead; see ./ghostel.nix. Applied over the whole Emacs package scope
+  # so `evil-ghostel` (whose `ghostel` dep resolves to this package) gets it too.
+  withPrebuiltGhostelModule = pkgs.callPackage ./ghostel.nix { };
 
-  # Prebuilt native (Zig) module + matching stable Elisp, kept in lockstep.
-  ghostel = pkgs.callPackage ./ghostel.nix { inherit emacs; };
+  emacs = pkgs.emacs-pgtk;
+  emacsPkgs = emacs.pkgs.overrideScope (final: prev: {
+    ghostel = withPrebuiltGhostelModule prev.ghostel;
+  });
 
   # Same package set as the source emacs-explore dev shell. `which-key` is built
   # into Emacs 30, so it needs no package here.
-  emacsWithPkgs = emacs.pkgs.withPackages (epkgs: [
+  emacsWithPkgs = emacsPkgs.withPackages (epkgs: [
     epkgs.melpaPackages.evil
     epkgs.melpaPackages.kanagawa-themes
     epkgs.melpaPackages.nix-mode
 
-    # Ghostel terminal: the native module's matching Elisp + evil integration.
-    ghostel.elisp
+    # Ghostel terminal: Elisp + bundled prebuilt native module + evil integration.
+    epkgs.ghostel
     epkgs.melpaStablePackages.evil-ghostel
 
     # Completion / fuzzy-finding stack.
@@ -67,8 +73,7 @@ pkgs.symlinkJoin {
       [ -e "$bin" ] || continue
       wrapProgram "$bin" \
         --add-flags "--init-directory ${./emacs.d}" \
-        --suffix PATH : "${lib.makeBinPath runtimeTools}" \
-        --set-default GHOSTEL_MODULE_PATH "${ghostel}/lib/ghostel"
+        --suffix PATH : "${lib.makeBinPath runtimeTools}"
     done
   '';
 }
