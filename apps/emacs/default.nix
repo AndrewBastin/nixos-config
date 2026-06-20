@@ -37,6 +37,11 @@ let
     epkgs.melpaPackages.consult
     epkgs.melpaPackages.consult-eglot
 
+    # In-buffer completion popup at point (corfu = vertico's sibling) plus
+    # `cape' completion-at-point backends (dabbrev, file, …).
+    epkgs.melpaPackages.corfu
+    epkgs.melpaPackages.cape
+
     epkgs.melpaPackages.magit
     epkgs.melpaPackages.neotree
 
