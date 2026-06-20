@@ -7,6 +7,7 @@
 { pkgs, ... }:
 let
   inherit (pkgs) lib;
+  inherit (pkgs.stdenv.hostPlatform) isDarwin;
 
   # nixpkgs' ghostel Elisp builds its native (Zig) module from source, which
   # fails on Darwin (DarwinSdkNotFound). This transform swaps in a prebuilt
@@ -14,7 +15,15 @@ let
   # so `evil-ghostel` (whose `ghostel` dep resolves to this package) gets it too.
   withPrebuiltGhostelModule = pkgs.callPackage ./ghostel.nix { };
 
-  emacs = pkgs.emacs-pgtk;
+  # On macOS, pure-GTK Emacs has no native Cocoa window — use the Mac port
+  # (native Cocoa Emacs.app with mac-specific niceties). On Linux, pgtk is the
+  # right native Wayland/Hyprland build (e.g. fern). Everything downstream keys
+  # off this binding (emacs.pkgs.overrideScope / withPackages), so the ghostel
+  # override and grammars carry over unchanged.
+  emacs =
+    if isDarwin
+    then pkgs.emacs-macport
+    else pkgs.emacs-pgtk;
   emacsPkgs = emacs.pkgs.overrideScope (final: prev: {
     ghostel = withPrebuiltGhostelModule prev.ghostel;
   });
@@ -68,17 +77,63 @@ let
     pkgs.typescript-language-server
     pkgs.nixd
   ];
+  pathSuffix = lib.makeBinPath runtimeTools;
+  initDir = ./emacs.d;
 in
-pkgs.symlinkJoin {
-  name = "emacs-explore";
-  paths = [ emacsWithPkgs ];
-  nativeBuildInputs = [ pkgs.makeWrapper ];
-  postBuild = ''
-    for bin in "$out/bin/emacs" "$out"/bin/emacs-*; do
-      [ -e "$bin" ] || continue
-      wrapProgram "$bin" \
-        --add-flags "--init-directory ${./emacs.d}" \
-        --suffix PATH : "${lib.makeBinPath runtimeTools}"
+if isDarwin then
+  # macOS: running the raw Emacs binary (what a wrapProgram bin/emacs does) never
+  # registers as a foreground GUI app — no Dock icon, no keyboard focus, and
+  # invisible to aerospace. A GUI app must be launched as its `.app` bundle via
+  # `open` (Launch Services). So here we:
+  #   1. copy Emacs.app (tiny — ~1.2M; lisp/eln live in the store, referenced via
+  #      EMACSLOADPATH) and re-wrap its Mach-O launcher so --init-directory and
+  #      the runtime-tools PATH are baked in (a bash launcher would itself break
+  #      GUI launch, so this must stay a binary wrapper);
+  #   2. ship `emacs-gui`, which `open`s that bundle — this is what the aerospace
+  #      keybind runs;
+  #   3. keep a normal terminal `emacs` (+ emacsclient et al.) for CLI use.
+  pkgs.runCommand "emacs-explore" { nativeBuildInputs = [ pkgs.makeBinaryWrapper ]; } ''
+    mkdir -p $out/bin $out/Applications
+
+    # Symlink everything except bin/ and Applications/, which we customise.
+    for entry in ${emacsWithPkgs}/*; do
+      base=$(basename "$entry")
+      case "$base" in
+        bin|Applications) ;;
+        *) ln -s "$entry" "$out/$base" ;;
+      esac
     done
-  '';
-}
+
+    # bin/: passthrough every tool, then override `emacs` with our flags/PATH and
+    # add the GUI launcher. Only `emacs` gets --init-directory (not emacsclient).
+    for bin in ${emacsWithPkgs}/bin/*; do
+      ln -s "$bin" "$out/bin/$(basename "$bin")"
+    done
+    rm "$out/bin/emacs"
+    makeWrapper "${emacsWithPkgs}/bin/emacs" "$out/bin/emacs" \
+      --add-flags "--init-directory ${initDir}" \
+      --suffix PATH : "${pathSuffix}"
+    makeWrapper /usr/bin/open "$out/bin/emacs-gui" \
+      --add-flags "-a $out/Applications/Emacs.app"
+
+    # Applications/: real copy so we can re-wrap the bundle's Mach-O entry point.
+    cp -R ${emacsWithPkgs}/Applications/Emacs.app "$out/Applications/"
+    chmod -R u+w "$out/Applications/Emacs.app"
+    wrapProgram "$out/Applications/Emacs.app/Contents/MacOS/Emacs" \
+      --add-flags "--init-directory ${initDir}" \
+      --suffix PATH : "${pathSuffix}"
+  ''
+else
+  pkgs.symlinkJoin {
+    name = "emacs-explore";
+    paths = [ emacsWithPkgs ];
+    nativeBuildInputs = [ pkgs.makeWrapper ];
+    postBuild = ''
+      for bin in "$out/bin/emacs" "$out"/bin/emacs-*; do
+        [ -e "$bin" ] || continue
+        wrapProgram "$bin" \
+          --add-flags "--init-directory ${initDir}" \
+          --suffix PATH : "${pathSuffix}"
+      done
+    '';
+  }

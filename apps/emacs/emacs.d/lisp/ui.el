@@ -27,9 +27,12 @@
       scroll-margin 3
       scroll-step 1)
 
+;; Base font. macOS (Retina) renders this noticeably smaller than the Linux
+;; HiDPI setup, so use a larger height there; Linux stays at 110.
+;; (:height is in 1/10 pt, so 150 = 15pt — tweak to taste.)
 (set-face-attribute 'default nil
 		    :font "BerkeleyMono Nerd Font"
-		    :height 110
+		    :height (if (eq system-type 'darwin) 150 110)
 		    :weight 'normal)
 
 (load-theme 'kanagawa-wave t)

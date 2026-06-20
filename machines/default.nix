@@ -48,8 +48,11 @@
       dev-essentials.emacs = true;
 
       # alt-Y opens Emacs (mirrors fern's "$mod, Y, exec, emacs" Hyprland bind).
+      # `emacs-gui` opens the Emacs.app bundle via `open` so macOS treats it as a
+      # real foreground GUI app (Dock icon, keyboard focus, aerospace-managed);
+      # launching the raw binary directly does none of that. See apps/emacs.
       aerospace.extraKeybinds = {
-        "alt-y" = "exec-and-forget /etc/profiles/per-user/andrew/bin/emacs";
+        "alt-y" = "exec-and-forget /etc/profiles/per-user/andrew/bin/emacs-gui";
       };
     };
 
