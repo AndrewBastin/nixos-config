@@ -24,7 +24,22 @@
 #  1. If you are seeing windows not being hidden correctly, check if the windows have a good corner to tuck stuff in, see: https://nikitabobko.github.io/AeroSpace/guide#proper-monitor-arrangement
 
 {
-  home = { lib, pkgs, ... }: {
+  options = { lib, ... }: {
+    aerospace = {
+      extraKeybinds = lib.mkOption {
+        type = lib.types.attrsOf lib.types.str;
+        default = { };
+        description = ''
+          Additional AeroSpace `mode.main.binding` entries, merged over the
+          defaults (so a matching key here overrides the default). Each entry
+          maps a key combo to an AeroSpace command, e.g.
+          `{ "alt-y" = "exec-and-forget /etc/profiles/per-user/andrew/bin/emacs"; }`.
+        '';
+      };
+    };
+  };
+
+  home = { lib, pkgs, universalConfig ? { }, ... }: {
     # Create helper scripts for hyprsplit-style workspace emulation
     home.file.".local/bin/aerospace-workspace.sh" = {
       text = lib.readFile ./scripts/aerospace-workspace.sh;
@@ -149,7 +164,9 @@
           "alt-f" = "exec-and-forget ~/.local/bin/aerospace-open-zen.sh";  # Browser (new window)
           "alt-e" = "exec-and-forget ~/.local/bin/aerospace-open-finder.sh";   # File manager
           "alt-c" = "exec-and-forget open -a Numi"; # Calculator (Numi)
-        };
+        }
+        # Per-machine additions from machines/default.nix (aerospace.extraKeybinds).
+        // (universalConfig.aerospace.extraKeybinds or { });
       };
     };
   };

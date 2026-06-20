@@ -46,6 +46,11 @@
       tailscale.splitDnsDomains = [ "serie" ];
 
       dev-essentials.emacs = true;
+
+      # alt-Y opens Emacs (mirrors fern's "$mod, Y, exec, emacs" Hyprland bind).
+      aerospace.extraKeybinds = {
+        "alt-y" = "exec-and-forget /etc/profiles/per-user/andrew/bin/emacs";
+      };
     };
 
     darwin = {
