@@ -34,6 +34,13 @@ let
     epkgs.melpaPackages.magit
     epkgs.melpaPackages.neotree
 
+    # Per-project environment via direnv. `envrc` applies each project's direnv
+    # env buffer-locally so eglot's subprocesses (rust-analyzer, etc.) inherit
+    # the project's flake dev shell; `inheritenv` keeps that env correct in
+    # subprocesses spawned from temp buffers.
+    epkgs.melpaPackages.envrc
+    epkgs.melpaPackages.inheritenv
+
     epkgs.treesit-grammars.with-all-grammars
   ]);
 
@@ -42,6 +49,10 @@ let
   runtimeTools = [
     pkgs.ripgrep
     pkgs.fd
+    # `direnv` itself, so the store-baked Emacs can run it regardless of which
+    # session launched it (e.g. the fern keybind, not a shell that already
+    # loaded direnv). `envrc` shells out to this.
+    pkgs.direnv
     pkgs.rust-analyzer
     pkgs.typescript-language-server
     pkgs.nixd

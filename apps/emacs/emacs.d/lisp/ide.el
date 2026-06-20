@@ -3,6 +3,16 @@
 ;; IDE setup mirroring my Neovim config (~/nixos-config/apps/nvim.nix).
 ;; Leader = SPC.  Packages + LSP servers come from the flake's dev shell.
 
+;; --- Per-project environment via direnv -----------------------------------
+;; `envrc-global-mode' applies each project's direnv environment buffer-locally,
+;; so the subprocesses eglot spawns (rust-analyzer, etc.) inherit the project's
+;; flake dev shell: cargo, rustc and the toolchain sysroot.  Enable it before
+;; eglot attaches.  `eglot-ensure' defers its connection to `post-command-hook',
+;; by which point envrc has already applied the buffer's env.  Each project
+;; needs an `.envrc' (`use flake') that has been `direnv allow'-ed once.
+(require 'envrc)
+(envrc-global-mode 1)
+
 ;; --- LSP via the built-in eglot -------------------------------------------
 ;; eglot already knows rust-analyzer, typescript-language-server and nixd; we
 ;; just auto-start it for the languages we use.  `eglot-ensure' in a mode hook
