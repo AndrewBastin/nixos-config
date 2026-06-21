@@ -65,4 +65,15 @@ Like `consult--buffer-pair', but the candidate string carries the buffer's
                         :sort 'visibility :directory root
                         :as #'my/consult-buffer-pair-with-mode))))))
 
+;; SPC b b shows a focused list — file buffers and terminals, but not the
+;; *special* buffers (*Messages*, *scratch*, *Help*, compilation, …).  The full
+;; list, special buffers included, stays on SPC b B (plain `consult-buffer').
+;; Terminals are named after their cwd (no asterisks), so they survive this
+;; filter; `consult-buffer-filter' excludes any buffer name it matches.
+(defun my/consult-buffer-no-special ()
+  "Like `consult-buffer', but hide \"*special*\" buffers (names matching ^*)."
+  (interactive)
+  (let ((consult-buffer-filter (cons "\\`\\*" consult-buffer-filter)))
+    (consult-buffer)))
+
 ;;; completion.el ends here

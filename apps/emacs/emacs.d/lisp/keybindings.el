@@ -7,7 +7,8 @@
   (kbd "<leader>e")        #'neotree-toggle          ; toggle file viewer
   (kbd "<leader>f")        #'consult-fd              ; fuzzy find files
   (kbd "<leader><leader>") #'project-find-file       ; project (git) files
-  (kbd "<leader>bb")       #'consult-buffer          ; switch buffer
+  (kbd "<leader>bb")       #'my/consult-buffer-no-special ; switch buffer (hide *special*)
+  (kbd "<leader>bB")       #'consult-buffer          ; switch buffer (all, incl. *special*)
   (kbd "<leader>gp")       #'consult-ripgrep         ; project grep
   (kbd "<leader>gl")       #'consult-line            ; search lines in buffer
   (kbd "<leader>d")        #'consult-flymake         ; document diagnostics
@@ -65,6 +66,7 @@
 ;; Name the which-key groups so the SPC menu reads nicely.
 (with-eval-after-load 'which-key
   (which-key-add-key-based-replacements
+    "SPC b"   "buffer"
     "SPC g"   "search"
     "SPC c"   "code"
     "SPC G"   "git"
