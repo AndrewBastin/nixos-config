@@ -116,6 +116,6 @@ indicator (-/:/@…), then the branch.  We strip that prefix and prepend the
    "  "
    ;; ── lualine_z: location ──
    "%l:%c"                             ; line:column
-   " "))
+   "  "))                              ; trailing pad so it doesn't hug the edge
 
 ;;; modeline.el ends here
