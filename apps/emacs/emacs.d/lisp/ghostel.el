@@ -127,7 +127,16 @@ current directory plus the foreground program when one is running, e.g.
                     (kbd "C-S-<tab>") #'ghostel-previous
                     (kbd "C-<iso-lefttab>") #'ghostel-previous
                     ;; C-S-v pastes the system clipboard into the terminal.
-                    (kbd "C-S-v") #'my/ghostel-paste-clipboard))
+                    (kbd "C-S-v") #'my/ghostel-paste-clipboard)
+  ;; The new-terminal / cycle shortcuts should also work after dropping to
+  ;; normal state (for scrollback, copying, …), where the insert-state map
+  ;; above no longer applies.  The C-c/C-x/C-S-v passthroughs stay insert-only
+  ;; since they only make sense while sending keys to the program.
+  (evil-define-key* 'normal evil-ghostel-mode-map
+                    (kbd "C-t") #'my/ghostel-fresh
+                    (kbd "C-<tab>") #'ghostel-next
+                    (kbd "C-S-<tab>") #'ghostel-previous
+                    (kbd "C-<iso-lefttab>") #'ghostel-previous))
 
 ;; ==========================================================================
 ;; 3. Terminal opener defuns (fresh / split / vsplit)
