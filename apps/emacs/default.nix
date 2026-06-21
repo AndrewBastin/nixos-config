@@ -51,6 +51,10 @@ let
     epkgs.melpaPackages.corfu
     epkgs.melpaPackages.cape
 
+    # Show eldoc (eglot hover) docs in a childframe popup at point instead of a
+    # separate window. Same childframe style as corfu-popupinfo.
+    epkgs.melpaPackages.eldoc-box
+
     epkgs.melpaPackages.magit
     epkgs.melpaPackages.neotree
 

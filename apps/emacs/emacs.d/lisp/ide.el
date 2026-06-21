@@ -33,6 +33,14 @@
                  ("\\.json\\'" . json-ts-mode)))
   (add-to-list 'auto-mode-alist entry))
 
+;; --- Hover documentation in a popup ---------------------------------------
+;; eglot feeds documentation through eldoc.  By default `eldoc-doc-buffer'
+;; (bound to `K') shows it in a separate window; `eldoc-box' renders the same
+;; content in a childframe popup at point instead (see the `K' binding in
+;; keybindings.el).  `eldoc-box-help-at-point' is the on-demand command; we just
+;; need the package loaded so it (and its faces) are available.
+(require 'eldoc-box)
+
 ;; Helper for vim's `<leader>cf' (change filetype = switch major mode).
 (defun my/change-major-mode ()
   "Prompt for a major mode and switch the current buffer to it."

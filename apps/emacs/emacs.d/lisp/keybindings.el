@@ -37,7 +37,7 @@
 ;; inside code buffers with a live language server.
 (with-eval-after-load 'eglot
   (evil-define-key 'normal eglot-mode-map
-    (kbd "K")  #'eldoc-doc-buffer          ; hover documentation
+    (kbd "K")  #'eldoc-box-help-at-point   ; hover documentation (childframe popup)
     (kbd "gd") #'xref-find-definitions
     (kbd "gD") #'xref-find-references
     (kbd "gi") #'eglot-find-implementation
