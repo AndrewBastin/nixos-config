@@ -170,18 +170,54 @@ current directory plus the foreground program when one is running, e.g.
 ;; helper its shell integration defines) carrying a function name + string
 ;; args, and `ghostel--osc52-eval' looks the name up in `ghostel-eval-cmds'
 ;; and applies it.  `find-file' already ships in that whitelist (that's `e');
-;; we add split/vsplit variants for `es'/`ev'.  Args arrive as strings.
+;; we wrap it (to record a jump, see below) and add split/vsplit variants for
+;; `es'/`ev'.  Args arrive as strings.
+
+;; Make C-o (`evil-jump-backward') return to the terminal after e/es/ev.
+;; These openers run inside ghostel's VT parser (a process filter), NOT the
+;; command loop, so evil's automatic buffer-crossing jump tracking never fires.
+;; We therefore record the jump ourselves with `evil-set-jump' before opening.
+;;
+;; evil stores jumps by file name and only treats a *file-less* buffer (like our
+;; terminals) as a jump target when its name matches `evil--jumps-buffer-targets'
+;; — both when recording and when deciding `switch-to-buffer' vs `find-file' on
+;; the way back.  The default only covers *new*/*scratch*, so extend it to also
+;; match the "term: " prefix every terminal buffer carries (see section 1).
+;; Safe: evil stores real files by ABSOLUTE path, which never begins with
+;; "term:", so files keep round-tripping through `find-file'.
+(with-eval-after-load 'evil
+  (setq evil--jumps-buffer-targets
+        (concat evil--jumps-buffer-targets "\\|\\`term:")))
+
+(defun my/ghostel-set-jump ()
+  "Record point in evil's jumplist, if evil is loaded.
+Lets C-o return to the terminal after an e/es/ev file open."
+  (when (fboundp 'evil-set-jump)
+    (evil-set-jump)))
+
+(defun my/ghostel-find-file (filename)
+  "Open FILENAME in the current window, recording a jump first (vim :edit)."
+  (my/ghostel-set-jump)
+  (find-file filename))
+
 (defun my/ghostel-find-file-split (filename)
   "Open FILENAME in a split below the terminal (vim :split)."
   (select-window (split-window-below))
+  (my/ghostel-set-jump)        ; the new window still shows the terminal here
   (find-file filename))
 
 (defun my/ghostel-find-file-vsplit (filename)
   "Open FILENAME in a split right of the terminal (vim :vsplit)."
   (select-window (split-window-right))
+  (my/ghostel-set-jump)
   (find-file filename))
 
 (with-eval-after-load 'ghostel
+  ;; Swap the stock `find-file' (used by `e') for our jump-recording wrapper,
+  ;; then add the split/vsplit variants.
+  (setq ghostel-eval-cmds
+        (cons '("find-file" my/ghostel-find-file)
+              (assoc-delete-all "find-file" ghostel-eval-cmds)))
   (add-to-list 'ghostel-eval-cmds '("find-file-split"  my/ghostel-find-file-split))
   (add-to-list 'ghostel-eval-cmds '("find-file-vsplit" my/ghostel-find-file-vsplit)))
 
