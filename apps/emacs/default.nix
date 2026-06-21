@@ -55,6 +55,12 @@ let
     # separate window. Same childframe style as corfu-popupinfo.
     epkgs.melpaPackages.eldoc-box
 
+    # eglot renders LSP hover/signature docs (rust-analyzer etc. send Markdown)
+    # via `gfm-view-mode', which lives in markdown-mode. Without it eglot falls
+    # back to showing raw Markdown; with it the docs are fontified and code
+    # blocks are highlighted natively.
+    epkgs.melpaPackages.markdown-mode
+
     epkgs.melpaPackages.magit
     epkgs.melpaPackages.neotree
 
