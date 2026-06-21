@@ -24,6 +24,13 @@
                 nix-mode-hook))
   (add-hook hook #'eglot-ensure))
 
+;; Don't let code-action availability clutter the echo area. eglot's default
+;; (`eldoc-hint margin') appends a "code action available" hint to the eldoc
+;; output shown in the minibuffer, mixing it in with the hover/type info we do
+;; want. Drop `eldoc-hint' and keep only the quiet `margin' fringe indicator.
+(with-eval-after-load 'eglot
+  (setq eglot-code-action-indications '(margin)))
+
 ;; --- Tree-sitter major modes (grammars provided by the flake) -------------
 ;; Map file extensions to the tree-sitter modes for richer highlighting.
 (dolist (entry '(("\\.rs\\'"   . rust-ts-mode)
