@@ -17,21 +17,76 @@
 ;; evil normal state instead (mirrors evil's usual insert-state ESC binding).
 (setq evil-ghostel-escape 'terminal)
 
-;; Drop the "ghostel" prefix from buffer names (what shows in the modeline).
-;; Stock ghostel names buffers "*ghostel: TITLE*" (by title) and "*ghostel*"
-;; (no title yet); we want just the terminal's own TITLE, e.g. "*~/nixos-config*".
-;; `ghostel-buffer-name' is the title-less base; the name function renames to
-;; the TITLE on each OSC-2 title report (nil keeps the base, as upstream does).
-(setq ghostel-buffer-name "*terminal*")
+;; Rename buffers "term: TITLE" instead of stock ghostel's "*ghostel: TITLE*"
+;; (this is what shows in the modeline).  The "term: " prefix doubles as a
+;; marker: it makes terminals distinguishable from file paths (used by the
+;; jumplist integration in section 4), while reading cleanly in the buffer list.
+;; `ghostel-buffer-name' is the title-less base, only seen for the instant
+;; before the first cwd report arrives.
+(setq ghostel-buffer-name "term:")
+
+(defun my/ghostel-foreground-program ()
+  "Return the foreground program running in this ghostel terminal, or nil.
+At the shell prompt (nothing running) returns nil.  Linux-only: it reads the
+controlling terminal's foreground process group (the `tpgid' field of the
+shell's /proc/PID/stat) and then that group leader's `comm'.  Returns nil on
+other systems or if anything can't be read."
+  (when-let* (((eq system-type 'gnu/linux))
+              (pid (bound-and-true-p ghostel--pid))
+              (stat (ignore-errors
+                      (with-temp-buffer
+                        (insert-file-contents (format "/proc/%d/stat" pid))
+                        (buffer-string))))
+              ;; "PID (comm) state ppid pgrp session tty tpgid …".  comm can
+              ;; contain spaces and parens, so split on the LAST ")"; the
+              ;; greedy ".*" before it backtracks to that final paren.
+              ((string-match ".*) \\(.*\\)" stat)))
+    (let* ((fields (split-string (match-string 1 stat)))
+           (pgrp  (string-to-number (nth 2 fields)))   ; shell's own group
+           (tpgid (string-to-number (nth 5 fields))))  ; terminal's fg group
+      ;; tpgid == pgrp means the shell itself is in the foreground (prompt).
+      (when (and (> tpgid 0) (/= tpgid pgrp))
+        (ignore-errors
+          (string-trim
+           (with-temp-buffer
+             (insert-file-contents (format "/proc/%d/comm" tpgid))
+             (buffer-string))))))))
 
 (defun my/ghostel-buffer-name (title)
-  "Name a ghostel buffer \"*TITLE*\", with no \"ghostel\" prefix.
-Like `ghostel-buffer-name-by-title' but without the prefix; returns nil for an
-empty TITLE so the base `ghostel-buffer-name' is kept."
-  (and title (not (string= "" title))
-       (format "*%s*" title)))
+  "Name a ghostel buffer \"term: …\", with no \"ghostel\" prefix or asterisks.
+With a terminal TITLE set, use \"term: TITLE\".  Otherwise fall back to the
+current directory plus the foreground program when one is running, e.g.
+\"term: ~/nixos-config: nvim\" — or just \"term: ~/nixos-config\" at the prompt."
+  (if (and title (not (string= "" title)))
+      (format "term: %s" title)
+    (let ((dir  (abbreviate-file-name (directory-file-name default-directory)))
+          (prog (my/ghostel-foreground-program)))
+      (if prog
+          (format "term: %s: %s" dir prog)
+        (format "term: %s" dir)))))
 
 (setq ghostel-buffer-name-function #'my/ghostel-buffer-name)
+
+;; The name function runs on title/cwd reports, but NOT when a command merely
+;; starts or stops — so without this the program part would only refresh on the
+;; next `cd'.  Re-apply the name on the command start/finish markers (OSC 133),
+;; deferred slightly so the new foreground process has exec'd before we look.
+(defun my/ghostel-refresh-name (buffer &rest _)
+  "Recompute and re-apply BUFFER's managed ghostel name (deferred)."
+  (when (buffer-live-p buffer)
+    (run-at-time
+     0.1 nil
+     (lambda ()
+       (when (buffer-live-p buffer)
+         (with-current-buffer buffer
+           (when ghostel-buffer-name-function
+             (let ((title (and ghostel--term (ghostel--get-title ghostel--term))))
+               (ghostel--rename-managed
+                (funcall ghostel-buffer-name-function title))))))))))
+
+(with-eval-after-load 'ghostel
+  (add-hook 'ghostel-command-start-functions  #'my/ghostel-refresh-name)
+  (add-hook 'ghostel-command-finish-functions #'my/ghostel-refresh-name))
 
 ;; ==========================================================================
 ;; 2. Clipboard paste + evil-ghostel key bindings
