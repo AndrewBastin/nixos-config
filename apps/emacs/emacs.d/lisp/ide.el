@@ -13,6 +13,17 @@
 (require 'envrc)
 (envrc-global-mode 1)
 
+;; By default envrc announces a load by dumping every environment variable it
+;; touched ("+PATH ~PATH +CARGO_HOME ..."), a wall of text in the echo area.
+;; `envrc--show-summary' is only called on a genuine direnv export (cached
+;; re-applies stay silent), so override it to keep that timing but just print a
+;; short confirmation instead.
+(with-eval-after-load 'envrc
+  (advice-add 'envrc--show-summary :override
+              (lambda (_result directory)
+                (message "direnv: loaded (%s)"
+                         (abbreviate-file-name (directory-file-name directory))))))
+
 ;; --- LSP via the built-in eglot -------------------------------------------
 ;; eglot already knows rust-analyzer, typescript-language-server and nixd; we
 ;; just auto-start it for the languages we use.  `eglot-ensure' in a mode hook
