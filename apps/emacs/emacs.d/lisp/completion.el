@@ -33,4 +33,36 @@
 (add-to-list 'completion-at-point-functions #'cape-dabbrev t)
 (add-to-list 'completion-at-point-functions #'cape-file t)
 
+;;; consult-buffer: make the major mode searchable -------------------------
+;; In `consult-buffer' (SPC b b) each candidate is a (STRING . BUFFER) pair:
+;; STRING is what orderless matches *and* what's shown, while BUFFER (kept
+;; aside) is what preview/switching use.  By default STRING is just the buffer
+;; name, so the major mode — shown on the right by marginalia — can't be typed
+;; to filter.  We swap in an `:as' that appends the mode name to STRING, so
+;; typing e.g. "ghostel" narrows to ghostel-mode buffers.  BUFFER is untouched,
+;; so switching and preview keep working.
+(defun my/consult-buffer-pair-with-mode (buffer)
+  "Return a (NAME+MODE . BUFFER) pair for `consult-buffer'.
+Like `consult--buffer-pair', but the candidate string carries the buffer's
+`major-mode' name (dimmed) so it can be matched when searching."
+  (let ((name (buffer-name buffer))
+        (mode (symbol-name (buffer-local-value 'major-mode buffer))))
+    (cons (concat name
+                  (propertize (concat "  " mode) 'face 'completions-annotations))
+          buffer)))
+
+(with-eval-after-load 'consult
+  (setq consult-source-buffer
+        (plist-put consult-source-buffer :items
+                   (lambda () (consult--buffer-query
+                               :sort 'visibility
+                               :as #'my/consult-buffer-pair-with-mode))))
+  (setq consult-source-project-buffer
+        (plist-put consult-source-project-buffer :items
+                   (lambda ()
+                     (when-let* ((root (consult--project-root)))
+                       (consult--buffer-query
+                        :sort 'visibility :directory root
+                        :as #'my/consult-buffer-pair-with-mode))))))
+
 ;;; completion.el ends here
