@@ -42,7 +42,14 @@
     (kbd "gd") #'xref-find-definitions
     (kbd "gD") #'xref-find-references
     (kbd "gi") #'eglot-find-implementation
-    (kbd "gt") #'eglot-find-typeDefinition))
+    (kbd "gt") #'eglot-find-typeDefinition)
+  ;; Push a jumplist entry before these LSP "go to" commands so C-o
+  ;; (`evil-jump-backward') returns here afterwards — like Vim's jumplist.
+  ;; evil already flags gd/gD (xref-find-definitions / -references); the eglot
+  ;; finders below need it too, otherwise a *same-file* jump isn't recorded
+  ;; (cross-file ones are caught by evil's buffer-crossing hook regardless).
+  (evil-set-command-property 'eglot-find-implementation :jump t)
+  (evil-set-command-property 'eglot-find-typeDefinition :jump t))
 
 ;; neotree opens its buffer in evil normal state, whose keymap shadows
 ;; neotree-mode-map — so plain RET hits `evil-ret', not neotree.  Re-bind
