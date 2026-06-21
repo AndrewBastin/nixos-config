@@ -76,4 +76,12 @@ Like `consult--buffer-pair', but the candidate string carries the buffer's
   (let ((consult-buffer-filter (cons "\\`\\*" consult-buffer-filter)))
     (consult-buffer)))
 
+;;; xref results in the minibuffer ----------------------------------------
+;; By default xref (gd/gr → `xref-find-definitions'/`-references') pops a
+;; *xref* list in a side window.  Route both through `consult-xref' so multiple
+;; results land in a vertico minibuffer picker with live preview, matching the
+;; rest of the fzf-lua-style UI.  A single result still jumps directly.
+(setq xref-show-xrefs-function #'consult-xref
+      xref-show-definitions-function #'consult-xref)
+
 ;;; completion.el ends here

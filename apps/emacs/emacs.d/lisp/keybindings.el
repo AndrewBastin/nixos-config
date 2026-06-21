@@ -56,12 +56,12 @@
   (evil-define-key 'normal eglot-mode-map
     (kbd "K")  #'eldoc-box-help-at-point   ; hover documentation (childframe popup)
     (kbd "gd") #'xref-find-definitions
-    (kbd "gD") #'xref-find-references
+    (kbd "gr") #'xref-find-references
     (kbd "gi") #'eglot-find-implementation
     (kbd "gt") #'eglot-find-typeDefinition)
   ;; Push a jumplist entry before these LSP "go to" commands so C-o
   ;; (`evil-jump-backward') returns here afterwards — like Vim's jumplist.
-  ;; evil already flags gd/gD (xref-find-definitions / -references); the eglot
+  ;; evil already flags gd/gr (xref-find-definitions / -references); the eglot
   ;; finders below need it too, otherwise a *same-file* jump isn't recorded
   ;; (cross-file ones are caught by evil's buffer-crossing hook regardless).
   (evil-set-command-property 'eglot-find-implementation :jump t)

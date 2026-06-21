@@ -313,7 +313,7 @@
           lspBuf = {
             "K" = "hover";
             "gd" = "definition";
-            "gD" = "references";
+            "gr" = "references";
             "gi" = "implementation";
             "gt" = "type_definition";
             "<c-k>" = "signature_help";
