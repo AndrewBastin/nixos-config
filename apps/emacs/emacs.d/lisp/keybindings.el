@@ -33,6 +33,22 @@
   (kbd "<leader>hv")       #'describe-variable
   (kbd "<leader>hk")       #'describe-key)
 
+;; --- Global text size: C-+ increase / C-- decrease / C-= reset ----------
+;; `global-text-scale-adjust' resizes the *default face* height, so the change
+;; applies across every buffer and frame — unlike `text-scale-adjust', which is
+;; buffer-local.  It picks increase/decrease/reset from the final key pressed
+;; (`+'/`='/`-'/`0'), so `=' would actually increase; reset needs `0' spoofed in.
+;; After the first press a transient map lets you keep tapping +/-/0 to continue.
+(defun my/global-text-scale-reset ()
+  "Reset the global text size to its original height."
+  (interactive)
+  (let ((last-command-event ?0))
+    (global-text-scale-adjust 1)))
+
+(global-set-key (kbd "C-+") #'global-text-scale-adjust)   ; increase
+(global-set-key (kbd "C--") #'global-text-scale-adjust)   ; decrease
+(global-set-key (kbd "C-=") #'my/global-text-scale-reset) ; reset to original
+
 ;; LSP "go to" keys, active only where eglot is attached (like nvim's lspBuf).
 ;; Binding into `eglot-mode-map' means these only shadow evil's defaults (gd, K)
 ;; inside code buffers with a live language server.
