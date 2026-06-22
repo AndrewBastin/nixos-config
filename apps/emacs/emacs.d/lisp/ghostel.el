@@ -136,7 +136,17 @@ current directory plus the foreground program when one is running, e.g.
                     (kbd "C-t") #'my/ghostel-fresh
                     (kbd "C-<tab>") #'ghostel-next
                     (kbd "C-S-<tab>") #'ghostel-previous
-                    (kbd "C-<iso-lefttab>") #'ghostel-previous))
+                    (kbd "C-<iso-lefttab>") #'ghostel-previous
+                    ;; Follow the hyperlink at point (OSC 8, auto-detected URL,
+                    ;; or file:line ref).  Ghostel only binds RET-to-open in its
+                    ;; read-only mode map; in evil normal-state scrollback RET is
+                    ;; otherwise `evil-ret', so bind it here.  Off a link this is
+                    ;; a no-op (ghostel-open-link-at-point does nothing).
+                    (kbd "RET") #'ghostel-open-link-at-point
+                    ;; Jump between links, vim-style (cf. ]q/[q).  C-c C-n/C-p
+                    ;; still work too (evil doesn't shadow C-c).
+                    (kbd "]l") #'ghostel-next-hyperlink
+                    (kbd "[l") #'ghostel-previous-hyperlink))
 
 ;; ==========================================================================
 ;; 3. Terminal opener defuns (fresh / split / vsplit)
