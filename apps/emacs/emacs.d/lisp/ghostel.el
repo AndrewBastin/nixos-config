@@ -149,6 +149,75 @@ current directory plus the foreground program when one is running, e.g.
                     (kbd "[l") #'ghostel-previous-hyperlink))
 
 ;; ==========================================================================
+;; 2.5 Browse scrollback without the viewport snapping back to the bottom
+;; ==========================================================================
+
+;; Ghostel auto-follows live output: on every redraw it re-anchors any window
+;; still sitting at the bottom (`ghostel--window-anchored-p'), so when a command
+;; finishes the screen jumps back down — annoying while reading scrollback.
+;; Ghostel already ships the right escape hatch: `ghostel-emacs-mode' makes the
+;; buffer read-only and STOPS auto-following while the terminal keeps running
+;; and scrollback keeps growing (unlike `ghostel-copy-mode', which freezes
+;; output entirely).
+;;
+;; We tie that mode to evil's editing state so it needs no separate muscle
+;; memory: evil *normal* state == read-only "browse" (output streams in but the
+;; viewport stays put), evil *insert* state == live terminal that follows the
+;; output.  And since reaching for the wheel is itself a "let me look back"
+;; gesture, scrolling up drops you into normal state automatically.
+;;
+;; All three are gated on `evil-ghostel--active-p' (a live shell prompt:
+;; semi-char input mode, not an alt-screen TUI), so vim/htop and friends are
+;; untouched — normal state and the wheel keep behaving as they do today there.
+
+(defun my/ghostel-browse-on-normal ()
+  "Enter ghostel's read-only `emacs' input mode on evil normal-state entry.
+Only at a live shell prompt; there the terminal keeps streaming but ghostel
+stops yanking the viewport to the bottom, so paging through scrollback stays
+put.  Insert state restores the live following mode (`my/ghostel-follow-on-insert').
+The entry message is suppressed since this fires on every drop to normal — the
+`:Emacs' mode-line tag is indication enough."
+  (when (evil-ghostel--active-p)
+    (let ((inhibit-message t))
+      (ghostel-emacs-mode))))
+
+(defun my/ghostel-follow-on-insert ()
+  "Leave ghostel's read-only `emacs' mode and resume the live terminal.
+Installed at a low hook depth so it runs before evil-ghostel's own insert-entry
+cursor sync, which only acts once the terminal is back in semi-char mode."
+  (when (and (derived-mode-p 'ghostel-mode)
+             (eq ghostel--input-mode 'emacs))
+    (ghostel-semi-char-mode)))
+
+(defun my/ghostel-wheel-browse (event)
+  "Drop to evil normal state when scrolling up in a live ghostel terminal.
+Entering normal state switches ghostel to the read-only `emacs' mode (via
+`my/ghostel-browse-on-normal'), so a wheel-up into the scrollback no longer
+snaps back on the next redraw.  Skips terminals tracking the mouse (TUIs like
+vim/htop), where the wheel must reach the program.  EVENT is the wheel event;
+run in the event's own buffer the way ghostel's own scroll intercept does."
+  (with-current-buffer (window-buffer (posn-window (event-start event)))
+    (when (and (evil-ghostel--active-p)
+               (evil-insert-state-p)
+               (not (ghostel--mouse-tracking-active-p)))
+      (evil-normal-state))))
+
+(with-eval-after-load 'evil-ghostel
+  (add-hook 'ghostel-mode-hook
+            (lambda ()
+              (add-hook 'evil-normal-state-entry-hook
+                        #'my/ghostel-browse-on-normal nil t)
+              ;; Depth -90: run before evil-ghostel's own insert-entry hook so
+              ;; the terminal is back in semi-char before that hook syncs the
+              ;; cursor (it no-ops outside semi-char).
+              (add-hook 'evil-insert-state-entry-hook
+                        #'my/ghostel-follow-on-insert -90 t)))
+  ;; `<wheel-up>'/`<mouse-4>' both dispatch through `ghostel--scroll-intercept-up';
+  ;; advising it covers both.  :before so we switch state before the original
+  ;; redispatches the event to the scroll handler.
+  (advice-add 'ghostel--scroll-intercept-up :before #'my/ghostel-wheel-browse))
+
+;; ==========================================================================
 ;; 3. Terminal opener defuns (fresh / split / vsplit)
 ;; ==========================================================================
 
