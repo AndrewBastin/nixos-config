@@ -1,8 +1,27 @@
 ;;; evil.el --- Evil mode, leader key, and escape-quits-everything  -*- lexical-binding: t; -*-
 
+;; evil-collection requires `evil-want-keybinding' to be nil BEFORE evil loads,
+;; so evil skips its own `evil-keybindings' and lets evil-collection own the
+;; per-mode bindings.  Otherwise `evil-collection-init' (below) warns about the
+;; conflicting bindings evil already installed.
+(setq evil-want-keybinding nil)
+
 (require 'evil)
 (evil-mode 1)
 (evil-set-undo-system 'undo-redo)
+
+;; --- evil-collection --------------------------------------------------------
+;; Vim-style bindings for all the special-mode buffers evil leaves alone
+;; (magit, dired, help, eww, info, ibuffer, xref, …).  This is what makes
+;; link/button following work the obvious way: `go' in *Help*, RET in
+;; info/eww/markdown, etc.
+;;
+;; Leave the minibuffer alone — vertico/consult and our custom escape-quits
+;; behaviour own it — by keeping `evil-collection-setup-minibuffer' at its
+;; default nil.  Init runs here (before keybindings.el), so the hand-rolled
+;; neotree/eglot bindings there load last and win on any overlap.
+(require 'evil-collection)
+(evil-collection-init)
 
 ;; --- Leader key (SPC) -------------------------------------------------------
 ;; The leader is registered here; individual <leader>… bindings live in

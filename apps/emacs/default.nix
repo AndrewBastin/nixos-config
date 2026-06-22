@@ -32,6 +32,11 @@ let
   # into Emacs 30, so it needs no package here.
   emacsWithPkgs = emacsPkgs.withPackages (epkgs: [
     epkgs.melpaPackages.evil
+    # evil-collection: consistent vim-style bindings across ~150 special-mode
+    # buffers (magit, dired, help, eww, info, ibuffer, …). Initialized in
+    # lisp/evil.el. Our hand-rolled neotree/eglot keys in keybindings.el load
+    # last and still win on overlap.
+    epkgs.melpaPackages.evil-collection
     epkgs.melpaPackages.kanagawa-themes
     epkgs.melpaPackages.nix-mode
 
