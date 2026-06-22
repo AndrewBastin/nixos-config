@@ -25,14 +25,26 @@
                          (abbreviate-file-name (directory-file-name directory))))))
 
 ;; --- LSP via the built-in eglot -------------------------------------------
-;; eglot already knows rust-analyzer, typescript-language-server and nixd; we
-;; just auto-start it for the languages we use.  `eglot-ensure' in a mode hook
-;; connects the server when such a buffer opens.
+;; eglot already knows most of these servers (rust-analyzer,
+;; typescript-language-server, nixd, gopls, pyright, bash-language-server,
+;; docker-langserver, vscode-json-language-server); the rest get custom
+;; `eglot-server-programs' entries below.  `eglot-ensure' in a mode hook
+;; connects the server when such a buffer opens.  This list mirrors the LSP
+;; servers wired up in my Neovim config (~/nixos-config/apps/nvim.nix).
 (dolist (hook '(rust-ts-mode-hook
                 typescript-ts-mode-hook
                 tsx-ts-mode-hook
                 js-ts-mode-hook
-                nix-mode-hook))
+                nix-mode-hook
+                go-ts-mode-hook
+                elixir-ts-mode-hook
+                heex-ts-mode-hook
+                json-ts-mode-hook
+                python-ts-mode-hook
+                bash-ts-mode-hook
+                dockerfile-ts-mode-hook
+                docker-compose-ts-mode-hook
+                qml-mode-hook))
   (add-hook hook #'eglot-ensure))
 
 ;; Don't let code-action availability clutter the echo area. eglot's default
@@ -40,15 +52,52 @@
 ;; output shown in the minibuffer, mixing it in with the hover/type info we do
 ;; want. Drop `eldoc-hint' and keep only the quiet `margin' fringe indicator.
 (with-eval-after-load 'eglot
-  (setq eglot-code-action-indications '(margin)))
+  (setq eglot-code-action-indications '(margin))
+
+  ;; Servers eglot doesn't know how to launch out of the box, or that nixpkgs
+  ;; ships under a different binary name than eglot's default expects.  Each is
+  ;; prepended, so it wins over any built-in entry for the same mode.
+  ;;
+  ;; - elixir-ls: eglot's default hunts for `language_server.sh'/`start_lexical.sh',
+  ;;   but nixpkgs wraps ElixirLS as a single `elixir-ls' binary (handles .heex too).
+  ;; - docker-compose-langserver: no built-in entry; `--stdio' like the Neovim setup.
+  ;; - qmlls: no built-in entry and no QML mode in Emacs (we add `qml-mode' as a pkg).
+  (dolist (entry '(((elixir-ts-mode heex-ts-mode) "elixir-ls")
+                   (docker-compose-ts-mode "docker-compose-langserver" "--stdio")
+                   (qml-mode "qmlls")))
+    (add-to-list 'eglot-server-programs entry)))
+
+;; Docker Compose files are YAML, so derive a mode from `yaml-ts-mode' for
+;; highlighting; the distinct mode is what lets eglot attach the compose
+;; language server (above) instead of a generic YAML server.
+(define-derived-mode docker-compose-ts-mode yaml-ts-mode "Compose"
+  "Major mode for Docker Compose files: YAML tree-sitter + compose LSP.")
 
 ;; --- Tree-sitter major modes (grammars provided by the flake) -------------
 ;; Map file extensions to the tree-sitter modes for richer highlighting.
-(dolist (entry '(("\\.rs\\'"   . rust-ts-mode)
-                 ("\\.ts\\'"   . typescript-ts-mode)
-                 ("\\.tsx\\'"  . tsx-ts-mode)
-                 ("\\.js\\'"   . js-ts-mode)
-                 ("\\.json\\'" . json-ts-mode)))
+;; These modes are autoloaded, but some (e.g. `elixir-ts-mode') only register
+;; their own `auto-mode-alist' entries when the package loads, which nothing
+;; here triggers -- so without an explicit mapping such files open in
+;; Fundamental mode. Map them ourselves to be sure.
+(dolist (entry '(("\\.rs\\'"      . rust-ts-mode)
+                 ("\\.ts\\'"      . typescript-ts-mode)
+                 ("\\.tsx\\'"     . tsx-ts-mode)
+                 ("\\.js\\'"      . js-ts-mode)
+                 ("\\.json\\'"    . json-ts-mode)
+                 ("\\.exs?\\'"    . elixir-ts-mode)
+                 ("mix\\.lock\\'" . elixir-ts-mode)
+                 ("\\.heex\\'"    . heex-ts-mode)
+                 ("\\.go\\'"      . go-ts-mode)
+                 ("\\.py\\'"      . python-ts-mode)
+                 ("\\.\\(sh\\|bash\\)\\'" . bash-ts-mode)
+                 ("\\.qml\\'"     . qml-mode)
+                 ;; Compose files first so they win over the generic Dockerfile/
+                 ;; YAML matches below.
+                 ("\\(?:^\\|/\\)\\(?:docker-\\)?compose\\(?:\\.[^/]*\\)?\\.ya?ml\\'"
+                  . docker-compose-ts-mode)
+                 ("\\(?:^\\|/\\)\\(?:Containerfile\\|Dockerfile\\)\\(?:\\.[^/]*\\)?\\'"
+                  . dockerfile-ts-mode)
+                 ("\\.dockerfile\\'" . dockerfile-ts-mode)))
   (add-to-list 'auto-mode-alist entry))
 
 ;; --- Hover documentation in a popup ---------------------------------------

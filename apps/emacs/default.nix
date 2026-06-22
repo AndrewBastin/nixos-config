@@ -35,6 +35,10 @@ let
     epkgs.melpaPackages.kanagawa-themes
     epkgs.melpaPackages.nix-mode
 
+    # QML has no built-in Emacs major mode (unlike the tree-sitter languages
+    # below); this provides `qml-mode', which eglot attaches `qmlls' to.
+    epkgs.melpaPackages.qml-mode
+
     # Ghostel terminal: Elisp + bundled prebuilt native module + evil integration.
     epkgs.ghostel
     epkgs.melpaStablePackages.evil-ghostel
@@ -86,6 +90,17 @@ let
     pkgs.rust-analyzer
     pkgs.typescript-language-server
     pkgs.nixd
+    # LSP servers mirroring apps/nvim.nix. Bundled (like the three above) so the
+    # editor works out of the box; a project's direnv flake can still shadow any
+    # of these since the dev shell's PATH takes precedence over this suffix.
+    pkgs.gopls
+    pkgs.elixir-ls
+    pkgs.pyright
+    pkgs.bash-language-server
+    pkgs.vscode-langservers-extracted          # vscode-json-language-server
+    pkgs.dockerfile-language-server             # docker-langserver
+    pkgs.docker-compose-language-service        # docker-compose-langserver
+    pkgs.qt6.qtdeclarative                       # qmlls
   ];
   pathSuffix = lib.makeBinPath runtimeTools;
   initDir = ./emacs.d;
