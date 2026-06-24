@@ -4,6 +4,9 @@
 (tool-bar-mode 0)
 (scroll-bar-mode 0)
 
+;; No audible or visible bell — silence the alert entirely.
+(setq ring-bell-function 'ignore)
+
 (setq display-line-numbers-type 'relative)
 ;; Show line numbers only in code and text buffers, not in special buffers like
 ;; neotree, ghostel terminals, magit, dired, etc.  (Enabling globally and trying
