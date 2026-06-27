@@ -15,14 +15,15 @@ let
   # so `evil-ghostel` (whose `ghostel` dep resolves to this package) gets it too.
   withPrebuiltGhostelModule = pkgs.callPackage ./ghostel.nix { };
 
-  # On macOS, Emacs has no native Cocoa window — use the Mac port
-  # (native Cocoa Emacs.app with mac-specific niceties). Everything downstream keys
+  # On macOS, pure-GTK Emacs has no native Cocoa window — use the Mac port
+  # (native Cocoa Emacs.app with mac-specific niceties). On Linux, pgtk is the
+  # right native Wayland/Hyprland build (no XWayland). Everything downstream keys
   # off this binding (emacs.pkgs.overrideScope / withPackages), so the ghostel
   # override and grammars carry over unchanged.
   emacs =
     if isDarwin
     then pkgs.emacs-macport
-    else pkgs.emacs;
+    else pkgs.emacs-pgtk;
   emacsPkgs = emacs.pkgs.overrideScope (final: prev: {
     ghostel = withPrebuiltGhostelModule prev.ghostel;
   });

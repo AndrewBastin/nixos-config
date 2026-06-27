@@ -69,7 +69,7 @@ window manager only flags an *unfocused* window urgent anyway."
 
 (set-face-attribute 'default nil
 		    :font "BerkeleyMono Nerd Font"
-		    :height (if (eq system-type 'darwin) 150 180)
+		    :height (if (eq system-type 'darwin) 150 110)
 		    :weight 'normal)
 
 (load-theme 'kanagawa-wave t)
