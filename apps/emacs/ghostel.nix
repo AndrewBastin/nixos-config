@@ -1,73 +1,62 @@
-# Transform that swaps a PREBUILT native (Zig) module into nixpkgs' `ghostel`
-# Emacs package.
+# Transform that makes nixpkgs' `ghostel` Emacs package build its native (Zig)
+# module from source on Darwin too, keeping the native binary in lockstep with
+# the Elisp version on every platform.
 #
-# nixpkgs' `ghostel` Emacs package compiles its native module from source with
-# Zig.  That build links libghostty, whose `build.zig` probes for the macOS SDK
-# via `std.zig.LibCInstallation.findNative`; inside the Nix sandbox on Darwin no
-# Apple SDK is reachable, so it fails with `error.DarwinSdkNotFound` and the
-# whole build crashes (this is effectively a nixpkgs darwin packaging bug).
+# The loader in ghostel.el calls `ghostel--module-version` (a function exported
+# BY the compiled module) and refuses to run when it is older than the Elisp's
+# `ghostel--minimum-module-version` ("module version is older than required
+# version").  Because nixpkgs builds the module from the SAME source rev as the
+# Elisp, a from-source build always satisfies that check — so the fix for the
+# recurring breakage on emacs-overlay bumps is simply to build from source on
+# every platform.
 #
-# This file returns a function `elisp -> elisp'` that overrides the package's
-# `preBuild` to install a prebuilt release asset instead of building the module,
-# dropping the dependency on the from-source Zig build entirely.  The package's
-# own `files` directive still installs `ghostel-module<ext>` from the build dir
-# into the Elisp output, where the loader finds it next to ghostel.el
-# (`ghostel--module-directory`).
+#   * Linux: nixpkgs already builds the module from source, so this is a no-op.
 #
-# Apply it over the whole Emacs package scope (see ./default.nix) so dependents
-# like `evil-ghostel`, whose `ghostel` dependency resolves to this same package,
-# pick up the prebuilt module too.
+#   * Darwin: nixpkgs' module derivation wires up only `xcbuild`, not an SDK, so
+#     libghostty's `build.zig` fails in `findNative` with
+#     `error.DarwinSdkNotFound`.  Adding `apple-sdk` (the modern nixpkgs Darwin
+#     SDK package — it provides the macOS SDK and sets DEVELOPER_DIR/SDKROOT, the
+#     missing piece `xcbuild` alone can't supply) to the module's build inputs
+#     lets the from-source build find the SDK.  We then install that module the
+#     same way upstream's `preBuild` does.
+#
+# NOTE: the Darwin path is unverified from a Linux host (Nix can't build a Darwin
+# derivation here) — validate it by building on a Mac (winry/uwu).  If the SDK
+# still isn't found, fall back to a prebuilt release asset.
+#
+# Apply over the whole Emacs package scope (see ./default.nix) so dependents like
+# `evil-ghostel`, whose `ghostel` dependency resolves to this same package, pick
+# up the result too.
 { lib
 , stdenv
-, fetchurl
+, apple-sdk ? null
 }:
 
 let
-  # Prebuilt native module release.  nixpkgs' Elisp is pinned to the v0.34.0 era
-  # (rev f7800f6, whose `ghostel--minimum-module-version` is "0.34.0"), so the
-  # matching v0.34.0 module satisfies the loader's post-load version check.  This
-  # is pinned independently of the Elisp's nix version string
-  # ("0.34.0-unstable-...", which is not a real release tag and so cannot drive
-  # an asset URL).
-  moduleVersion = "0.34.0";
-
-  # Map each supported system to its release asset.  Hashes are for the
-  # v${moduleVersion} release.
-  modules = {
-    x86_64-linux = {
-      asset = "ghostel-module-x86_64-linux.so";
-      hash = "sha256-VhuKgSi/GszlalJjUMfvBWycDJEzutuf6g1hu165QyE=";
-    };
-    aarch64-linux = {
-      asset = "ghostel-module-aarch64-linux.so";
-      hash = "sha256-1ZaFFmLAwY/mYLbaim16zEp0bHGousjrS/WoJldyrFo=";
-    };
-    x86_64-darwin = {
-      asset = "ghostel-module-x86_64-macos.dylib";
-      hash = "sha256-3+DbexbhTfgYUIrz78R8TyJOD1tDOsc2J3dYahCLr9Q=";
-    };
-    aarch64-darwin = {
-      asset = "ghostel-module-aarch64-macos.dylib";
-      hash = "sha256-z7mTLgaf+c2hXWQrO8P1yUni6Yok6MRznXDwPS8j1qg=";
-    };
-  };
-
-  system = stdenv.hostPlatform.system;
-  module = modules.${system} or
-    (throw "ghostel: no prebuilt native module for system ${system}");
-
-  prebuiltModule = fetchurl {
-    url = "https://github.com/dakra/ghostel/releases/download/v${moduleVersion}/${module.asset}";
-    inherit (module) hash;
-  };
-
   libExt = stdenv.hostPlatform.extensions.sharedLibrary;
 in
-elisp: elisp.overrideAttrs (_: {
-  # nixpkgs builds `ghostel-module${libExt}` from source here (via its `module`
-  # derivation); swap in the prebuilt asset so no Zig build runs.  Replacing
-  # `preBuild` removes the only build-time reference to that Zig derivation.
-  preBuild = ''
-    install -m444 ${prebuiltModule} ghostel-module${libExt}
-  '';
-})
+# `elisp` is nixpkgs' `ghostel` package; return it transformed (Darwin) or
+# untouched (Linux).
+elisp:
+
+if !stdenv.hostPlatform.isDarwin then
+  # Linux: nixpkgs' from-source module already matches the Elisp version.
+  elisp
+else
+  # Darwin: rebuild the native module with the macOS SDK available, then install
+  # it exactly the way upstream's `preBuild` does (the package's `files`
+  # directive picks `ghostel-module${libExt}` and its sidecar up from the build
+  # dir).  Replacing `preBuild` drops the reference to the original SDK-less
+  # `module`, so only this SDK-augmented build runs.
+  let
+    module = elisp.module.overrideAttrs (o: {
+      buildInputs = (o.buildInputs or [ ])
+        ++ lib.optional (apple-sdk != null) apple-sdk;
+    });
+  in
+  elisp.overrideAttrs (_: {
+    preBuild = ''
+      install ${module}/lib/libghostel-module${libExt} ghostel-module${libExt}
+      install --mode=444 ${module}/ghostel-module.version ghostel-module.version
+    '';
+  })

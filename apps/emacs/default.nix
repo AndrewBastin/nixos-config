@@ -9,11 +9,14 @@ let
   inherit (pkgs) lib;
   inherit (pkgs.stdenv.hostPlatform) isDarwin;
 
-  # nixpkgs' ghostel Elisp builds its native (Zig) module from source, which
-  # fails on Darwin (DarwinSdkNotFound). This transform swaps in a prebuilt
-  # module instead; see ./ghostel.nix. Applied over the whole Emacs package scope
-  # so `evil-ghostel` (whose `ghostel` dep resolves to this package) gets it too.
-  withPrebuiltGhostelModule = pkgs.callPackage ./ghostel.nix { };
+  # Keep ghostel's native (Zig) module in lockstep with its Elisp version so the
+  # loader's version check passes across emacs-overlay bumps. nixpkgs builds the
+  # module from the same source rev as the Elisp, so building from source always
+  # matches: on Linux this is a no-op; on Darwin, where the from-source build
+  # otherwise fails (DarwinSdkNotFound), it adds `apple-sdk` to the module build.
+  # See ./ghostel.nix. Applied over the whole Emacs package scope so `evil-ghostel`
+  # (whose `ghostel` dep resolves to this package) gets it too.
+  withGhostelModule = pkgs.callPackage ./ghostel.nix { };
 
   # On macOS, pure-GTK Emacs has no native Cocoa window — use the Mac port
   # (native Cocoa Emacs.app with mac-specific niceties). On Linux, pgtk is the
@@ -25,7 +28,7 @@ let
     then pkgs.emacs-macport
     else pkgs.emacs-pgtk;
   emacsPkgs = emacs.pkgs.overrideScope (final: prev: {
-    ghostel = withPrebuiltGhostelModule prev.ghostel;
+    ghostel = withGhostelModule prev.ghostel;
   });
 
   # Same package set as the source emacs-explore dev shell. `which-key` is built
