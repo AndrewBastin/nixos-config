@@ -357,7 +357,67 @@ leave ghostel's stock integration untouched (the shim only ships a .zsh)."
 (add-hook 'ghostel-pre-spawn-hook #'my/ghostel-install-shell-shim)
 
 ;; ==========================================================================
-;; 6. Startup banner
+;; 6. Blocking editor for terminal programs (jj/jjui via `emacsclient')
+;; ==========================================================================
+
+;; The e/es/ev openers above are non-blocking: they pop the file and return
+;; immediately, so they can't serve as a program's $EDITOR (jj must block until
+;; the commit message is written and saved).  `emacsclient' is the blocking
+;; counterpart — it opens the file in THIS Emacs (the one hosting the ghostel
+;; terminal) and waits until `C-x #' / `:wq' (server-edit; see the wq shim
+;; below).  Starting the server here is
+;; what makes `JJ_EDITOR=emacsclient' work from inside ghostel; that env var is
+;; set only for ghostel-spawned shells (keyed on EMACS_GHOSTEL_PATH) in the zsh
+;; config, so jj/jjui edit in Emacs buffers here and still use $EDITOR elsewhere.
+(require 'server)
+(unless (server-running-p)
+  (server-start))
+
+;; emacsclient buffers (i.e. jj/jjui commit descriptions) open in a split below
+;; the ghostel terminal — same `:split' geometry as the `es' opener — instead of
+;; clobbering the terminal's own window.  `server-window' takes the buffer and
+;; must display+select it; `C-x #' (server-edit) closes the split and unblocks
+;; jj.  This only fires for emacsclient, which here is exclusively the jj flow.
+(defun my/ghostel-server-finish ()
+  "Finish a jj/emacsclient edit the way vim `:wq' is expected to behave.
+Three things have to happen, and neither `server-edit' nor evil's `:wq' does
+all of them: (1) save the buffer — `server-done' otherwise clears the modified
+flag and discards the commit message unsaved; (2) `server-edit' to tell
+emacsclient we're done, unblocking the waiting jj/jjui; (3) delete the split
+window(s) showing the buffer, since `server-edit' only buries/kills the buffer
+and leaves the orphaned split in place.  Mirrors evil's own `evil-delete-buffer'
+window handling for emacsclient buffers."
+  (interactive)
+  (when (buffer-modified-p) (save-buffer))
+  (let ((wins (get-buffer-window-list (current-buffer) nil t)))
+    (if (and (bound-and-true-p server-buffer-clients) (fboundp 'server-edit))
+        (server-edit)
+      (kill-buffer nil))
+    (dolist (w wins) (ignore-errors (delete-window w)))))
+
+(defun my/ghostel-server-finish-on-wq ()
+  "Bind `:wq'/`:x'/`ZZ' to `my/ghostel-server-finish' in this emacsclient buffer.
+Scoped to a buffer-local copy of `evil-ex-commands' so `:wq' keeps its normal
+meaning everywhere else; this buffer is always an emacsclient (jj) buffer, so
+no guard beyond evil being loaded is needed."
+  (when (featurep 'evil)
+    (set (make-local-variable 'evil-ex-commands) (copy-alist evil-ex-commands))
+    (evil-ex-define-cmd "wq" #'my/ghostel-server-finish)
+    (evil-ex-define-cmd "x[it]" #'my/ghostel-server-finish)
+    (evil-local-set-key 'normal "ZZ" #'my/ghostel-server-finish)))
+
+(setq server-window
+      (lambda (buffer)
+        (select-window (split-window-below))
+        (switch-to-buffer buffer)
+        (my/ghostel-server-finish-on-wq)))
+
+;; Syntax highlighting for jj's `*.jjdescription' commit-message files is
+;; provided by the `jjdescription' package (installed in apps/emacs/default.nix),
+;; which autoloads its own `auto-mode-alist' entry — nothing to wire up here.
+
+;; ==========================================================================
+;; 7. Startup banner
 ;; ==========================================================================
 
 ;; Open a ghostel terminal on startup instead of the splash/scratch buffer, and
