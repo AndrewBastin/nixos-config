@@ -76,6 +76,11 @@ let
     epkgs.melpaPackages.magit
     epkgs.melpaPackages.neotree
 
+    # Syntax highlighting for jj's `*.jjdescription' commit-message files, which
+    # the emacsclient-as-JJ_EDITOR flow (see lisp/ghostel.el) opens. Autoloads an
+    # `auto-mode-alist' entry, so it just works once on the load path.
+    epkgs.melpaPackages.jjdescription
+
     # Per-project environment via direnv. `envrc` applies each project's direnv
     # env buffer-locally so eglot's subprocesses (rust-analyzer, etc.) inherit
     # the project's flake dev shell; `inheritenv` keeps that env correct in
