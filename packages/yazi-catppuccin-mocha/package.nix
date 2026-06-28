@@ -7,13 +7,13 @@
 
 stdenvNoCC.mkDerivation {
   pname = "yazi-catppuccin-mocha";
-  version = "0-unstable-2026-05-31";
+  version = "0-unstable-2026-06-27";
 
   src = fetchFromGitHub {
     owner = "yazi-rs";
     repo = "flavors";
-    rev = "0f9204bc948c8313963f5c9d571a82edc201f8aa";
-    hash = "sha256-qWNArjWuxWL+rOjLzyIniW5hJgWiAWTCgXmMXJpaWZE=";
+    rev = "4770a3467169bfdb0a3b11601921aaf27c100630";
+    hash = "sha256-erZI0H5TxqFu2P917juL5PIB3LC0oJGKPcB1VibJDqo=";
   };
 
   dontBuild = true;
