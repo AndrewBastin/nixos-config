@@ -4,7 +4,7 @@
 
 ;; --- Leader key (SPC), mirroring the nvim layout -------------------------
 (evil-define-key '(normal visual) 'global
-  (kbd "<leader>e")        #'neotree-toggle          ; toggle file viewer
+  (kbd "<leader>e")        #'my/neotree-toggle       ; toggle file viewer (rooted at active dir)
   (kbd "<leader>f")        #'consult-fd              ; fuzzy find files
   (kbd "<leader><leader>") #'project-find-file       ; project (git) files
   (kbd "<leader>bb")       #'my/consult-buffer-no-special ; switch buffer (hide *special*)
@@ -73,14 +73,15 @@
 ;; they take precedence.  Evil motions j/k still move through the tree.
 ;;
 ;; These mirror neo-tree.nvim's default keymap (the nvim file viewer) as closely
-;; as neotree's command set allows, so muscle memory carries across.  Notably
-;; SPC toggles the node here (shadowing the global leader *inside the tree* only,
-;; exactly like nvim), and BACKSPACE walks up to the parent dir.  nvim's `w`
-;; (open in window-picker) is omitted: it needs ace-window, which isn't installed.
+;; as neotree's command set allows, so muscle memory carries across, and
+;; BACKSPACE walks up to the parent dir.  nvim's `w` (open in window-picker) is
+;; omitted: it needs ace-window, which isn't installed.  We deliberately do NOT
+;; bind SPC to toggle_node (which nvim does): leaving it unbound lets the global
+;; leader stay live inside the tree, so SPC e closes neotree and SPC f/gp/etc.
+;; still work here.  RET already toggles a directory.
 (with-eval-after-load 'neotree
   (evil-define-key 'normal neotree-mode-map
     (kbd "RET")       #'neotree-enter                  ; open file / toggle directory
-    (kbd "SPC")       #'neotree-enter                  ; toggle_node
     (kbd "<backspace>") #'neotree-select-up-node       ; navigate_up (to parent)
     (kbd ".")         #'neotree-change-root            ; set_root (dir-at-point becomes root)
     (kbd "P")         #'neotree-quick-look             ; toggle_preview (peek without leaving)

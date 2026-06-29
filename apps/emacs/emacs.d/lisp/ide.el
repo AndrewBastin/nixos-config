@@ -67,6 +67,36 @@
                    (qml-mode "qmlls")))
     (add-to-list 'eglot-server-programs entry)))
 
+;; --- LSP project root: detect the language project, not the working dir ----
+;; eglot resolves its server root through `project-current' (hence
+;; `project-find-functions'), binding `eglot-lsp-context' to t while it does.
+;; Our pinned/terminal working-dir backend (`my/active-project', ghostel.el)
+;; bows out in that context, so here we add language-project detection à la
+;; nvim's lspconfig `root_pattern': walk up from the file to the nearest
+;; directory holding a build/root marker (e.g. Cargo.toml for rust-analyzer).
+;; This roots rust-analyzer at a nested crate like modules/.../hyprland-info,
+;; independent of where neotree / SPC f are pointed.  No marker ⇒ nil, so eglot
+;; falls through to `project-try-vc' (the VC root, e.g. for nixd at the flake).
+(defvar my/project-root-markers
+  '("Cargo.toml" "rust-project.json" "go.mod" "package.json" "tsconfig.json"
+    "pyproject.toml" "setup.py" "setup.cfg" "mix.exs")
+  "Files whose presence marks a language project root, like nvim's `root_pattern'.")
+
+(defun my/eglot-project (dir)
+  "A `project-find-functions' entry: nearest ancestor of DIR holding a root marker.
+Active only under `eglot-lsp-context' (i.e. when eglot asks), so navigation
+commands keep following the pinned/terminal working dir."
+  (when (bound-and-true-p eglot-lsp-context)
+    (when-let* ((root (locate-dominating-file
+                       dir
+                       (lambda (d)
+                         (seq-some (lambda (m) (file-exists-p (expand-file-name m d)))
+                                   my/project-root-markers)))))
+      (cons 'transient (expand-file-name root)))))
+
+(with-eval-after-load 'project
+  (add-to-list 'project-find-functions #'my/eglot-project))
+
 ;; Docker Compose files are YAML, so derive a mode from `yaml-ts-mode' for
 ;; highlighting; the distinct mode is what lets eglot attach the compose
 ;; language server (above) instead of a generic YAML server.

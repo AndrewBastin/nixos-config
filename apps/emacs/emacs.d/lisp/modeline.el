@@ -77,6 +77,19 @@ indicator (-/:/@…), then the branch.  We strip that prefix and prepend the
                                              vc-mode)))
       (concat "  " (string-trim branch)))))   ; leading glyph is U+E725 (nf-dev-git_branch)
 
+(defun my/ml-file-name ()
+  "Filename segment, lualine-style: the file path *relative to the active dir*
+when the file is a child of it (see `my/active-dir' in ghostel.el), otherwise
+the stock buffer identification.  Guarded with `fboundp' so the mode line still
+renders if this is evaluated before ghostel.el has loaded."
+  (let ((file (buffer-file-name))
+        (dir  (and (fboundp 'my/active-dir)
+                   (file-name-as-directory (expand-file-name (my/active-dir))))))
+    (if (and file dir (string-prefix-p dir (expand-file-name file)))
+        (propertize (file-relative-name (expand-file-name file) dir)
+                    'face 'mode-line-buffer-id)
+      mode-line-buffer-identification)))
+
 (defun my/ml-coding-system ()
   "Buffer encoding name (e.g. \"utf-8\"), like lualine's `encoding'.
 `coding-system-base' drops the line-ending variant: utf-8-unix → utf-8."
@@ -102,7 +115,7 @@ indicator (-/:/@…), then the branch.  We strip that prefix and prepend the
    ;; ── lualine_c: filename ──  (stock buffer identification, not the path)
    mode-line-modified                  ; **/--/%% modified · read-only marker
    " "
-   mode-line-buffer-identification
+   (:eval (my/ml-file-name))           ; path relative to the active/pinned dir
    mode-line-format-right-align        ; everything past here hugs the right edge
    ;; ── lualine_x: encoding · fileformat · filetype ──
    (:eval (my/ml-coding-system))

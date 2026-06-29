@@ -307,7 +307,143 @@ Lets C-o return to the terminal after an e/es/ev file open."
         (cons '("find-file" my/ghostel-find-file)
               (assoc-delete-all "find-file" ghostel-eval-cmds)))
   (add-to-list 'ghostel-eval-cmds '("find-file-split"  my/ghostel-find-file-split))
-  (add-to-list 'ghostel-eval-cmds '("find-file-vsplit" my/ghostel-find-file-vsplit)))
+  (add-to-list 'ghostel-eval-cmds '("find-file-vsplit" my/ghostel-find-file-vsplit))
+  ;; Working-directory pin/unpin (handlers defined in section 4.5).
+  (add-to-list 'ghostel-eval-cmds '("pin"   my/pin-dir))
+  (add-to-list 'ghostel-eval-cmds '("unpin" my/unpin-dir)))
+
+;; ==========================================================================
+;; 4.5 Working directory: follow the focused terminal, with pin/unpin
+;; ==========================================================================
+
+;; The config is terminal-driven: you `cd' into a project in a ghostel terminal,
+;; then open and search files.  But each directory-sensitive command used to
+;; derive its OWN "current folder" — neotree froze on whatever root it first
+;; opened with, and `consult-fd' (SPC f) drifted to the parent of whichever file
+;; you last opened.  Unify them on ONE source of truth: the focused terminal's
+;; cwd, with an explicit `pin' override.
+;;
+;; `my/active-project-dir' resolves, in order: an explicit pin; else the live
+;; `default-directory' of the most-recently-focused ghostel buffer; else nil
+;; (defer to normal per-file VCS detection — nothing pinned and no terminal live).
+
+(defvar my/pinned-dir nil
+  "Explicitly pinned working directory, or nil to follow the focused terminal.
+Set/cleared by the `pin'/`unpin' shell commands (whitelisted in section 4).")
+
+(defvar my/last-ghostel-buffer nil
+  "Most-recently-focused ghostel buffer; the follow source for `my/active-project-dir'.")
+
+(defun my/active-project-dir ()
+  "Directory to treat as the project root, or nil to defer to normal detection.
+The pin wins; otherwise the focused terminal's cwd; otherwise nil."
+  (cond (my/pinned-dir)
+        ((buffer-live-p my/last-ghostel-buffer)
+         (buffer-local-value 'default-directory my/last-ghostel-buffer))))
+
+(defun my/active-dir ()
+  "Like `my/active-project-dir' but never nil — falls back to `default-directory'."
+  (or (my/active-project-dir) default-directory))
+
+;; --- Route project-aware commands through the active dir ------------------
+;; `consult-fd' (SPC f) and `consult-ripgrep' (SPC gp) default their search dir
+;; to (or (consult--project-root) default-directory), and `project-find-file'
+;; (SPC SPC) calls `project-current' directly — so ONE `project.el' backend
+;; steers all three (plus the project consult-buffer source), no rebinding.
+;; When the active dir is exactly a VC root we hand back the VC project (fast
+;; `git ls-files' listing); otherwise a `transient' project pinned to that exact
+;; dir.  nil ⇒ this backend bows out and stock `project-try-vc' runs as before.
+;;
+;; CRUCIALLY this bows out under `eglot-lsp-context' (which eglot binds while it
+;; calls `project-current'): an LSP server like rust-analyzer must root at the
+;; real *language* project (the nearest Cargo.toml), NOT the pinned/terminal
+;; working dir — so eglot's root detection is left to `my/eglot-project' (ide.el)
+;; and `project-try-vc'.  This is the navigation/LSP split nvim gets for free
+;; (telescope follows cwd; lspconfig uses root_pattern).
+(defun my/active-project (_dir)
+  "A `project-find-functions' entry returning the active dir as a project.
+Yields to normal detection while eglot is resolving its LSP root."
+  (unless (bound-and-true-p eglot-lsp-context)
+    (when-let* ((d (my/active-project-dir))
+                (d (file-name-as-directory (expand-file-name d))))
+      (or (when-let* ((vc (project-try-vc d))
+                      ((equal (file-name-as-directory (expand-file-name (project-root vc))) d)))
+            vc)
+          (cons 'transient d)))))
+
+(with-eval-after-load 'project
+  (add-to-list 'project-find-functions #'my/active-project))
+
+;; --- neotree follows the active dir ---------------------------------------
+(defun my/neotree-toggle ()
+  "Toggle the neotree window; when opening, root it at the active dir."
+  (interactive)
+  (require 'neotree)   ; only `neotree-dir'/-toggle autoload; we use internals below
+  (if (neo-global--window-exists-p)
+      (neotree-hide)
+    (neotree-dir (my/active-dir))))
+
+(defun my/neotree-follow (&rest _)
+  "Re-root an already-open neotree window to the active dir, without stealing focus.
+No-op when neotree is closed, or when nothing is pinned/followed (so plain buffer
+switches don't move the tree).  The actual re-root is deferred via a timer so it
+never runs inside ghostel's VT parser, and only fires when the root truly differs."
+  (when (and (fboundp 'neo-global--window-exists-p)
+             (neo-global--window-exists-p))
+    (when-let* ((target (my/active-project-dir))
+                (target (file-name-as-directory (expand-file-name target)))
+                (nbuf (neo-global--get-buffer))
+                (root (buffer-local-value 'neo-buffer--start-node nbuf)))
+      (unless (equal target (file-name-as-directory (expand-file-name root)))
+        (run-at-time 0 nil
+                     (lambda ()
+                       (when (neo-global--window-exists-p)
+                         (save-selected-window (neotree-dir target)))))))))
+
+;; --- Track the focused terminal -------------------------------------------
+;; Record the ghostel buffer whenever one becomes the selected window's buffer,
+;; then let neotree follow.  Both hooks pass the affected frame: selection-change
+;; covers focusing another window; buffer-change covers swapping a window's
+;; buffer to a terminal in place (e.g. cycling with C-<tab>).
+(defun my/track-ghostel-focus (frame)
+  "Note the focused ghostel buffer (if any) and let neotree follow it."
+  (when (frame-live-p frame)
+    (let ((buf (window-buffer (frame-selected-window frame))))
+      (when (and (buffer-live-p buf)
+                 (provided-mode-derived-p
+                  (buffer-local-value 'major-mode buf) 'ghostel-mode))
+        (setq my/last-ghostel-buffer buf)))
+    (my/neotree-follow)))
+
+(add-hook 'window-selection-change-functions #'my/track-ghostel-focus)
+(add-hook 'window-buffer-change-functions    #'my/track-ghostel-focus)
+
+;; --- Follow a `cd' inside the focused terminal ----------------------------
+;; ghostel's OSC 7 handler updates the terminal buffer's `default-directory' and
+;; THEN calls `ghostel-buffer-name-function' (ghostel core) — the one reliable
+;; post-cwd seam (`ghostel-command-finish-functions' fires before the prompt
+;; re-reports the cwd).  Wrap our namer (section 1) so it also nudges neotree
+;; when the *focused* terminal's cwd changes.
+(defun my/ghostel-name+follow (title)
+  "Compute the managed ghostel name (`my/ghostel-buffer-name'), then follow cwd."
+  (prog1 (my/ghostel-buffer-name title)
+    (when (eq (current-buffer) my/last-ghostel-buffer)
+      (my/neotree-follow))))
+
+(setq ghostel-buffer-name-function #'my/ghostel-name+follow)
+
+;; --- pin / unpin handlers (whitelisted in section 4) ----------------------
+(defun my/pin-dir (dir)
+  "Pin DIR as the working directory, overriding terminal-follow (the `pin' command)."
+  (setq my/pinned-dir (file-name-as-directory (expand-file-name dir)))
+  (message "Pinned working dir: %s" (abbreviate-file-name my/pinned-dir))
+  (my/neotree-follow))
+
+(defun my/unpin-dir (&rest _)
+  "Clear the pin and resume following the focused terminal (the `unpin' command)."
+  (setq my/pinned-dir nil)
+  (message "Unpinned — following the focused terminal")
+  (my/neotree-follow))
 
 ;; ==========================================================================
 ;; 5. Shell shim: inject e / es / ev without editing ~/.zshrc
@@ -329,7 +465,7 @@ Lets C-o return to the terminal after an e/es/ev file open."
   "Directory holding our generated ghostel zsh-integration shim.")
 
 (defun my/ghostel-install-shell-shim ()
-  "Redirect EMACS_GHOSTEL_PATH to a shim that adds `e'/`es'/`ev'.
+  "Redirect EMACS_GHOSTEL_PATH to a shim that adds `e'/`es'/`ev'/`pin'/`unpin'.
 Run from `ghostel-pre-spawn-hook'.  Only acts for zsh — for other shells we
 leave ghostel's stock integration untouched (the shim only ships a .zsh)."
   (let ((real (getenv "EMACS_GHOSTEL_PATH")))   ; ghostel set this just now
@@ -351,7 +487,13 @@ leave ghostel's stock integration untouched (the shim only ships a .zsh)."
            ;; no matter what Emacs's `default-directory' happens to be.
            "e()  { ghostel_cmd find-file        \"${1:a}\"; }\n"
            "es() { ghostel_cmd find-file-split  \"${1:a}\"; }\n"
-           "ev() { ghostel_cmd find-file-vsplit \"${1:a}\"; }\n"))
+           "ev() { ghostel_cmd find-file-vsplit \"${1:a}\"; }\n"
+           ;; pin [DIR]: freeze the working dir Emacs uses (neotree, SPC f/gp/SPC).
+           ;; No arg → current shell dir; `:a' absolutises against the shell cwd so
+           ;; a relative DIR resolves regardless of Emacs's `default-directory'.
+           ;; unpin: resume following the focused terminal.
+           "pin()   { local d=${1:-$PWD}; ghostel_cmd pin \"${d:a}\"; }\n"
+           "unpin() { ghostel_cmd unpin; }\n"))
         (setenv "EMACS_GHOSTEL_PATH" my/ghostel-shim-dir)))))
 
 (add-hook 'ghostel-pre-spawn-hook #'my/ghostel-install-shell-shim)
