@@ -73,6 +73,10 @@ Like `consult--buffer-pair', but the candidate string carries the buffer's
 (defun my/consult-buffer-no-special ()
   "Like `consult-buffer', but hide \"*special*\" buffers (names matching ^*)."
   (interactive)
+  ;; Load consult first so `consult-buffer-filter' is bound — the `let' reads it
+  ;; before the body's `consult-buffer' would autoload consult, so without this
+  ;; the very first invocation errors with a void-variable.
+  (require 'consult)
   (let ((consult-buffer-filter (cons "\\`\\*" consult-buffer-filter)))
     (consult-buffer)))
 
