@@ -42,6 +42,7 @@
         "figma"
         "todoist-app"
         "autodesk-fusion"
+        "crossover"
       ];
     };
   };
