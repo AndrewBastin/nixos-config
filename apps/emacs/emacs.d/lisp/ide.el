@@ -138,6 +138,45 @@ commands keep following the pinned/terminal working dir."
 ;; need the package loaded so it (and its faces) are available.
 (require 'eldoc-box)
 
+;; `K' toggles the hover-doc popup: show it, or dismiss it if it's already up.
+;; eldoc-box's own behaviour is that a second `K' (`eldoc-box-help-at-point')
+;; *focuses* the childframe instead of closing it — and `q' to quit there is
+;; bound via `local-set-key', which evil's normal-state `q' (`evil-record-macro')
+;; shadows.  Toggling sidesteps that entirely: pressing `K' again just closes it.
+(defun my/eldoc-doc-toggle ()
+  "Show the eldoc-box hover-doc popup, or close it if it is already visible."
+  (interactive)
+  (if (and (fboundp 'eldoc-box--frame-visible-p) (eldoc-box--frame-visible-p))
+      (eldoc-box-quit-frame)
+    (eldoc-box-help-at-point)))
+
+;; `SPC k' opens the SAME documentation in a real split below and focuses it, for
+;; reading/scrolling long docs — the transient `K' childframe can't be scrolled
+;; comfortably (focusing it lands you in a buffer where evil's `q' fights us).
+;; The `*eldoc*' buffer is `special-mode', which evil would put in normal state
+;; (so `q' = record-macro); we force MOTION state instead, matching help-mode —
+;; vim motions scroll, and `q' falls through to `quit-window' to close the split.
+(defun my/eldoc-doc-split ()
+  "Open the symbol-at-point ElDoc documentation in a split below and focus it.
+Read with vim motions; `q' closes the split.  `K' shows the quick popup."
+  (interactive)
+  (unless (buffer-live-p eldoc--doc-buffer)
+    (eldoc))                              ; force a lookup if nothing is cached yet
+  (unless (buffer-live-p eldoc--doc-buffer)
+    (user-error "No ElDoc documentation at point yet — try again in a moment"))
+  ;; eldoc names the buffer with a leading space (hidden) until shown
+  ;; interactively; strip it so the split reads cleanly.
+  (with-current-buffer eldoc--doc-buffer
+    (when (string-prefix-p " " (buffer-name))
+      (rename-buffer (string-trim-left (buffer-name)) t)))
+  (let ((win (display-buffer
+              eldoc--doc-buffer
+              '((display-buffer-reuse-window display-buffer-below-selected)
+                (window-height . 0.4)))))
+    (when (window-live-p win)
+      (select-window win)
+      (when (fboundp 'evil-motion-state) (evil-motion-state)))))
+
 ;; Helper for vim's `<leader>cf' (change filetype = switch major mode).
 (defun my/change-major-mode ()
   "Prompt for a major mode and switch the current buffer to it."

@@ -12,6 +12,7 @@
   (kbd "<leader>gp")       #'consult-ripgrep         ; project grep
   (kbd "<leader>gl")       #'consult-line            ; search lines in buffer
   (kbd "<leader>d")        #'consult-flymake         ; document diagnostics
+  (kbd "<leader>k")        #'my/eldoc-doc-split      ; LSP docs in a focusable split
   (kbd "<leader>s")        #'consult-imenu           ; document symbols
   (kbd "<leader>S")        #'consult-eglot-symbols   ; workspace symbols
   (kbd "<leader>ca")       #'eglot-code-actions      ; LSP code actions
@@ -54,7 +55,7 @@
 ;; inside code buffers with a live language server.
 (with-eval-after-load 'eglot
   (evil-define-key 'normal eglot-mode-map
-    (kbd "K")  #'eldoc-box-help-at-point   ; hover documentation (childframe popup)
+    (kbd "K")  #'my/eldoc-doc-toggle       ; hover documentation popup (K again closes)
     (kbd "gd") #'xref-find-definitions
     (kbd "gr") #'xref-find-references
     (kbd "gi") #'eglot-find-implementation
