@@ -71,20 +71,29 @@
 ;; neotree-mode-map — so plain RET hits `evil-ret', not neotree.  Re-bind
 ;; neotree's commands for normal state (same trick as the eglot keys above) so
 ;; they take precedence.  Evil motions j/k still move through the tree.
+;;
+;; These mirror neo-tree.nvim's default keymap (the nvim file viewer) as closely
+;; as neotree's command set allows, so muscle memory carries across.  Notably
+;; SPC toggles the node here (shadowing the global leader *inside the tree* only,
+;; exactly like nvim), and BACKSPACE walks up to the parent dir.  nvim's `w`
+;; (open in window-picker) is omitted: it needs ace-window, which isn't installed.
 (with-eval-after-load 'neotree
   (evil-define-key 'normal neotree-mode-map
-    (kbd "RET") #'neotree-enter                  ; open file / toggle directory
-    (kbd "TAB") #'neotree-quick-look             ; peek without leaving the tree
-    (kbd "o")   #'neotree-enter
-    (kbd "s")   #'neotree-enter-vertical-split   ; open in a vertical split
-    (kbd "S")   #'neotree-enter-horizontal-split ; …horizontal split
-    (kbd "g")   #'neotree-refresh
-    (kbd "H")   #'neotree-hidden-file-toggle     ; show/hide dotfiles
-    (kbd "R")   #'neotree-change-root            ; make dir-at-point the root
-    (kbd "c")   #'neotree-create-node            ; create file/dir
-    (kbd "d")   #'neotree-delete-node
-    (kbd "r")   #'neotree-rename-node
-    (kbd "q")   #'neotree-hide))
+    (kbd "RET")       #'neotree-enter                  ; open file / toggle directory
+    (kbd "SPC")       #'neotree-enter                  ; toggle_node
+    (kbd "<backspace>") #'neotree-select-up-node       ; navigate_up (to parent)
+    (kbd ".")         #'neotree-change-root            ; set_root (dir-at-point becomes root)
+    (kbd "P")         #'neotree-quick-look             ; toggle_preview (peek without leaving)
+    (kbd "s")         #'neotree-enter-vertical-split   ; open_vsplit
+    (kbd "S")         #'neotree-enter-horizontal-split ; open_split
+    (kbd "z")         #'neotree-collapse-all           ; close_all_nodes
+    (kbd "R")         #'neotree-refresh                ; refresh
+    (kbd "a")         #'neotree-create-node            ; add (file/dir)
+    (kbd "d")         #'neotree-delete-node            ; delete
+    (kbd "r")         #'neotree-rename-node            ; rename
+    (kbd "c")         #'neotree-copy-node              ; copy
+    (kbd "H")         #'neotree-hidden-file-toggle     ; toggle_hidden (dotfiles)
+    (kbd "q")         #'neotree-hide))                 ; close_window
 
 ;; Name the which-key groups so the SPC menu reads nicely.
 (with-eval-after-load 'which-key
