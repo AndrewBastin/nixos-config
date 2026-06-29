@@ -77,7 +77,7 @@ let
     epkgs.melpaPackages.neotree
 
     # Syntax highlighting for jj's `*.jjdescription' commit-message files, which
-    # the emacsclient-as-JJ_EDITOR flow (see lisp/ghostel.el) opens. Autoloads an
+    # the emacsclient-as-$EDITOR flow (see lisp/ghostel.el) opens. Autoloads an
     # `auto-mode-alist' entry, so it just works once on the load path.
     epkgs.melpaPackages.jjdescription
 

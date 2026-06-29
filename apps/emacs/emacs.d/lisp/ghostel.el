@@ -498,34 +498,62 @@ leave ghostel's stock integration untouched (the shim only ships a .zsh)."
 
 (add-hook 'ghostel-pre-spawn-hook #'my/ghostel-install-shell-shim)
 
+;; Point $EDITOR at a blocking emacsclient aimed at THIS Emacs's uniquely-named
+;; server (section 6) for every ghostel-spawned shell, so jj/jjui/git/
+;; edit-command-line — anything honouring $EDITOR — edits in the Emacs that owns
+;; the terminal.  A plain `setenv' in `ghostel-pre-spawn-hook' rewrites only the
+;; about-to-spawn child's env (process-environment is dynamically bound there),
+;; like the EMACS_GHOSTEL_PATH rewrite above — so the override is scoped to
+;; ghostel terminals and never leaks to the global $EDITOR (nvim) outside Emacs.
+;; The nix side defaults $EDITOR to `${EDITOR:-nvim}' (modules/dev-essentials) so
+;; the child's own .zshenv respects this inherited value instead of clobbering it.
+(defun my/ghostel-set-editor-env ()
+  "Set $EDITOR to THIS Emacs's blocking emacsclient, for ghostel shells only."
+  (setenv "EDITOR" (format "emacsclient --socket-name=%s" my/ghostel-server-name)))
+
+(add-hook 'ghostel-pre-spawn-hook #'my/ghostel-set-editor-env)
+
 ;; ==========================================================================
-;; 6. Blocking editor for terminal programs (jj/jjui via `emacsclient')
+;; 6. Blocking editor for terminal programs ($EDITOR via `emacsclient')
 ;; ==========================================================================
 
 ;; The e/es/ev openers above are non-blocking: they pop the file and return
-;; immediately, so they can't serve as a program's $EDITOR (jj must block until
-;; the commit message is written and saved).  `emacsclient' is the blocking
+;; immediately, so they can't serve as a program's $EDITOR (jj/git must block
+;; until the message is written and saved).  `emacsclient' is the blocking
 ;; counterpart — it opens the file in THIS Emacs (the one hosting the ghostel
 ;; terminal) and waits until `C-x #' / `:wq' (server-edit; see the wq shim
-;; below).  Starting the server here is
-;; what makes `JJ_EDITOR=emacsclient' work from inside ghostel; that env var is
-;; set only for ghostel-spawned shells (keyed on EMACS_GHOSTEL_PATH) in the zsh
-;; config, so jj/jjui edit in Emacs buffers here and still use $EDITOR elsewhere.
-(require 'server)
-(unless (server-running-p)
-  (server-start))
+;; below).
+;;
+;; Each Emacs runs its server under a UNIQUE name `ghostel-<pid>' rather than the
+;; shared default "server".  With the default name, a SECOND Emacs would see the
+;; first's socket via `server-running-p' and skip starting its own — so its
+;; ghostel terminals' emacsclient would connect to the FIRST Emacs (wrong
+;; instance).  A per-pid name gives every instance its own socket; section 5 sets
+;; each ghostel shell's $EDITOR to `emacsclient --socket-name=<this name>'
+;; directly, so jj/jjui/git/edit-command-line edit in the OWNING Emacs.  `emacs-pid' is unique
+;; among live processes; a stale socket from a dead same-pid Emacs is cleaned up
+;; by `server-start' before it binds.
+(defvar my/ghostel-server-name (format "ghostel-%d" (emacs-pid))
+  "Unique `server-name' for this Emacs instance.
+Computed once at load so the same name is baked into the $EDITOR=`emacsclient
+--socket-name=…' that section 5 hands each ghostel shell.")
 
-;; emacsclient buffers (i.e. jj/jjui commit descriptions) open in a split below
-;; the ghostel terminal — same `:split' geometry as the `es' opener — instead of
-;; clobbering the terminal's own window.  `server-window' takes the buffer and
-;; must display+select it; `C-x #' (server-edit) closes the split and unblocks
-;; jj.  This only fires for emacsclient, which here is exclusively the jj flow.
+(require 'server)
+(setq server-name my/ghostel-server-name)
+(unless (server-running-p) (server-start))
+
+;; emacsclient buffers (jj/jjui commit descriptions, git commit messages,
+;; edit-command-line, …) open in a split below the ghostel terminal — same
+;; `:split' geometry as the `es' opener — instead of clobbering the terminal's
+;; own window.  `server-window' takes the buffer and must display+select it;
+;; `C-x #' (server-edit) closes the split and unblocks the waiting program.
+;; This fires for any $EDITOR-driven edit launched from inside a ghostel shell.
 (defun my/ghostel-server-finish ()
-  "Finish a jj/emacsclient edit the way vim `:wq' is expected to behave.
+  "Finish an emacsclient ($EDITOR) edit the way vim `:wq' is expected to behave.
 Three things have to happen, and neither `server-edit' nor evil's `:wq' does
 all of them: (1) save the buffer — `server-done' otherwise clears the modified
 flag and discards the commit message unsaved; (2) `server-edit' to tell
-emacsclient we're done, unblocking the waiting jj/jjui; (3) delete the split
+emacsclient we're done, unblocking the waiting program (jj/git/…); (3) delete the split
 window(s) showing the buffer, since `server-edit' only buries/kills the buffer
 and leaves the orphaned split in place.  Mirrors evil's own `evil-delete-buffer'
 window handling for emacsclient buffers."
@@ -540,7 +568,7 @@ window handling for emacsclient buffers."
 (defun my/ghostel-server-finish-on-wq ()
   "Bind `:wq'/`:x'/`ZZ' to `my/ghostel-server-finish' in this emacsclient buffer.
 Scoped to a buffer-local copy of `evil-ex-commands' so `:wq' keeps its normal
-meaning everywhere else; this buffer is always an emacsclient (jj) buffer, so
+meaning everywhere else; this buffer is always an emacsclient ($EDITOR) buffer, so
 no guard beyond evil being loaded is needed."
   (when (featurep 'evil)
     (set (make-local-variable 'evil-ex-commands) (copy-alist evil-ex-commands))

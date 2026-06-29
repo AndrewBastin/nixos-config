@@ -386,16 +386,6 @@
             autoload -Uz edit-command-line
             zle -N edit-command-line
             bindkey '^e' edit-command-line
-
-            # Inside a ghostel terminal (Emacs), make jj/jjui open commit
-            # messages as Emacs buffers via emacsclient instead of nvim.
-            # EMACS_GHOSTEL_PATH is exported only by ghostel-spawned shells, so
-            # this stays scoped to ghostel; JJ_EDITOR overrides jj's `ui.editor`
-            # for jj (and jjui, which shells out to jj) without touching $EDITOR.
-            # The hosting Emacs runs `server-start` (see apps/emacs ghostel.el).
-            if [[ -n "$EMACS_GHOSTEL_PATH" ]]; then
-              export JJ_EDITOR="emacsclient"
-            fi
           '';
 
           shellAliases = {
@@ -419,9 +409,16 @@
 
           syntaxHighlighting.enable = true;
 
-          sessionVariables = {
-            EDITOR = "nvim";
-          };
+          # Default $EDITOR to nvim, but RESPECT an inherited value rather than
+          # overwriting it.  Ghostel terminals (Emacs) set $EDITOR to a blocking
+          # emacsclient in the child env before this .zshenv runs (see apps/emacs
+          # ghostel.el); with an unconditional `export EDITOR=nvim' that override
+          # would be clobbered, so `${EDITOR:-nvim}' lets the Emacs value win
+          # inside ghostel while everything else still defaults to nvim.  In
+          # envExtra (.zshenv) so it covers non-interactive shells too.
+          envExtra = /* sh */ ''
+            export EDITOR="''${EDITOR:-nvim}"
+          '';
         };
 
         # Really good completions!
