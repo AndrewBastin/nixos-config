@@ -516,6 +516,36 @@ leave ghostel's stock integration untouched (the shim only ships a .zsh)."
 
 (add-hook 'ghostel-pre-spawn-hook #'my/ghostel-set-editor-env)
 
+;; A GUI-launched Emacs.app (alt-y → emacs-gui → `open -a Emacs.app') does NOT
+;; inherit the login shell's PATH — macOS hands it launchd's minimal PATH, so
+;; the nix profile dirs (/etc/profiles/per-user/$USER/bin, /run/current-system/
+;; sw/bin) where zoxide/claude/node/etc. live are absent.  Ghostel shells
+;; normally recover because nix-darwin's /etc/zshenv re-runs `set-environment',
+;; which overwrites PATH with the correct profile dirs — BUT that repair is
+;; guarded:
+;;
+;;   if [[ -o rcs ]]; then
+;;     if [ -z "${__NIX_DARWIN_SET_ENVIRONMENT_DONE-}" ]; then . set-environment; fi
+;;
+;; and /etc/zshenv itself returns early on `__ETC_ZSHENV_SOURCED'.  If Emacs is
+;; launched from a context that already exported either guard, the repair is
+;; skipped and the impoverished GUI PATH leaks into every ghostel shell —
+;; `zoxide'/`claude' vanish and the `clod'/`migu' aliases expand to a missing
+;; binary.  Clearing both guards in the about-to-spawn child env forces the
+;; repair to run for every ghostel shell regardless of how Emacs was launched
+;; (`set-environment' is idempotent — it just re-sets a fixed PATH).  Like the
+;; EDITOR/EMACS_GHOSTEL_PATH rewrites above, the `setenv' is scoped to the child
+;; via the dynamically-bound `process-environment', so the global env is
+;; untouched.  Darwin-only: these guards are nix-darwin's, and the GUI-PATH
+;; problem they work around doesn't exist on Linux.
+(defun my/ghostel-force-env-repair ()
+  "Clear nix-darwin's set-environment guards so /etc/zshenv re-repairs PATH."
+  (setenv "__NIX_DARWIN_SET_ENVIRONMENT_DONE" nil)
+  (setenv "__ETC_ZSHENV_SOURCED" nil))
+
+(when (eq system-type 'darwin)
+  (add-hook 'ghostel-pre-spawn-hook #'my/ghostel-force-env-repair))
+
 ;; ==========================================================================
 ;; 6. Blocking editor for terminal programs ($EDITOR via `emacsclient')
 ;; ==========================================================================
