@@ -212,6 +212,9 @@
         editorMode = "vim";
         agentPushNotifEnabled = true;
 
+        # Turn off background agents and the `claude agents` agent view.
+        disableAgentView = true;
+
         # Ring the terminal bell on permission prompts and on turn end.
         # Hooks run without a controlling terminal, so we can't write BEL to
         # /dev/tty directly — instead we return it via terminalSequence and
