@@ -24,8 +24,7 @@
   (kbd "<leader>tv")       #'my/ghostel-vsplit       ; ghostel in a vsplit
   (kbd "<leader>GG")       #'magit-status            ; git status
   (kbd "<leader>Gc")       #'magit-log-buffer-file   ; commits of this file
-  (kbd "<leader>Gdo")      #'magit-diff-working-tree ; open diff view
-  (kbd "<leader>Gdc")      #'magit-mode-bury-buffer  ; close diff view
+  (kbd "<leader>Gd")       #'diffview-open           ; diffview: side-by-side + panel (q closes)
   (kbd "<leader>xd")       #'flymake-show-buffer-diagnostics
   (kbd "<leader>xn")       #'flymake-goto-next-error
   (kbd "<leader>xp")       #'flymake-goto-prev-error
@@ -104,7 +103,7 @@
     "SPC g"   "search"
     "SPC c"   "code"
     "SPC G"   "git"
-    "SPC G d" "diff"
+    "SPC G d" "diffview"
     "SPC x"   "diagnostics"
     "SPC h"   "help"
     "SPC t"   "terminal"))

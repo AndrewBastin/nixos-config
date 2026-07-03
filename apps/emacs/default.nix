@@ -75,6 +75,9 @@ let
 
     epkgs.melpaPackages.magit
     epkgs.melpaPackages.neotree
+    # vdiff: side-by-side diff engine used by lisp/diffview.el (our
+    # diffview.nvim-style git UI) for the two-column file diff.
+    epkgs.melpaPackages.vdiff
 
     # Syntax highlighting for jj's `*.jjdescription' commit-message files, which
     # the emacsclient-as-$EDITOR flow (see lisp/ghostel.el) opens. Autoloads an
