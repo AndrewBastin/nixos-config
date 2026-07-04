@@ -10,23 +10,27 @@
 ;; (the native module's bell callback calls it), which runs `ring-bell-function'.
 (defun my/frame-set-urgency (&optional frame)
   "Ask the window manager to flag FRAME as urgent / demanding attention.
-Sends an EWMH `_NET_ACTIVE_WINDOW' client message to the root window targeting
-FRAME's window.  Hyprland translates an activation request for an *unfocused*
-window into its urgent state — emitting an `urgent' IPC event andrew-shell can
-react to — rather than stealing focus (`misc:focus_on_activate' is off).
+Issues a window-activation request for FRAME via `x-focus-frame'.  On the Linux
+pgtk (native Wayland) build this rides the `xdg-activation-v1' protocol, and
+Hyprland translates an activation request for an *unfocused* window into its
+urgent state — emitting an `urgent' IPC event andrew-shell reacts to — rather
+than stealing focus (`misc:focus_on_activate' is off).
 
-We deliberately do NOT use the older ICCCM WM_HINTS UrgencyHint: Hyprland's
-XWayland reads WM_HINTS but ignores the urgency bit entirely (see
-`handleWMHints' in its XWM), so setting it does nothing.  `_NET_ACTIVE_WINDOW'
-is the only signal it honours.  No-op on non-X frames (e.g. batch/TTY).
+Gated to `pgtk' frames ONLY.  Elsewhere `x-focus-frame' has no such
+urgent-instead-of-focus translation and would just raise/activate the frame:
+on macOS (the `emacs-macport' build, whose frames are `mac') it would yank the
+Emacs window to the foreground and steal focus — exactly what we don't want for
+a background bell.  So this is a deliberate no-op off pgtk (macOS, TTY, …),
+matching the original X-only guard's behaviour on those platforms.
 
-DEST 0 means the root window; Emacs fills the event's target-window field with
-FRAME's outer window.  The data list is the EWMH source indication (1 =
-application) plus unused timestamp/requestor slots — Hyprland ignores the
-payload, but we send a well-formed message anyway."
+We also don't poke WM_HINTS UrgencyHint (Hyprland's XWM ignores the bit) nor
+hand-roll an `_NET_ACTIVE_WINDOW' client message: the latter needs
+`x-send-client-message', which the pgtk build does not provide — its frames are
+`pgtk', not `x', and expose no X window id (`outer-window-id' is nil), so the
+old X-only path silently no-ops there."
   (let ((frame (or frame (selected-frame))))
-    (when (eq (framep frame) 'x)
-      (x-send-client-message nil 0 frame "_NET_ACTIVE_WINDOW" 32 '(1 0 0)))))
+    (when (eq (framep frame) 'pgtk)
+      (x-focus-frame frame))))
 
 (defun my/ring-bell-urgent ()
   "Silent bell that flags the frame urgent for ghostel terminal BELs.
