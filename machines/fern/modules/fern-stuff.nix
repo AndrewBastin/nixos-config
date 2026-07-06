@@ -12,7 +12,7 @@
     ];
   };
 
-  nixos = { ... }: {
+  nixos = { pkgs, ... }: {
     virtualisation.docker.enable = true;
 
     # Expose the NVIDIA GPU to Docker containers via CDI (for CUDA workloads).
@@ -24,5 +24,10 @@
     programs.virt-manager.enable = true;
     
     programs.steam.enable = true;
+
+    # Allow OpenVPN Plugins
+    networking.networkmanager.plugins = with pkgs; [
+      networkmanager-openvpn
+    ];
   };
 }
