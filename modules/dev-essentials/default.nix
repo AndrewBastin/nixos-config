@@ -412,15 +412,26 @@
 
           syntaxHighlighting.enable = true;
 
-          # Default $EDITOR to nvim, but RESPECT an inherited value rather than
-          # overwriting it.  Ghostel terminals (Emacs) set $EDITOR to a blocking
-          # emacsclient in the child env before this .zshenv runs (see apps/emacs
-          # ghostel.el); with an unconditional `export EDITOR=nvim' that override
-          # would be clobbered, so `${EDITOR:-nvim}' lets the Emacs value win
-          # inside ghostel while everything else still defaults to nvim.  In
-          # envExtra (.zshenv) so it covers non-interactive shells too.
+          # Default $EDITOR to nvim, but RESPECT a real inherited value rather
+          # than overwriting it.  Ghostel terminals (Emacs) set $EDITOR to a
+          # blocking emacsclient in the child env before this .zshenv runs (see
+          # apps/emacs ghostel.el); an unconditional `export EDITOR=nvim' would
+          # clobber that override, so we must not blindly overwrite.
+          #
+          # Two values need to become nvim: unset (rare), and the literal
+          # "nano" that NixOS bakes into /etc/set-environment via
+          # programs.nano.  That file is sourced ONCE at the top of the session
+          # (guarded by __NIXOS_SET_ENVIRONMENT_DONE), so every graphical child
+          # -- Kitty included -- inherits EDITOR=nano already set, which a plain
+          # `${EDITOR:-nvim}' would preserve.  Matching "nano" explicitly lets
+          # normal shells fall through to nvim while keeping nano the real
+          # system-wide default for non-shell contexts (sudoedit, GUI apps) and
+          # leaving ghostel's emacsclient value untouched.  In envExtra
+          # (.zshenv) so it covers non-interactive shells too.
           envExtra = /* sh */ ''
-            export EDITOR="''${EDITOR:-nvim}"
+            if [ -z "''${EDITOR:-}" ] || [ "$EDITOR" = "nano" ]; then
+              export EDITOR="nvim"
+            fi
           '';
         };
 
