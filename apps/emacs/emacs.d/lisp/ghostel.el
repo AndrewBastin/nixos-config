@@ -231,22 +231,30 @@ run in the event's own buffer the way ghostel's own scroll intercept does."
 ;; default-named one.  The split helpers create the new window first, select
 ;; into it, then let `ghostel' open there (it uses a same-window display
 ;; action, so it lands in whatever window is selected).
+;;
+;; Each opener binds `default-directory' to `my/active-dir' (defined in §4.5)
+;; around the spawn so the new terminal starts in the active working dir — the
+;; pin if set, else the focused terminal's cwd, else the current buffer's dir —
+;; matching how SPC f / SPC gp / neotree already resolve their directory.
 (defun my/ghostel-fresh ()
   "Open a brand-new Ghostel terminal in the current window."
   (interactive)
-  (ghostel '(4)))
+  (let ((default-directory (my/active-dir)))
+    (ghostel '(4))))
 
 (defun my/ghostel-split ()
   "Open a fresh Ghostel terminal in a new split below (vim :split)."
   (interactive)
   (select-window (split-window-below))
-  (ghostel '(4)))
+  (let ((default-directory (my/active-dir)))
+    (ghostel '(4))))
 
 (defun my/ghostel-vsplit ()
   "Open a fresh Ghostel terminal in a new split to the right (vim :vsplit)."
   (interactive)
   (select-window (split-window-right))
-  (ghostel '(4)))
+  (let ((default-directory (my/active-dir)))
+    (ghostel '(4))))
 
 ;; ==========================================================================
 ;; 4. Opening files from inside a ghostel terminal (OSC-52 receiver half)
