@@ -105,6 +105,13 @@ let
     # `auto-mode-alist' entry, so it just works once on the load path.
     epkgs.melpaPackages.jjdescription
 
+    # vc-jj: a Jujutsu backend for Emacs' built-in VC.  Registering it (see
+    # lisp/vc.el) puts `JJ' ahead of `Git' in `vc-handled-backends', so in a
+    # colocated jj repo `vc-mode' reports the jj change-id instead of git's
+    # detached-HEAD hash — which is what the modeline's VC segment renders.
+    # Also gives vc-diff / vc-log / vc-annotate on jj repos for free.
+    epkgs.elpaPackages.vc-jj
+
     # Per-project environment via direnv. `envrc` applies each project's direnv
     # env buffer-locally so eglot's subprocesses (rust-analyzer, etc.) inherit
     # the project's flake dev shell; `inheritenv` keeps that env correct in

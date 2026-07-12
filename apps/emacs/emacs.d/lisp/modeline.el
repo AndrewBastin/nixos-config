@@ -67,15 +67,57 @@ Empty string in buffers with no evil state (so non-evil buffers stay clean)."
 ;; --- lualine-style segment helpers ----------------------------------------
 ;; Small `:eval' helpers that mirror individual lualine components from my
 ;; Neovim config, so the Emacs mode line reads the same way.
+;; VC segment glyphs, built from hex codepoints (NOT literal glyph chars):
+;; literal Nerd-Font glyphs get silently stripped when this file is edited
+;; through tooling, which is how an earlier version emitted two bare spaces
+;; while the comment still claimed a branch icon.  Pure-ASCII source can't be
+;; lost.  #xe725 = nf-dev-git_branch — used for both git and jj; jj is told
+;; apart by its ref (the highlighted change-id), not by a distinct glyph.
+(defconst my/ml--vc-glyphs
+  (list (cons "Git" (string #xe725))
+        (cons "JJ"  (string #xe725)))
+  "Alist mapping a VC backend name (as it appears in `vc-mode') to its glyph.")
+
+(defface my/ml-jj-change-unique
+  '((t :foreground "#957FB8"))         ; Kanagawa oniViolet, ~ jj's magenta change-id
+  "Mode-line face for the UNIQUE prefix of a jujutsu change-id.
+Mirrors how `jj log' highlights the shortest unique prefix; the remaining
+\(non-unique) characters are left unfaced so they take the normal mode-line
+color.  Applied by `my/ml--jj-styled-changeid' (wired in via lisp/vc.el).")
+
+(defun my/ml--jj-styled-changeid (prefix rest)
+  "Build a two-tone jujutsu change-id string from PREFIX and REST.
+PREFIX is the shortest unique change-id prefix (highlighted with
+`my/ml-jj-change-unique'); REST is the remaining characters padding it out to
+the display width (left unfaced).  Together they read like `jj log's own id."
+  (concat (propertize prefix 'face 'my/ml-jj-change-unique) rest))
+
+(defun my/ml--vc-format (vc-string)
+  "Format VC-STRING for the mode line.
+VC-STRING is a `vc-mode'-style string \" <Backend><state><ref>\": leading
+space, the backend name, a one-char state indicator (-/:/@/!/?/^), then the
+ref (git branch, or jj's shortest change-id).  Return \"<glyph> <ref>\" with
+a backend-appropriate glyph (see `my/ml--vc-glyphs'; unknown backends fall
+back to the branch glyph), or nil when VC-STRING is nil, not a string, or
+has no parseable backend + ref."
+  (when (and vc-string (stringp vc-string)
+             (string-match
+              "\\`[[:space:]]*\\([A-Za-z]+\\)[-:@!?^ ]?\\(.*\\)\\'" vc-string))
+    (let* ((backend (match-string 1 vc-string))
+           (ref     (string-trim (match-string 2 vc-string)))
+           (glyph   (or (cdr (assoc backend my/ml--vc-glyphs))
+                        (cdr (assoc "Git" my/ml--vc-glyphs)))))  ; fallback: the branch glyph
+      (unless (string= ref "")
+        (concat glyph " " ref)))))
+
 (defun my/ml-vc-branch ()
-  "Git branch with a Nerd-Font branch icon, like lualine's `branch'.
-`vc-mode' is a string like \" Git-main\": the backend name, a one-char state
-indicator (-/:/@…), then the branch.  We strip that prefix and prepend the
- glyph (U+E725 — the same icon the nvim config uses)."
-  (when (and vc-mode (stringp vc-mode))
-    (let ((branch (replace-regexp-in-string "\\`[[:space:]]*[A-Za-z]+[-:@!?^]" ""
-                                             vc-mode)))
-      (concat "  " (string-trim branch)))))   ; leading glyph is U+E725 (nf-dev-git_branch)
+  "VC segment for the mode line: a backend-appropriate glyph plus the current ref.
+Reads the buffer-local `vc-mode' (set by Emacs' VC on file visit) and delegates
+to `my/ml--vc-format'.  Empty (nil) in non-VC buffers so they stay clean.  git
+buffers read the branch glyph + branch name; jujutsu buffers (via the vc-jj
+backend, see lisp/vc.el) read the branch glyph + the 8-char change-id, whose
+unique prefix is highlighted (see `my/ml--jj-styled-changeid')."
+  (my/ml--vc-format vc-mode))
 
 (defun my/ml-file-name ()
   "Filename segment, lualine-style: the file path *relative to the active dir*
