@@ -96,6 +96,17 @@
 ;; leader stay live inside the tree, so SPC e closes neotree and SPC f/gp/etc.
 ;; still work here.  RET already toggles a directory.
 (with-eval-after-load 'neotree
+  ;; Drop the redundant yes/no confirmations neotree asks *after* you've already
+  ;; committed to an action.  `off-p' is neotree's own always-return-t stub.
+  ;; Creating a file/dir already made you type the name at the "Filename:"
+  ;; prompt, and change-root is non-destructive — the extra "Do you want to…?"
+  ;; adds nothing.  The DELETE confirmations are deliberately left at their
+  ;; `yes-or-no-p' default: `d' is a single keypress that could be hit by
+  ;; accident, so deleting a file, a recursive dir delete, and killing that
+  ;; dir's open buffers all still ask first.
+  (setq neo-confirm-create-file      'off-p
+        neo-confirm-create-directory 'off-p
+        neo-confirm-change-root      'off-p)
   (evil-define-key 'normal neotree-mode-map
     (kbd "RET")       #'neotree-enter                  ; open file / toggle directory
     (kbd "<backspace>") #'neotree-select-up-node       ; navigate_up (to parent)
