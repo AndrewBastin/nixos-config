@@ -127,13 +127,6 @@
 
       llm-agents = inputs.llm-agents.packages."${pkgs.stdenv.system}";
 
-      # TODO: Unpin claude-code when https://github.com/anthropics/claude-code/issues/65989 fix lands.
-      # Currently we are pinning it to 2.1.162. Newer releases ship a rendering bug that 
-      # has gone unfixed for a while as mentioned in the issue.
-      claude-code-pinned =
-        (builtins.getFlake "github:numtide/llm-agents.nix/7ddf15a44b60bd5708e76e2b4956978f8486d643")
-          .packages."${pkgs.stdenv.hostPlatform.system}".claude-code;
-
       maniyan = pkgs.callPackage ../../apps/maniyan {
         pi = llm-agents.pi;
       };
@@ -269,7 +262,7 @@
           # used by jujutsu for change tracking
           watchman
 
-          claude-code-pinned
+          llm-agents.claude-code
           llm-agents.amp
           llm-agents.codex
 
