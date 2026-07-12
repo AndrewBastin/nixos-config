@@ -110,14 +110,58 @@ has no parseable backend + ref."
       (unless (string= ref "")
         (concat glyph " " ref)))))
 
+;; Forward refs (defined in later-loaded modules; see init.el load order).
+(declare-function my/vc--jj-modeline-parts "vc" (dir))
+(declare-function my/vc--git-branch "vc" (dir))
+(declare-function my/active-dir "ghostel" ())
+
+;; `vc-mode' is a buffer-local mode-line variable from vc-hooks.el, made
+;; buffer-local there via `make-variable-buffer-local' rather than `defvar' —
+;; so under lexical-binding it is never marked globally "special", even once
+;; vc-hooks.el has loaded.  A *valued* top-level `defvar' (unlike the no-value
+;; form, whose specialness is file-local) marks it special for good, without
+;; disturbing its existing value.  That restores dynamic scoping for it,
+;; matching how `vc-mode-line' sets it and how the ERT stubs `let'-bind it.
+(defvar vc-mode nil)
+
+(defvar my/ml--active-vc-cache nil
+  "Memo alist of (DIR . STRING) entries for `my/ml--active-vc'; STRING may be nil.")
+
+(defun my/ml--active-vc-invalidate ()
+  "Clear the `my/ml--active-vc' memo so the next call recomputes."
+  (setq my/ml--active-vc-cache nil))
+
+(defun my/ml--active-vc ()
+  "Formatted VC ref for the active dir (`my/active-dir'), or nil.
+Memoized on the active-dir path so redisplay never shells out — recomputes
+only on a cache miss (dir change, or after `my/ml--active-vc-invalidate').
+Dispatches on the dir's VC backend and runs the result through
+`my/ml--vc-format', so the glyph/format match the file-buffer segment exactly.
+Returns nil when ghostel hasn't loaded, or the dir has no VC backend."
+  (when (fboundp 'my/active-dir)
+    (let* ((dir (my/active-dir))
+           (hit (assoc dir my/ml--active-vc-cache)))
+      (if hit
+          (cdr hit)
+        (let* ((backend (vc-responsible-backend dir t))
+               (str (pcase backend
+                      ('JJ  (when-let* ((id (plist-get (my/vc--jj-modeline-parts dir) :id)))
+                              (my/ml--vc-format (concat " JJ:" id))))
+                      ('Git (when-let* ((b (my/vc--git-branch dir)))
+                              (my/ml--vc-format (concat " Git-" b))))
+                      (_ nil))))
+          (push (cons dir str) my/ml--active-vc-cache)
+          str)))))
+
 (defun my/ml-vc-branch ()
   "VC segment for the mode line: a backend-appropriate glyph plus the current ref.
-Reads the buffer-local `vc-mode' (set by Emacs' VC on file visit) and delegates
-to `my/ml--vc-format'.  Empty (nil) in non-VC buffers so they stay clean.  git
-buffers read the branch glyph + branch name; jujutsu buffers (via the vc-jj
-backend, see lisp/vc.el) read the branch glyph + the 8-char change-id, whose
-unique prefix is highlighted (see `my/ml--jj-styled-changeid')."
-  (my/ml--vc-format vc-mode))
+For a file buffer under VC, uses the buffer-local `vc-mode'.  Otherwise falls
+back to the ACTIVE DIR's ref (`my/ml--active-vc'), so scratch/terminal/other
+non-file buffers still show the current working directory's branch/change-id.
+Empty (nil) only when neither is available.  git buffers read the branch glyph +
+branch name; jujutsu buffers (via the vc-jj backend, see lisp/vc.el) read the
+branch glyph + the 8-char change-id, whose unique prefix is highlighted."
+  (or (my/ml--vc-format vc-mode) (my/ml--active-vc)))
 
 (defun my/ml-file-name ()
   "Filename segment, lualine-style: the file path *relative to the active dir*

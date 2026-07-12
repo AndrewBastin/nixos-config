@@ -5,7 +5,7 @@
 ;; ghostel).  `my/config-dir' is the read-only store path captured in
 ;; early-init.el.  Order is significant: evil before modeline/keybindings,
 ;; ghostel before keybindings.
-(dolist (m '("defaults" "ui" "evil" "vc" "modeline" "completion" "ide" "markdown" "ghostel" "diffview" "keybindings"))
+(dolist (m '("defaults" "ui" "evil" "vc" "modeline" "completion" "ide" "markdown" "ghostel" "vc-watch" "diffview" "keybindings"))
   (load (expand-file-name (concat "lisp/" m) my/config-dir) nil t))
 
 ;;; init.el ends here
