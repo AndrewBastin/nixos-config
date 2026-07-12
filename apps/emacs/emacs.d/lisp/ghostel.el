@@ -562,8 +562,8 @@ leave ghostel's stock integration untouched (the shim only ships a .zsh)."
 ;; immediately, so they can't serve as a program's $EDITOR (jj/git must block
 ;; until the message is written and saved).  `emacsclient' is the blocking
 ;; counterpart — it opens the file in THIS Emacs (the one hosting the ghostel
-;; terminal) and waits until `C-x #' / `:wq' (server-edit; see the wq shim
-;; below).
+;; terminal) and waits until the edit is finished with `with-editor-finish'
+;; (C-c C-c / :wq — see the with-editor setup below).
 ;;
 ;; Each Emacs runs its server under a UNIQUE name `ghostel-<pid>' rather than the
 ;; shared default "server".  With the default name, a SECOND Emacs would see the
@@ -580,48 +580,41 @@ Computed once at load so the same name is baked into the $EDITOR=`emacsclient
 --socket-name=…' that section 5 hands each ghostel shell.")
 
 (require 'server)
+(require 'with-editor)
 (setq server-name my/ghostel-server-name)
 (unless (server-running-p) (server-start))
 
 ;; emacsclient buffers (jj/jjui commit descriptions, git commit messages,
 ;; edit-command-line, …) open in a split below the ghostel terminal — same
 ;; `:split' geometry as the `es' opener — instead of clobbering the terminal's
-;; own window.  `server-window' takes the buffer and must display+select it;
-;; `C-x #' (server-edit) closes the split and unblocks the waiting program.
-;; This fires for any $EDITOR-driven edit launched from inside a ghostel shell.
-(defun my/ghostel-server-finish ()
-  "Finish an emacsclient ($EDITOR) edit the way vim `:wq' is expected to behave.
-Three things have to happen, and neither `server-edit' nor evil's `:wq' does
-all of them: (1) save the buffer — `server-done' otherwise clears the modified
-flag and discards the commit message unsaved; (2) `server-edit' to tell
-emacsclient we're done, unblocking the waiting program (jj/git/…); (3) delete the split
-window(s) showing the buffer, since `server-edit' only buries/kills the buffer
-and leaves the orphaned split in place.  Mirrors evil's own `evil-delete-buffer'
-window handling for emacsclient buffers."
-  (interactive)
-  (when (buffer-modified-p) (save-buffer))
-  (let ((wins (get-buffer-window-list (current-buffer) nil t)))
-    (if (and (bound-and-true-p server-buffer-clients) (fboundp 'server-edit))
-        (server-edit)
-      (kill-buffer nil))
-    (dolist (w wins) (ignore-errors (delete-window w)))))
-
-(defun my/ghostel-server-finish-on-wq ()
-  "Bind `:wq'/`:x'/`ZZ' to `my/ghostel-server-finish' in this emacsclient buffer.
-Scoped to a buffer-local copy of `evil-ex-commands' so `:wq' keeps its normal
-meaning everywhere else; this buffer is always an emacsclient ($EDITOR) buffer, so
-no guard beyond evil being loaded is needed."
-  (when (featurep 'evil)
-    (set (make-local-variable 'evil-ex-commands) (copy-alist evil-ex-commands))
-    (evil-ex-define-cmd "wq" #'my/ghostel-server-finish)
-    (evil-ex-define-cmd "x[it]" #'my/ghostel-server-finish)
-    (evil-local-set-key 'normal "ZZ" #'my/ghostel-server-finish)))
-
+;; own window.  `with-editor-mode' (magit's editor package) owns the finish/
+;; cancel UX so we don't hand-roll it:
+;;   C-c C-c / :wq / :x / ZZ  -> `with-editor-finish' — save, then `server-done'
+;;                               to unblock the waiting program (jj/git/…).
+;;   C-c C-k / :q  / ZQ       -> `with-editor-cancel' — the client exits non-zero
+;;                               so jj/git DISCARDS the commit (a real abort, which
+;;                               the old hand-rolled `:wq'-only setup couldn't do).
+;; with-editor's keymap remaps evil's `evil-save-and-close' /
+;; `evil-save-modified-and-close' / `evil-quit', and `evil-ex-binding' honours
+;; `command-remapping', so the vim ex-commands route to finish/cancel with no
+;; per-buffer ex rebinding.  It also reroutes a stray `kill-buffer' to cancel,
+;; so a blocked jj/git is never left hanging.
+;;
+;; `server-window' takes the emacsclient buffer and must display+select it.  We
+;; snapshot the pre-split window layout into `with-editor-previous-winconf'
+;; (buffer-local); with-editor restores it on finish/cancel, returning the
+;; terminal to full height.  This fires for any $EDITOR-driven edit from a
+;; ghostel shell — the only thing that reaches this Emacs's per-pid server,
+;; since e/es/ev use ghostel's OSC-52 path, not emacsclient.  `with-editor-mode'
+;; is `:interactive nil'; calling it non-interactively here is the supported way
+;; to enable it on a server buffer.
 (setq server-window
       (lambda (buffer)
-        (select-window (split-window-below))
-        (switch-to-buffer buffer)
-        (my/ghostel-server-finish-on-wq)))
+        (let ((winconf (current-window-configuration)))
+          (select-window (split-window-below))
+          (switch-to-buffer buffer)
+          (with-editor-mode 1)
+          (setq with-editor-previous-winconf winconf))))
 
 ;; Syntax highlighting for jj's `*.jjdescription' commit-message files is
 ;; provided by the `jjdescription' package (installed in apps/emacs/default.nix),

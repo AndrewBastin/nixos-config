@@ -86,6 +86,12 @@ let
     epkgs.melpaPackages.markdown-mode
 
     epkgs.melpaPackages.magit
+    # with-editor: the magit editor package.  Its `with-editor-mode' manages
+    # the emacsclient ($EDITOR) buffers ghostel spawns for jj/git commit
+    # messages — C-c C-c / :wq finish, C-c C-k / :q cancel.  Pulled in
+    # transitively by magit anyway; listed explicitly because lisp/ghostel.el
+    # requires it directly.
+    epkgs.melpaPackages.with-editor
     # diff-hl: gitsigns equivalent — added/changed/deleted markers in the
     # fringe of every version-controlled buffer.  Enabled in lisp/ui.el.
     epkgs.melpaPackages.diff-hl
