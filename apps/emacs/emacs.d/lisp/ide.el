@@ -54,6 +54,13 @@
 (with-eval-after-load 'eglot
   (setq eglot-code-action-indications '(margin))
 
+  ;; Don't log LSP traffic to the *EGLOT events* buffer.  With :size 0,
+  ;; jsonrpc skips the whole logging path (see `jsonrpc--log-event', which
+  ;; wraps its body in a plusp check) — every request/response otherwise pays
+  ;; for pretty-printing into a 2MB scrollback that's only useful when
+  ;; debugging a server.  Comment this out to get the log back.
+  (setq eglot-events-buffer-config '(:size 0))
+
   ;; Servers eglot doesn't know how to launch out of the box, or that nixpkgs
   ;; ships under a different binary name than eglot's default expects.  Each is
   ;; prepended, so it wins over any built-in entry for the same mode.
@@ -104,6 +111,12 @@ commands keep following the pinned/terminal working dir."
   "Major mode for Docker Compose files: YAML tree-sitter + compose LSP.")
 
 ;; --- Tree-sitter major modes (grammars provided by the flake) -------------
+;; Decoration level 4 = all font-lock queries (the default, 3, leaves out
+;; operators, brackets, delimiters and variable *uses*) — matching the full
+;; highlighting nvim-treesitter renders.  Must be set before a ts-mode buffer
+;; opens; existing buffers would need `treesit-font-lock-recompute-features'.
+(setq treesit-font-lock-level 4)
+
 ;; Map file extensions to the tree-sitter modes for richer highlighting.
 ;; These modes are autoloaded, but some (e.g. `elixir-ts-mode') only register
 ;; their own `auto-mode-alist' entries when the package loads, which nothing

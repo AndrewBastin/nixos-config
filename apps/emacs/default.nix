@@ -40,6 +40,18 @@ let
     # lisp/evil.el. Our hand-rolled neotree/eglot keys in keybindings.el load
     # last and still win on overlap.
     epkgs.melpaPackages.evil-collection
+    # nvim plugin parity (apps/nvim.nix): nvim-surround -> evil-surround
+    # (ys/cs/ds), mini.comment -> evil-commentary (gcc, gc{motion}).  Both are
+    # enabled in lisp/evil.el.
+    epkgs.melpaPackages.evil-surround
+    epkgs.melpaPackages.evil-commentary
+    # More vim built-ins evil lacks: C-a/C-x number increment/decrement, the
+    # matchit % (if/end, do/end, tag pairs), and the [3/14] search count
+    # (evil-anzu bridges evil-search to anzu's mode-line display).  All three
+    # are enabled in lisp/evil.el.
+    epkgs.melpaPackages.evil-numbers
+    epkgs.melpaPackages.evil-matchit
+    epkgs.melpaPackages.evil-anzu
     epkgs.melpaPackages.kanagawa-themes
     epkgs.melpaPackages.nix-mode
 
@@ -74,6 +86,9 @@ let
     epkgs.melpaPackages.markdown-mode
 
     epkgs.melpaPackages.magit
+    # diff-hl: gitsigns equivalent — added/changed/deleted markers in the
+    # fringe of every version-controlled buffer.  Enabled in lisp/ui.el.
+    epkgs.melpaPackages.diff-hl
     epkgs.melpaPackages.neotree
     # vdiff: side-by-side diff engine used by lisp/diffview.el (our
     # diffview.nvim-style git UI) for the two-column file diff.

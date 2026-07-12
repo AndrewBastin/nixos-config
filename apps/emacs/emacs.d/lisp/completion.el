@@ -9,6 +9,19 @@
 (setq completion-styles '(orderless basic)
       completion-category-overrides '((file (styles partial-completion))))
 
+;; vertico-directory (an extension bundled with vertico): saner file-path
+;; editing.  RET on a directory candidate descends into it instead of ending
+;; the session, and DEL at a path boundary deletes the whole component (so DEL
+;; walks up directories).  Both fall back to their normal behaviour outside
+;; file completion, so non-file minibuffers are unaffected.
+(require 'vertico-directory)
+(define-key vertico-map (kbd "RET")   #'vertico-directory-enter)
+(define-key vertico-map (kbd "DEL")   #'vertico-directory-delete-char)
+(define-key vertico-map (kbd "M-DEL") #'vertico-directory-delete-word)
+;; Tidy shadowed paths: typing `~/' or `/' mid-path clears the now-ignored
+;; prefix instead of leaving "/home/x/~/…" in the prompt.
+(add-hook 'rfn-eshadow-update-overlay-hook #'vertico-directory-tidy)
+
 ;;; In-buffer completion popup at point (corfu) ------------------------------
 ;; corfu is vertico's sibling: it renders `completion-at-point' candidates in a
 ;; small popup at the cursor instead of the minibuffer.  eglot already supplies

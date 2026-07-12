@@ -2,6 +2,10 @@
 
 (require 'ert)
 (require 'diffview)
+;; diffview defers loading magit to `diffview-open'; the tests below call its
+;; git plumbing (`magit-git-lines', `magit-staged-files', …) directly, so
+;; load it explicitly.
+(require 'magit)
 
 (defvar diffview-test--counter 0
   "Monotonic counter for unique temp content (Math.random is unavailable).")

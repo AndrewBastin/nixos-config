@@ -1,5 +1,8 @@
 ;;; keybindings.el --- which-key, leader map, eglot/neotree keys  -*- lexical-binding: t; -*-
 
+;; Show the key hints after 0.3s instead of the default 1.0s — fast enough to
+;; act as a cheat-sheet mid-chord, slow enough not to flash on fluent input.
+(setq which-key-idle-delay 0.3)
 (which-key-mode)
 
 ;; --- Leader key (SPC), mirroring the nvim layout -------------------------
@@ -32,6 +35,19 @@
   (kbd "<leader>hf")       #'describe-function
   (kbd "<leader>hv")       #'describe-variable
   (kbd "<leader>hk")       #'describe-key)
+
+;; mini.bracketed parity (nvim): ]d / [d jump to the next/previous diagnostic.
+(evil-define-key 'normal 'global
+  (kbd "]d") #'flymake-goto-next-error
+  (kbd "[d") #'flymake-goto-prev-error)
+
+;; mini.comment parity: <leader>cc comments the line / the visual selection,
+;; coexisting with the <leader>ca/cr/cf code keys just like in nvim.  Only
+;; nvim's <leader>c comment *operator* can't be ported — Emacs keymaps have no
+;; vim-style timeout disambiguation, so a command on the bare <leader>c would
+;; swallow the prefix.  gc{motion} (evil-commentary) covers that role.
+(evil-define-key 'normal 'global (kbd "<leader>cc") #'evil-commentary-line)
+(evil-define-key 'visual 'global (kbd "<leader>cc") #'evil-commentary)
 
 ;; --- Global text size: C-+ increase / C-- decrease / C-= reset ----------
 ;; `global-text-scale-adjust' resizes the *default face* height, so the change

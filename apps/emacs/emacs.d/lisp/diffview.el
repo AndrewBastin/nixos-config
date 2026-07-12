@@ -7,7 +7,11 @@
 ;; magit's own UI is never shown.  Exactly one session exists at a time, so
 ;; session state lives in the globals below.
 
-(require 'magit)
+;; magit — the git library every session command shells through — is NOT
+;; required here: it costs ~600ms to load (measured, native-compiled), so
+;; `diffview-open' requires it on first use instead of making every startup
+;; pay for it.  All other magit calls in this file are only reachable from a
+;; live session, i.e. after `diffview-open' has run.
 (require 'seq)
 ;; Soft-require: the non-UI layers (model/panel/staging) must load and be
 ;; unit-testable even before vdiff is installed via Nix.  The diff pane
@@ -360,6 +364,7 @@ Unlike `vdiff-2way-layout-function-default' it never calls
 (defun diffview-open ()
   "Open the diffview panel + side-by-side diff for the current repo."
   (interactive)
+  (require 'magit)   ; deferred from load time — see the header comment
   (let ((root (magit-toplevel)))
     (unless root (user-error "Not inside a Git repository"))
     (setq diffview--root root)

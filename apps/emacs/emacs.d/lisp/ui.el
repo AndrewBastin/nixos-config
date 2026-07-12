@@ -58,6 +58,16 @@ window manager only flags an *unfocused* window urgent anyway."
 (add-hook 'prog-mode-hook #'display-line-numbers-mode)
 (add-hook 'text-mode-hook #'display-line-numbers-mode)
 
+;; --- Git change markers in the fringe (gitsigns equivalent) -----------------
+;; Added/changed/deleted indicators next to the line numbers in every
+;; version-controlled buffer.  flydiff refreshes them as you type instead of
+;; only on save; the magit hooks keep them in sync when a stage/commit happens
+;; (diffview shells through magit, so it's covered too).
+(global-diff-hl-mode 1)
+(diff-hl-flydiff-mode 1)
+(add-hook 'magit-pre-refresh-hook  #'diff-hl-magit-pre-refresh)
+(add-hook 'magit-post-refresh-hook #'diff-hl-magit-post-refresh)
+
 ;; --- Smooth scrolling ------------------------------------------------------
 ;; Pixel-precision scrolling for the mouse/trackpad (built into Emacs 29+):
 ;; the view glides by pixels instead of jumping a whole line at a time.

@@ -6,6 +6,21 @@
 ;; thing at XDG cache/state so nothing lands in the store or next to source
 ;; files (keeps version control clean).
 
+;; --- GC & subprocess I/O tuning ----------------------------------------------
+;; The default `gc-cons-threshold' (800KB) makes allocation-heavy work (LSP
+;; JSON parsing, corfu) collect constantly: measured on this build (Emacs
+;; 30.2), one collection pauses ~13ms, and an allocation-churn benchmark ran
+;; 66 collections at the default vs 4 at 32MB — 3.5x slower wall-clock.  32MB
+;; keeps pauses rare without hoarding memory.  (No separate startup dance:
+;; Emacs 30 already runs init at `gc-cons-percentage' 1.0 and restores it.)
+(setq gc-cons-threshold (* 32 1024 1024))
+
+;; Max bytes read from a subprocess per chunk — also the pipe size Emacs
+;; requests via F_SETPIPE_SZ.  The 64KB default fragments rust-analyzer's
+;; multi-megabyte LSP responses; 1MB is the kernel's unprivileged pipe cap
+;; (/proc/sys/fs/pipe-max-size), so asking for more buys nothing.
+(setq read-process-output-max (* 1024 1024))
+
 (defun my/xdg (env fallback)
   "Return the absolute dir for XDG ENV, or FALLBACK (expanded) if unset/relative."
   (let ((v (getenv env)))
