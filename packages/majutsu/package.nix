@@ -19,7 +19,7 @@
 
 emacsPackages.trivialBuild {
   pname = "majutsu";
-  version = "0.6.0-unstable-2026-07-12";
+  version = "0.6.0";
 
   src = fetchFromGitHub {
     owner = "0WD0";
