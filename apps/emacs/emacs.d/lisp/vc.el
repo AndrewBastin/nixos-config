@@ -74,4 +74,27 @@ the change tail.  Fall back to ORIG-FN on any failure or empty jj output."
 
 (advice-add 'vc-jj-mode-line-string :around #'my/vc-jj--mode-line-string)
 
+;; --- Repo-aware status dispatch (SPC G G) ---------------------------------
+;; One binding, two porcelains: Majutsu for jj, Magit for git.  `magit-status'
+;; is autoloaded by magit's own package, so a `declare-function' (a compiler
+;; hint only) is enough.  Majutsu is built via `trivialBuild' (see
+;; apps/emacs/default.nix), which ships NO autoloads file, and nothing else
+;; `require's it — so without help `majutsu' is `void-function' at call time.
+;; Declare a real `autoload' for it: that both silences the byte-compiler AND
+;; makes the command load on first use (so `M-x majutsu' works too).  Loading
+;; majutsu.el after evil is already up (init.el load order) fires its own
+;; `(with-eval-after-load 'evil (require 'majutsu-evil))', so `majutsu-evil-setup'
+;; is defined by the time keybindings.el's after-load hook runs (Task 3).
+(autoload 'majutsu "majutsu" "Open the Majutsu status/log buffer for the current jj repo." t)
+(declare-function magit-status "magit-status" (&optional directory cache))
+
+(defun my/vc-status-dwim ()
+  "Open Majutsu in a Jujutsu repo, else Magit.
+Detection walks up from `default-directory' for a `.jj' directory, so it picks
+jj even in the colocated jj+git repos here (where a `.git' also exists)."
+  (interactive)
+  (if (locate-dominating-file default-directory ".jj")
+      (majutsu)
+    (magit-status)))
+
 ;;; vc.el ends here

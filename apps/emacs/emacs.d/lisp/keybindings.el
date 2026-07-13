@@ -25,7 +25,7 @@
   (kbd "<leader>tb")       #'ghostel-list-buffers    ; pick a ghostel buffer
   (kbd "<leader>ts")       #'my/ghostel-split        ; ghostel in a split
   (kbd "<leader>tv")       #'my/ghostel-vsplit       ; ghostel in a vsplit
-  (kbd "<leader>GG")       #'magit-status            ; git status
+  (kbd "<leader>GG")       #'my/vc-status-dwim       ; status: majutsu in jj repos, else magit
   (kbd "<leader>Gc")       #'magit-log-buffer-file   ; commits of this file
   (kbd "<leader>Gd")       #'diffview-open           ; diffview: side-by-side + panel (q closes)
   (kbd "<leader>xd")       #'flymake-show-buffer-diagnostics
@@ -122,6 +122,13 @@
     (kbd "c")         #'neotree-copy-node              ; copy
     (kbd "H")         #'neotree-hidden-file-toggle     ; toggle_hidden (dotfiles)
     (kbd "q")         #'neotree-hide))                 ; close_window
+
+;; Majutsu ships its own evil bindings (majutsu-evil.el, magit/evil-collection
+;; style: gr refresh, x discard, its `?' dispatch, j/k motion).  `majutsu' soft-
+;; requires `majutsu-evil' on load, but the bindings are only installed when
+;; `majutsu-evil-setup' runs — call it once majutsu is loaded.
+(with-eval-after-load 'majutsu
+  (majutsu-evil-setup))
 
 ;; Name the which-key groups so the SPC menu reads nicely.
 (with-eval-after-load 'which-key

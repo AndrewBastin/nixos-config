@@ -33,7 +33,16 @@ let
 
   # Same package set as the source emacs-explore dev shell. `which-key` is built
   # into Emacs 30, so it needs no package here.
-  emacsWithPkgs = emacsPkgs.withPackages (epkgs: [
+  emacsWithPkgs = emacsPkgs.withPackages (epkgs:
+    let
+      # Majutsu (jj porcelain) — defined in packages/majutsu per this repo's
+      # source-built-package convention.  Built against THIS Emacs's scope
+      # (`emacsPackages = epkgs`) so its magit/transient/… match the rest of the
+      # set instead of pulling a second, stale magit.
+      majutsu = pkgs.callPackage ../../packages/majutsu/package.nix {
+        emacsPackages = epkgs;
+      };
+    in [
     epkgs.melpaPackages.evil
     # evil-collection: consistent vim-style bindings across ~150 special-mode
     # buffers (magit, dired, help, eww, info, ibuffer, …). Initialized in
@@ -118,6 +127,10 @@ let
     # subprocesses spawned from temp buffers.
     epkgs.melpaPackages.envrc
     epkgs.melpaPackages.inheritenv
+
+    # Majutsu jj porcelain (packages/majutsu, bound above); `SPC G G` dispatches
+    # to it in jj repos via `my/vc-status-dwim' in lisp/vc.el.
+    majutsu
 
     epkgs.treesit-grammars.with-all-grammars
   ]);
