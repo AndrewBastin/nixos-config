@@ -192,6 +192,24 @@ cursor sync, which only acts once the terminal is back in semi-char mode."
              (eq ghostel--input-mode 'emacs))
     (ghostel-semi-char-mode)))
 
+;; Ghostel <= 0.39 (elpa 20260626) shipped `ghostel--mouse-tracking-active-p';
+;; later builds (20260706+) dropped that wrapper and fold the check into
+;; `ghostel--mouse-event'/`ghostel--forward-scroll-event', which *send* the
+;; event as a side effect and so can't be used as a pure predicate.  The native
+;; `ghostel--mode-enabled' primitive (used by ghostel itself) is stable across
+;; both, so we reimplement the tiny predicate here — matching what the removed
+;; upstream defun did — to stay decoupled from that elisp rename.
+(declare-function ghostel--mode-enabled "ghostel-module")
+
+(defun my/ghostel--mouse-tracking-active-p ()
+  "Non-nil if this ghostel terminal has any DEC mouse-tracking mode set.
+Checks modes 1000 (normal), 1002 (button-event) and 1003 (any-event) — the
+modes a TUI enables when it wants to consume mouse input itself."
+  (and (bound-and-true-p ghostel--term)
+       (or (ghostel--mode-enabled ghostel--term 1000)
+           (ghostel--mode-enabled ghostel--term 1002)
+           (ghostel--mode-enabled ghostel--term 1003))))
+
 (defun my/ghostel-wheel-browse (event)
   "Drop to evil normal state when scrolling up in a live ghostel terminal.
 Entering normal state switches ghostel to the read-only `emacs' mode (via
@@ -202,7 +220,7 @@ run in the event's own buffer the way ghostel's own scroll intercept does."
   (with-current-buffer (window-buffer (posn-window (event-start event)))
     (when (and (evil-ghostel--active-p)
                (evil-insert-state-p)
-               (not (ghostel--mouse-tracking-active-p)))
+               (not (my/ghostel--mouse-tracking-active-p)))
       (evil-normal-state))))
 
 (with-eval-after-load 'evil-ghostel
