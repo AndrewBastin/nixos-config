@@ -128,7 +128,14 @@
 ;; requires `majutsu-evil' on load, but the bindings are only installed when
 ;; `majutsu-evil-setup' runs — call it once majutsu is loaded.
 (with-eval-after-load 'majutsu
-  (majutsu-evil-setup))
+  (majutsu-evil-setup)
+  ;; majutsu-evil follows evil-collection-magit style: `?' is the only dispatch
+  ;; entry, `g' is a vim prefix (gj/gk/gr/gd), and `G' is left unbound so it
+  ;; falls through to `evil-goto-line'.  We prefer a one-key Git menu, so claim
+  ;; `G' for the Git transient (matches the "G Git" entry in majutsu-dispatch).
+  ;; Scoped to majutsu-mode-map, so global `G' motion elsewhere is untouched.
+  (evil-define-key '(normal visual motion) majutsu-mode-map
+    (kbd "G") #'majutsu-git-transient))
 
 ;; Name the which-key groups so the SPC menu reads nicely.
 (with-eval-after-load 'which-key
