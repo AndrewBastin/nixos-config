@@ -9,27 +9,15 @@ let
   inherit (pkgs) lib;
   inherit (pkgs.stdenv.hostPlatform) isDarwin;
 
-  # Keep ghostel's native (Zig) module in lockstep with its Elisp version so the
-  # loader's version check passes across emacs-overlay bumps. nixpkgs builds the
-  # module from the same source rev as the Elisp, so building from source always
-  # matches: on Linux this is a no-op; on Darwin, where the from-source build
-  # otherwise fails (DarwinSdkNotFound), it adds `apple-sdk` to the module build.
-  # See ./ghostel.nix. Applied over the whole Emacs package scope so `evil-ghostel`
-  # (whose `ghostel` dep resolves to this package) gets it too.
-  withGhostelModule = pkgs.callPackage ./ghostel.nix { };
-
   # On macOS, pure-GTK Emacs has no native Cocoa window — use the Mac port
   # (native Cocoa Emacs.app with mac-specific niceties). On Linux, pgtk is the
   # right native Wayland/Hyprland build (no XWayland). Everything downstream keys
-  # off this binding (emacs.pkgs.overrideScope / withPackages), so the ghostel
-  # override and grammars carry over unchanged.
+  # off this binding (emacs.pkgs.withPackages), so grammars carry over unchanged.
   emacs =
     if isDarwin
     then pkgs.emacs-macport
     else pkgs.emacs-pgtk;
-  emacsPkgs = emacs.pkgs.overrideScope (final: prev: {
-    ghostel = withGhostelModule prev.ghostel;
-  });
+  emacsPkgs = emacs.pkgs;
 
   # Same package set as the source emacs-explore dev shell. `which-key` is built
   # into Emacs 30, so it needs no package here.
@@ -41,6 +29,15 @@ let
       # set instead of pulling a second, stale magit.
       majutsu = pkgs.callPackage ../../packages/majutsu/package.nix {
         emacsPackages = epkgs;
+      };
+
+      # Ghostel terminal (core + native Zig module) and its evil integration,
+      # both built from ONE pinned dakra/ghostel rev so they can never drift
+      # apart (see packages/ghostel).  Built against THIS Emacs's scope and
+      # headers (`emacsPackages = epkgs`, `emacs`), same as majutsu above.
+      ghostel = pkgs.callPackage ../../packages/ghostel/package.nix {
+        emacsPackages = epkgs;
+        inherit emacs;
       };
     in [
     epkgs.melpaPackages.evil
@@ -68,9 +65,12 @@ let
     # below); this provides `qml-mode', which eglot attaches `qmlls' to.
     epkgs.melpaPackages.qml-mode
 
-    # Ghostel terminal: Elisp + bundled prebuilt native module + evil integration.
-    epkgs.ghostel
-    epkgs.melpaStablePackages.evil-ghostel
+    # Ghostel terminal (core + native module) and its evil integration, both from
+    # packages/ghostel — a single pinned rev (see the `ghostel' binding above),
+    # replacing the old `epkgs.ghostel' + `melpaStablePackages.evil-ghostel' pair
+    # that drifted across channels.
+    ghostel
+    ghostel.evil-ghostel
 
     # Completion / fuzzy-finding stack.
     epkgs.melpaPackages.vertico

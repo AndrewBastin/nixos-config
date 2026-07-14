@@ -4,9 +4,9 @@
 ;; 1. Core setup: evil integration, escape behaviour
 ;; ==========================================================================
 
-;; The native module ships bundled next to ghostel.el (see apps/emacs/ghostel.nix),
-;; which is the loader's default location, so `ghostel-module-directory' is left
-;; nil and ghostel finds the module on its own.
+;; The native module ships bundled next to ghostel.el (built from the same rev by
+;; packages/ghostel), which is the loader's default location, so
+;; `ghostel-module-directory' is left nil and ghostel finds the module on its own.
 
 ;; Evil integration for ghostel terminals: enable evil-ghostel-mode in every
 ;; ghostel buffer (autoloaded, so this pulls evil-ghostel in on first use).
