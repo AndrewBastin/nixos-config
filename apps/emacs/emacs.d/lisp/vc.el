@@ -75,26 +75,72 @@ the change tail.  Fall back to ORIG-FN on any failure or empty jj output."
 (advice-add 'vc-jj-mode-line-string :around #'my/vc-jj--mode-line-string)
 
 ;; --- Repo-aware status dispatch (SPC G G) ---------------------------------
-;; One binding, two porcelains: Majutsu for jj, Magit for git.  `magit-status'
-;; is autoloaded by magit's own package, so a `declare-function' (a compiler
-;; hint only) is enough.  Majutsu is built via `trivialBuild' (see
-;; apps/emacs/default.nix), which ships NO autoloads file, and nothing else
-;; `require's it — so without help `majutsu' is `void-function' at call time.
-;; Declare a real `autoload' for it: that both silences the byte-compiler AND
-;; makes the command load on first use (so `M-x majutsu' works too).  Loading
-;; majutsu.el after evil is already up (init.el load order) fires its own
-;; `(with-eval-after-load 'evil (require 'majutsu-evil))', so `majutsu-evil-setup'
-;; is defined by the time keybindings.el's after-load hook runs (Task 3).
-(autoload 'majutsu "majutsu" "Open the Majutsu status/log buffer for the current jj repo." t)
+;; One binding, two porcelains: jjui for jj, Magit for git.  `magit-status' is
+;; autoloaded by magit's own package, so a `declare-function' (a compiler hint
+;; only) is enough.
+;;
+;; jj gets the jjui TUI rather than an Elisp porcelain: it is the tool I already
+;; reach for outside Emacs, so this keeps ONE jj UI to learn instead of two.
+;; Running it inside a ghostel terminal (not an external window) is what makes it
+;; feel native — `ghostel-pre-spawn-hook' points $EDITOR at this Emacs's own
+;; emacsclient (see section 5 of ghostel.el), so describing a change from jjui
+;; opens the `*.jjdescription' buffer right here, in a split below.
+;;
+;; `ghostel-exec' (vs. the interactive `ghostel') runs one program on the PTY
+;; with no shell and no shell integration — argv is passed through, so nothing is
+;; word-split, and quitting jjui ends the process, which kills the buffer
+;; (`ghostel-kill-buffer-on-exit').  It carries no autoload cookie, hence the
+;; call-time `require'.
 (declare-function magit-status "magit-status" (&optional directory cache))
+(declare-function ghostel-exec "ghostel" (buffer program &optional args))
+
+(defun my/vc--jjui (root)
+  "Open jjui on the Jujutsu repo at ROOT, in a ghostel terminal in this window.
+Always a fresh terminal: jjui is a transient view (`q' quits it and the buffer
+goes with it), so there is nothing worth reusing, and no stale buffer to find.
+Named \"jjui: DIR\" — not the \"term: …\" of a shell terminal (`my/ghostel-buffer-name'),
+whose prefix is there to tell terminals apart from file buffers.  This buffer runs
+ONE program that is named right there in the buffer name, and its major mode
+already says it is a ghostel terminal."
+  (unless (executable-find "jjui")
+    (user-error "jjui not found in PATH"))
+  (require 'ghostel)
+  (let ((buffer (generate-new-buffer
+                 (format "jjui: %s"
+                         (abbreviate-file-name (directory-file-name root))))))
+    (with-current-buffer buffer
+      ;; `default-directory' is `permanent-local', so it survives the major-mode
+      ;; switch inside `ghostel-exec' — unlike the rename pin below.
+      (setq default-directory root))
+    ;; Display BEFORE spawning: `ghostel-exec' sizes the PTY to the buffer's
+    ;; window if it has one, and falls back to a fixed 80x24 if it does not.
+    (pop-to-buffer buffer display-buffer--same-window-action)
+    (ghostel-exec buffer "jjui")
+    ;; Keep the name we chose.  jjui reports an OSC-2 title ("jjui - <ROOT>",
+    ;; always an unabbreviated absolute path), and ghostel renames a terminal to
+    ;; match every title report — so without this the buffer turns into
+    ;; "term: jjui - /home/andrew/nixos-config": the ~ lost, and back to the
+    ;; "term: " prefix this deliberately drops.  nil is the documented
+    ;; "never rename this buffer" value
+    ;; of `ghostel-buffer-name-function'; buffer-local, so real shell terminals
+    ;; still follow their title and cwd.
+    ;;
+    ;; This MUST run after `ghostel-exec': it switches the buffer to
+    ;; `ghostel-mode', and a major mode runs `kill-all-local-variables', which
+    ;; would silently drop the pin and let the rename through.
+    (with-current-buffer buffer
+      (setq-local ghostel-buffer-name-function nil))
+    buffer))
 
 (defun my/vc-status-dwim ()
-  "Open Majutsu in a Jujutsu repo, else Magit.
+  "Open jjui in a Jujutsu repo, else Magit.
 Detection walks up from `default-directory' for a `.jj' directory, so it picks
-jj even in the colocated jj+git repos here (where a `.git' also exists)."
+jj even in the colocated jj+git repos here (where a `.git' also exists), and
+jjui opens on the jj root it finds rather than on the subdirectory you called
+it from."
   (interactive)
-  (if (locate-dominating-file default-directory ".jj")
-      (majutsu)
+  (if-let* ((root (locate-dominating-file default-directory ".jj")))
+      (my/vc--jjui (expand-file-name root))
     (magit-status)))
 
 ;;; vc.el ends here

@@ -21,8 +21,9 @@
 #
 # Modeled on nixpkgs' own ghostel derivation (manual-packages/ghostel), which
 # builds the module from source so the Elisp's `ghostel--minimum-module-version'
-# check always matches.  Takes the whole `emacsPackages' set (majutsu pattern) so
-# it stays auto-importable by `pkgs.callPackage' AND can be called by apps/emacs
+# check always matches.  Takes the whole `emacsPackages' set (rather than the
+# individual deps) so it stays auto-importable by `pkgs.callPackage' AND can be
+# called by apps/emacs
 # with that Emacs's own overlaid scope (one magit/transient/evil, not a duplicate).
 {
   lib,

@@ -23,18 +23,13 @@ let
   # into Emacs 30, so it needs no package here.
   emacsWithPkgs = emacsPkgs.withPackages (epkgs:
     let
-      # Majutsu (jj porcelain) — defined in packages/majutsu per this repo's
-      # source-built-package convention.  Built against THIS Emacs's scope
-      # (`emacsPackages = epkgs`) so its magit/transient/… match the rest of the
-      # set instead of pulling a second, stale magit.
-      majutsu = pkgs.callPackage ../../packages/majutsu/package.nix {
-        emacsPackages = epkgs;
-      };
-
       # Ghostel terminal (core + native Zig module) and its evil integration,
       # both built from ONE pinned dakra/ghostel rev so they can never drift
-      # apart (see packages/ghostel).  Built against THIS Emacs's scope and
-      # headers (`emacsPackages = epkgs`, `emacs`), same as majutsu above.
+      # apart (see packages/ghostel).  Defined in packages/ghostel per this
+      # repo's source-built-package convention, and built against THIS Emacs's
+      # scope and headers (`emacsPackages = epkgs`, `emacs`) so its magit/
+      # transient/evil match the rest of the set instead of pulling a second,
+      # stale copy.
       ghostel = pkgs.callPackage ../../packages/ghostel/package.nix {
         emacsPackages = epkgs;
         inherit emacs;
@@ -127,10 +122,6 @@ let
     # subprocesses spawned from temp buffers.
     epkgs.melpaPackages.envrc
     epkgs.melpaPackages.inheritenv
-
-    # Majutsu jj porcelain (packages/majutsu, bound above); `SPC G G` dispatches
-    # to it in jj repos via `my/vc-status-dwim' in lisp/vc.el.
-    majutsu
 
     epkgs.treesit-grammars.with-all-grammars
   ]);
