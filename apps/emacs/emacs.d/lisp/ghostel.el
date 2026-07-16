@@ -551,9 +551,23 @@ leave ghostel's stock integration untouched (the shim only ships a .zsh)."
 ;; ghostel terminals and never leaks to the global $EDITOR (nvim) outside Emacs.
 ;; The nix side defaults $EDITOR to `${EDITOR:-nvim}' (modules/dev-essentials) so
 ;; the child's own .zshenv respects this inherited value instead of clobbering it.
+;;
+;; DARWIN CAVEAT: `my/ghostel-force-env-repair' below clears nix-darwin's
+;; set-environment guards so /etc/zshenv re-runs `set-environment' to repair
+;; PATH — but that script also does an UNCONDITIONAL `export EDITOR="nano"',
+;; which wipes the value we set here BEFORE ~/.zshenv even runs (so ~/.zshenv's
+;; `nano'->`nvim' default then wins and every ghostel terminal ends up on nvim,
+;; breaking jj/jjui/git/edit-command-line).  set-environment leaves unknown vars
+;; alone, so we ALSO stash the value in `EMACSCLIENT_EDITOR'; the home-manager
+;; .zshenv (modules/dev-essentials) restores $EDITOR from it after /etc/zshenv,
+;; undoing the clobber.  On Linux the guards are never cleared, so nothing
+;; clobbers $EDITOR and the restore is a harmless no-op (the sentinel already
+;; equals $EDITOR).
 (defun my/ghostel-set-editor-env ()
   "Set $EDITOR to THIS Emacs's blocking emacsclient, for ghostel shells only."
-  (setenv "EDITOR" (format "emacsclient --socket-name=%s" my/ghostel-server-name)))
+  (let ((editor (format "emacsclient --socket-name=%s" my/ghostel-server-name)))
+    (setenv "EDITOR" editor)
+    (setenv "EMACSCLIENT_EDITOR" editor)))
 
 (add-hook 'ghostel-pre-spawn-hook #'my/ghostel-set-editor-env)
 
@@ -574,7 +588,9 @@ leave ghostel's stock integration untouched (the shim only ships a .zsh)."
 ;; `zoxide'/`claude' vanish and the `clod'/`migu' aliases expand to a missing
 ;; binary.  Clearing both guards in the about-to-spawn child env forces the
 ;; repair to run for every ghostel shell regardless of how Emacs was launched
-;; (`set-environment' is idempotent — it just re-sets a fixed PATH).  Like the
+;; (`set-environment' is idempotent — it re-sets a fixed PATH, and also
+;; re-exports EDITOR/PAGER; see `my/ghostel-set-editor-env' for how the EDITOR
+;; override is stashed and restored around this clobber).  Like the
 ;; EDITOR/EMACS_GHOSTEL_PATH rewrites above, the `setenv' is scoped to the child
 ;; via the dynamically-bound `process-environment', so the global env is
 ;; untouched.  Darwin-only: these guards are nix-darwin's, and the GUI-PATH

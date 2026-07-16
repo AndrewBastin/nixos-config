@@ -421,8 +421,20 @@
           # system-wide default for non-shell contexts (sudoedit, GUI apps) and
           # leaving ghostel's emacsclient value untouched.  In envExtra
           # (.zshenv) so it covers non-interactive shells too.
+          #
+          # EMACSCLIENT_EDITOR restore (Darwin/ghostel): a ghostel terminal sets
+          # $EDITOR to a blocking emacsclient before spawning the shell, but on
+          # macOS its PATH-repair (apps/emacs ghostel.el) re-runs nix-darwin's
+          # /etc/set-environment, which unconditionally re-exports EDITOR="nano"
+          # -- clobbering that value before this file runs.  Ghostel also stashes
+          # the emacsclient command in EMACSCLIENT_EDITOR, which set-environment
+          # leaves alone; restoring $EDITOR from it here (after /etc/zshenv) undoes
+          # the clobber.  Outside ghostel the var is unset and we fall through to
+          # the nvim default below.
           envExtra = /* sh */ ''
-            if [ -z "''${EDITOR:-}" ] || [ "$EDITOR" = "nano" ]; then
+            if [ -n "''${EMACSCLIENT_EDITOR:-}" ]; then
+              export EDITOR="$EMACSCLIENT_EDITOR"
+            elif [ -z "''${EDITOR:-}" ] || [ "$EDITOR" = "nano" ]; then
               export EDITOR="nvim"
             fi
           '';
