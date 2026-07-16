@@ -96,14 +96,29 @@ current directory plus the foreground program when one is running, e.g.
 ;; ==========================================================================
 
 ;; Paste the *system clipboard* (not the kill ring) into the terminal, bound to
-;; C-S-v below.  We read CLIPBOARD directly so it works regardless of the
-;; kill-ring state, and send it via `ghostel-paste-string' which wraps it in
-;; bracketed paste so the shell sees it as pasted rather than typed.
+;; C-S-v below.  We read the CLIPBOARD selection directly so it works regardless
+;; of the kill-ring state, and send it via `ghostel-paste-string' which wraps it
+;; in bracketed paste so the shell sees it as pasted rather than typed.
+;;
+;; Read via `gui--selection-value-internal' — the same value primitive evil's
+;; "+ register and `gui-selection-value' (normal yank) use — NOT a bare
+;; `gui-get-selection'.  On the emacs-mac port (Darwin) `gui-get-selection'
+;; defaults its target to `STRING', which the port answers with nil (it exposes
+;; the pasteboard string only under `NSStringPboardType'), so the old code
+;; wrongly reported "System clipboard is empty".  The value primitive knows the
+;; port's own accessor and returns the text on both mac and pgtk; unlike
+;; `gui-selection-value' it does NOT suppress a clipboard Emacs itself set, so
+;; pasting text you just yanked in Emacs into the terminal still works.
+(defun my/ghostel-clipboard-text ()
+  "Return the system clipboard as a plain string, or nil if empty."
+  (let ((text (gui--selection-value-internal 'CLIPBOARD)))
+    (and text (not (string-empty-p text)) (substring-no-properties text))))
+
 (defun my/ghostel-paste-clipboard ()
   "Paste the system clipboard into the ghostel terminal (bracketed paste)."
   (interactive)
-  (let ((text (gui-get-selection 'CLIPBOARD)))
-    (if (and text (not (string-empty-p text)))
+  (let ((text (my/ghostel-clipboard-text)))
+    (if text
         (ghostel-paste-string text)
       (user-error "System clipboard is empty"))))
 
