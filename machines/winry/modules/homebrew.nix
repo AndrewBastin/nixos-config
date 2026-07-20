@@ -15,6 +15,7 @@
         "Wireguard" = 1451685025;
         "Flighty" = 1358823008;
         "Timery" = 1425368544;
+        "Amphetamine" = 937984704;
       };
 
       casks = [
