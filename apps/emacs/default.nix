@@ -149,8 +149,21 @@ let
     pkgs.dockerfile-language-server             # docker-langserver
     pkgs.docker-compose-language-service        # docker-compose-langserver
     pkgs.qt6.qtdeclarative                       # qmlls
+
+    # Jujutsu tooling and support.
+    # Required espectially in macOS to have access to Jujutsu
+    pkgs.jjui
+    pkgs.jujutsu
+    pkgs.git # Needed for jjui and such to do git operations
   ];
-  pathSuffix = lib.makeBinPath runtimeTools;
+  # `emacsWithPkgs` for its own `emacsclient`: ghostel sets $EDITOR to a bare
+  # `emacsclient --socket-name=…' (lisp/ghostel.el section 5/6), and jjui is run
+  # via `ghostel-exec' — a bare PTY program with NO shell, so nix-darwin's
+  # shell-startup PATH repair never fires and jjui inherits Emacs's own exec-path.
+  # Without this, `SPC G G' → jjui → describe can't resolve `emacsclient' on
+  # macOS and the edit-in-Emacs handoff silently dies. Same build as the running
+  # server, so the client/server protocol always matches.
+  pathSuffix = lib.makeBinPath (runtimeTools ++ [ emacsWithPkgs ]);
   initDir = ./emacs.d;
 in
 if isDarwin then
