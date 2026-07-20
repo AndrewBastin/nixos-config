@@ -65,6 +65,20 @@
 (global-set-key (kbd "C--") #'global-text-scale-adjust)   ; decrease
 (global-set-key (kbd "C-=") #'my/global-text-scale-reset) ; reset to original
 
+;; --- C-S-v pastes the system clipboard in ordinary buffers --------------
+;; Ghostel terminals already take C-S-v to paste the system clipboard into the
+;; running program (see lisp/ghostel.el); this extends the same key to every
+;; other buffer so the muscle memory is uniform.  `clipboard-yank' forces
+;; `select-enable-clipboard' and then `yank's, so it reads CLIPBOARD via
+;; `gui-selection-value' -> `gui--selection-value-internal' — the value
+;; primitive that actually works on the emacs-mac port (a bare
+;; `gui-get-selection' answers STRING with nil there; same reason ghostel.el
+;; switched off it), and it transparently falls back to the kill ring for text
+;; Emacs itself owns.  Bound in evil insert AND normal states so it pastes while
+;; editing and also stands in for `"+p' in normal state; the ghostel-mode aux
+;; map still outranks this inside terminals, so those keep their own handler.
+(evil-define-key '(insert normal) 'global (kbd "C-S-v") #'clipboard-yank)
+
 ;; LSP "go to" keys, active only where eglot is attached (like nvim's lspBuf).
 ;; Binding into `eglot-mode-map' means these only shadow evil's defaults (gd, K)
 ;; inside code buffers with a live language server.
