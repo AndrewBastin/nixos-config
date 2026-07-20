@@ -537,7 +537,12 @@ leave ghostel's stock integration untouched (the shim only ships a .zsh)."
            ;; a relative DIR resolves regardless of Emacs's `default-directory'.
            ;; unpin: resume following the focused terminal.
            "pin()   { local d=${1:-$PWD}; ghostel_cmd pin \"${d:a}\"; }\n"
-           "unpin() { ghostel_cmd unpin; }\n"))
+           "unpin() { ghostel_cmd unpin; }\n"
+           ;; AI-agent integration (lisp/agent.el): wrap `claude' so every
+           ;; invocation — including via the clod/migu aliases — carries the
+           ;; Emacs capability briefing.  Baked in at spawn time; fboundp-guarded
+           ;; so a load-order hiccup degrades to a plain shim, not an error.
+           (if (fboundp 'my/agent-shim-snippet) (my/agent-shim-snippet) "")))
         (setenv "EMACS_GHOSTEL_PATH" my/ghostel-shim-dir)))))
 
 (add-hook 'ghostel-pre-spawn-hook #'my/ghostel-install-shell-shim)
@@ -570,6 +575,20 @@ leave ghostel's stock integration untouched (the shim only ships a .zsh)."
     (setenv "EMACSCLIENT_EDITOR" editor)))
 
 (add-hook 'ghostel-pre-spawn-hook #'my/ghostel-set-editor-env)
+
+;; Expose this Emacs's server socket to every ghostel shell.  `emacsclient'
+;; reads $EMACS_SOCKET_NAME natively (same resolution as --socket-name), so
+;; agents briefed by lisp/agent.el reach the OWNING Emacs with a bare
+;; `emacsclient -e ...' — and the var doubles as the honest "this shell lives
+;; inside an Emacs session" marker.  Scoped to the child via the dynamically
+;; bound `process-environment', like the $EDITOR rewrite above.  nix-darwin's
+;; set-environment repair (see `my/ghostel-force-env-repair') leaves unknown
+;; vars alone, so this survives the darwin env repair.
+(defun my/ghostel-set-agent-env ()
+  "Set $EMACS_SOCKET_NAME to this Emacs's server socket, for ghostel shells."
+  (setenv "EMACS_SOCKET_NAME" my/ghostel-server-name))
+
+(add-hook 'ghostel-pre-spawn-hook #'my/ghostel-set-agent-env)
 
 ;; A GUI-launched Emacs.app (alt-y → emacs-gui → `open -a Emacs.app') does NOT
 ;; inherit the login shell's PATH — macOS hands it launchd's minimal PATH, so
