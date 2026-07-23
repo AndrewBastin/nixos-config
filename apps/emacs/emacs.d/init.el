@@ -6,7 +6,7 @@
 ;; early-init.el.  Order is significant: evil before modeline/keybindings,
 ;; agent before ghostel (its shim splices `my/agent-shim-snippet'), ghostel
 ;; before keybindings.
-(dolist (m '("defaults" "ui" "evil" "vc" "modeline" "completion" "ide" "markdown" "agent" "ghostel" "vc-watch" "diffview" "keybindings"))
+(dolist (m '("defaults" "ui" "evil" "vc" "modeline" "completion" "embark" "ide" "markdown" "agent" "ghostel" "vc-watch" "diffview" "keybindings"))
   (load (expand-file-name (concat "lisp/" m) my/config-dir) nil t))
 
 ;;; init.el ends here

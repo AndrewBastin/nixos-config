@@ -74,6 +74,27 @@ let
     epkgs.melpaPackages.consult
     epkgs.melpaPackages.consult-eglot
 
+    # embark: act on the current minibuffer candidate (or thing at point) via a
+    # type-aware keymap of actions, and — the reason it's here — `embark-export'
+    # a whole completion session into a real buffer.  That's nvim's quickfix
+    # workflow: consult-ripgrep -> grep-mode, consult-line -> occur-mode, both
+    # of which implement `next-error' (see the ]q/[q keys in keybindings.el).
+    # Configured in lisp/embark.el.
+    epkgs.melpaPackages.embark
+    # embark-consult supplies those exporters.  WITHOUT it, exporting a
+    # consult-ripgrep session yields a generic collect buffer instead of a
+    # grep-mode one — i.e. no quickfix list.  It also registers the default
+    # actions for consult's own candidate categories (consult-grep,
+    # consult-location), which lisp/embark.el's split commands delegate to.
+    epkgs.melpaPackages.embark-consult
+    # wgrep makes an exported grep-mode buffer editable (C-c C-p), so a
+    # find-and-replace across every matched file is one buffer edit — vim's
+    # `:cdo s/…/…/'.  embark-consult calls `wgrep-setup' on export by itself, so
+    # no elisp config is needed; merely being on the load path is enough.
+    # Emacs 31 makes this redundant via the built-in `grep-edit-mode'; drop it
+    # when the emacs-pgtk pin moves to 31 (currently 30.2).
+    epkgs.melpaPackages.wgrep
+
     # In-buffer completion popup at point (corfu = vertico's sibling) plus
     # `cape' completion-at-point backends (dabbrev, file, …).
     epkgs.melpaPackages.corfu
