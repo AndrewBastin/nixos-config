@@ -124,7 +124,9 @@
 ;;     takes the same signature and must NOT be interactive.
 ;;
 ;; If the action errors or is aborted with C-g, the freshly created split is
-;; left behind.  Deliberate: it's one C-w c away, and unwinding it would mean
+;; left behind — inert, with focus still in the original window, since the
+;; jumper's deferred re-selection (below) is never scheduled once `FN' has
+;; signaled.  Deliberate: it's one C-w c away, and unwinding it would mean
 ;; wrapping every action in `condition-case' with window bookkeeping.
 
 (defmacro my/embark-define-split-command (name split fn)
@@ -142,8 +144,22 @@ through minibuffer injection."
 For embark actions that are plain one-argument functions."
   `(defun ,name (target)
      ,(format "Split the window with `%s', then `%s' TARGET there." split fn)
-     (select-window (,split))
-     (,fn target)))
+     (let ((win (,split)))
+       (select-window win)
+       (,fn target)
+       ;; embark's non-command dispatch path (`embark--act') calls this
+       ;; inside a plain `with-selected-window', not the command path's
+       ;; variant that captures `final-window' and re-applies it after
+       ;; unwinding.  Plain `with-selected-window' restores the window that
+       ;; was selected *before* the call once its body returns, so the
+       ;; `select-window' above is silently discarded the instant `,fn'
+       ;; returns.  Deferring the re-selection past that unwind with a
+       ;; zero-delay `run-at-time' — rather than embark's own private
+       ;; `embark--run-after-command', which does the same thing but isn't
+       ;; public API — lets focus land in the split after all.  `win' is
+       ;; passed as a timer argument instead of closed over so this holds
+       ;; regardless of lexical binding.
+       (run-at-time 0 nil #'select-window win))))
 
 (my/embark-define-split-command my/embark-find-file-right
                                 split-window-right find-file)
