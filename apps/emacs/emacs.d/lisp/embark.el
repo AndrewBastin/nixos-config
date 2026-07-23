@@ -60,4 +60,32 @@
 (keymap-set vertico-map "C-,"   #'embark-act-all)
 (keymap-set vertico-map "C-l"   #'embark-export)
 
+;;; Buffer candidates carry a major-mode suffix ----------------------------
+;; `my/consult-buffer-pair-with-mode' (completion.el) appends the buffer's
+;; major-mode name to the CANDIDATE STRING so the mode can be typed to filter.
+;; consult itself is unaffected — it keeps the real buffer object alongside —
+;; but embark acts on the string, so without this it would hand
+;; `switch-to-buffer' "foo.el  emacs-lisp-mode" and every buffer action would
+;; fail with "No buffer named …".
+;;
+;; The suffix is the only text in the candidate wearing the
+;; `completions-annotations' face, so trimming from the first character with
+;; that face recovers the bare name.  This is coupled to the face chosen in
+;; completion.el — change it there and this stops trimming silently.
+;;
+;; Scoped to the `buffer' type only.  Candidates from other buffer sources
+;; (plain `switch-to-buffer') have no faced run and pass through untouched.
+(defun my/embark--strip-annotation (string)
+  "Return STRING without a trailing `completions-annotations' run."
+  (let ((pos (text-property-any 0 (length string)
+                                'face 'completions-annotations string)))
+    (if pos (substring string 0 pos) string)))
+
+(defun my/embark-buffer-target-strip (type target)
+  "Return (TYPE . TARGET) with TARGET's annotation suffix removed."
+  (cons type (my/embark--strip-annotation target)))
+
+(setf (alist-get 'buffer embark-transformer-alist)
+      #'my/embark-buffer-target-strip)
+
 ;;; embark.el ends here
