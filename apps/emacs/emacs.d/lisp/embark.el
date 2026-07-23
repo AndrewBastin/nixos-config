@@ -75,6 +75,14 @@
 ;;
 ;; Scoped to the `buffer' type only.  Candidates from other buffer sources
 ;; (plain `switch-to-buffer') have no faced run and pass through untouched.
+;;
+;; Displaces the default `(buffer . embark--uniquify-orig-buffer)' (embark.el
+;; line 212).  The default returns the `uniquify-orig-buffer' text property's
+;; buffer-name when present, else the target unchanged.  Nothing sets that
+;; property on Emacs 30.2: only producer is `project--read-project-buffer',
+;; gated on `uniquify-get-unique-names' (absent here).  Even on Emacs 31, that
+;; producer reads with category `project-buffer', not `buffer'.  Replacement is
+;; safe; composing would guard a case nothing produces.
 (defun my/embark--strip-annotation (string)
   "Return STRING without a trailing `completions-annotations' run."
   (let ((pos (text-property-any 0 (length string)
