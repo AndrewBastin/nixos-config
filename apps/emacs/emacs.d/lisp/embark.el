@@ -96,4 +96,102 @@
 (setf (alist-get 'buffer embark-transformer-alist)
       #'my/embark-buffer-target-strip)
 
+;;; Open a candidate in a split -------------------------------------------
+;; fzf-lua parity: C-. then C-v opens the candidate in a vertical split (right),
+;; C-x in a horizontal one (below).
+;;
+;; fzf-lua uses C-s for the horizontal split; `embark-general-map' binds C-s to
+;; `embark-isearch-forward' and every action map inherits it.  Shadowing that in
+;; just these maps would have been cheap — it isearches the CURRENT buffer for
+;; the target's text, which is meaningless for a file path — but keeping
+;; `embark-isearch-forward' uniformly reachable was preferred over parity on the
+;; second key.  C-x it is.  (2/3 are not options: `embark-meta-map' binds every
+;; digit to `digit-argument'.)
+;;
+;; Embark's own `o' (find-file-other-window / switch-to-buffer-other-window)
+;; can't serve here: it defers to `split-window-sensibly', which picks the
+;; direction from `split-width-threshold' rather than letting us choose.
+;;
+;; Two wrapper shapes are needed, because embark invokes the two kinds of action
+;; differently:
+;;
+;;   - `find-file' / `switch-to-buffer' are interactive commands.  Embark
+;;     injects the target into their minibuffer prompt, so the wrapper must
+;;     `call-interactively' them — passing the target as an argument would
+;;     bypass the injection machinery.
+;;   - `embark-consult-goto-location' / `-goto-grep' are plain functions of one
+;;     argument.  Embark calls them with the target directly, so the wrapper
+;;     takes the same signature and must NOT be interactive.
+;;
+;; If the action errors or is aborted with C-g, the freshly created split is
+;; left behind.  Deliberate: it's one C-w c away, and unwinding it would mean
+;; wrapping every action in `condition-case' with window bookkeeping.
+
+(defmacro my/embark-define-split-command (name split fn)
+  "Define command NAME: split via SPLIT, select it, then `call-interactively' FN.
+For embark actions that are interactive commands taking their target
+through minibuffer injection."
+  `(defun ,name ()
+     ,(format "Split the window with `%s', then run `%s' there." split fn)
+     (interactive)
+     (select-window (,split))
+     (call-interactively #',fn)))
+
+(defmacro my/embark-define-split-jumper (name split fn)
+  "Define function NAME: split via SPLIT, select it, then call FN with the target.
+For embark actions that are plain one-argument functions."
+  `(defun ,name (target)
+     ,(format "Split the window with `%s', then `%s' TARGET there." split fn)
+     (select-window (,split))
+     (,fn target)))
+
+(my/embark-define-split-command my/embark-find-file-right
+                                split-window-right find-file)
+(my/embark-define-split-command my/embark-find-file-below
+                                split-window-below find-file)
+(my/embark-define-split-command my/embark-switch-buffer-right
+                                split-window-right switch-to-buffer)
+(my/embark-define-split-command my/embark-switch-buffer-below
+                                split-window-below switch-to-buffer)
+
+(my/embark-define-split-jumper my/embark-goto-location-right
+                               split-window-right embark-consult-goto-location)
+(my/embark-define-split-jumper my/embark-goto-location-below
+                               split-window-below embark-consult-goto-location)
+(my/embark-define-split-jumper my/embark-goto-grep-right
+                               split-window-right embark-consult-goto-grep)
+(my/embark-define-split-jumper my/embark-goto-grep-below
+                               split-window-below embark-consult-goto-grep)
+
+;; Files and buffers already have maps; these shadow the inherited general-map.
+(keymap-set embark-file-map   "C-v" #'my/embark-find-file-right)
+(keymap-set embark-file-map   "C-x" #'my/embark-find-file-below)
+(keymap-set embark-buffer-map "C-v" #'my/embark-switch-buffer-right)
+(keymap-set embark-buffer-map "C-x" #'my/embark-switch-buffer-below)
+
+;; consult's own categories have no `embark-keymap-alist' entry, so they fall
+;; back to `embark-general-map'.  The split keys must NOT go there: general-map
+;; is the parent of every action map, so C-v on a `symbol' or `kill-ring' target
+;; would call a location-jumper on a non-location and error.  Give each category
+;; its own map instead, inheriting general-map so all the ordinary actions stay.
+;;
+;; consult-line and consult-ripgrep are DIFFERENT categories with different
+;; jumpers (`consult--get-location' vs `consult--grep-position'), hence two maps.
+(defvar-keymap my/embark-consult-location-map
+  :doc "Embark actions for `consult-location' targets (SPC g l results)."
+  :parent embark-general-map
+  "C-v" #'my/embark-goto-location-right
+  "C-x" #'my/embark-goto-location-below)
+
+(defvar-keymap my/embark-consult-grep-map
+  :doc "Embark actions for `consult-grep' targets (SPC g p results)."
+  :parent embark-general-map
+  "C-v" #'my/embark-goto-grep-right
+  "C-x" #'my/embark-goto-grep-below)
+
+(setf (alist-get 'consult-location embark-keymap-alist)
+      '(my/embark-consult-location-map))
+(setf (alist-get 'consult-grep embark-keymap-alist)
+      '(my/embark-consult-grep-map))
+
 ;;; embark.el ends here
