@@ -18,11 +18,11 @@
 ;; absolute path).  Same arrangement as lisp/ghostel.el.
 
 (require 'embark)
-;; Must load after BOTH embark and consult: embark-consult is the glue that
-;; registers the exporters (`embark-exporters-alist') and consult's per-category
-;; default actions (`embark-default-action-overrides').  completion.el has
-;; already loaded consult by the time this file runs — see the module order in
-;; init.el.
+;; Must load after embark: embark-consult is the glue that registers the
+;; exporters (`embark-exporters-alist') and consult's per-category default
+;; actions (`embark-default-action-overrides').  It requires consult itself
+;; at its own top level, so it's self-sufficient regardless of whether
+;; consult has been loaded yet — no ordering dependency on completion.el here.
 (require 'embark-consult)
 
 ;; Preview in collect buffers needs no setup here: embark-consult appends

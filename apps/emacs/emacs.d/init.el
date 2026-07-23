@@ -4,8 +4,9 @@
 ;; load-path search and thus no shadowing of real package features (evil,
 ;; ghostel).  `my/config-dir' is the read-only store path captured in
 ;; early-init.el.  Order is significant: evil before modeline/keybindings,
-;; agent before ghostel (its shim splices `my/agent-shim-snippet'), ghostel
-;; before keybindings.
+;; completion before embark (embark.el modifies `vertico-map', which
+;; completion.el establishes), agent before ghostel (its shim splices
+;; `my/agent-shim-snippet'), ghostel before keybindings.
 (dolist (m '("defaults" "ui" "evil" "vc" "modeline" "completion" "embark" "ide" "markdown" "agent" "ghostel" "vc-watch" "diffview" "keybindings"))
   (load (expand-file-name (concat "lisp/" m) my/config-dir) nil t))
 
