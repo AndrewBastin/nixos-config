@@ -122,4 +122,36 @@ mistake there would silently drop them."
   (should (eq (lookup-key evil-normal-state-map (kbd "[d"))
               #'flymake-goto-prev-error)))
 
+(ert-deftest embark-test-leader-qq-and-ql-resolve ()
+  "<leader>qq and <leader>ql resolve to their commands, in batch.
+The task-4 brief claimed these were unverifiable outside an interactive
+session, reasoning from `(kbd \"SPC q q\")': that literal spelling really
+does return 1 from `lookup-key', because evil's SPC leader is a
+`menu-item' wired up in `evil.el' (a module this harness never loads),
+so \"1\" (\"needs more input\") is all you get.  But `(kbd \"<leader>qq\")'
+is a different animal: `<leader>' is evil's own pseudo-key syntax, and
+`kbd' turns it into the vector [leader ?q ?q].  `evil-define-key' binds
+that vector straight into `evil-normal-state-map' — no menu-item, no
+interactive dispatch involved — so `lookup-key' resolves it exactly as
+written, even under `-batch'."
+  (should (eq (lookup-key evil-normal-state-map (kbd "<leader>qq"))
+              #'my/quickfix-open))
+  (should (eq (lookup-key evil-normal-state-map (kbd "<leader>ql"))
+              #'next-error-select-buffer)))
+
+(ert-deftest embark-test-which-key-quickfix-group-label ()
+  "The \"SPC q\" which-key group is labelled \"quickfix\".
+`which-key-add-key-based-replacements' does not attach a label to qq/ql
+individually; it pushes one regexp-based entry onto
+`which-key-replacement-alist' per group, shaped like
+  ((\"\\\\`SPC q\\\\'\" . nil) . (nil . \"quickfix\"))
+\(see the function's body in which-key.el — Emacs 30.2's built-in
+which-key, confirmed by loading it directly rather than guessing\).
+Asserting on that exact shape, not merely that *some* entry survives,
+is what makes this test fail if the \"SPC q\" \"quickfix\" line is ever
+deleted from keybindings.el."
+  (let ((entry (assoc (cons "\\`SPC q\\'" nil) which-key-replacement-alist)))
+    (should entry)
+    (should (equal (cdr entry) (cons nil "quickfix")))))
+
 ;;; embark-test.el ends here
