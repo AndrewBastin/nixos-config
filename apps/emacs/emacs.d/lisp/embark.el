@@ -124,11 +124,16 @@
 ;;     takes the same signature and must NOT be interactive.
 ;;
 ;; If the action errors or is aborted with C-g, the freshly created split is
-;; left behind — inert, with focus still in the original window, since the
-;; jumper's deferred re-selection (below) is never scheduled once `FN' has
-;; signaled.  Deliberate: it's one C-w c away, and unwinding it would mean
-;; wrapping every action in `condition-case' with window bookkeeping.
+;; left behind — inert, with focus still in the original window.  Deliberate:
+;; it's one C-w c away, and guarding it would mean wrapping every action in
+;; `condition-case' with window bookkeeping.  (The two macros land back in the
+;; original window for different reasons — see each macro below.)
 
+;; On this macro's error path, focus stays in the original window because
+;; embark's own command-dispatch path only re-applies the freshly selected
+;; window via `final-window' on success (embark.el ~line 2178): the trailing
+;; `(unless (eq final-window action-window) (select-window final-window))' at
+;; ~2182-2183 is skipped as the signal from `FN' propagates.
 (defmacro my/embark-define-split-command (name split fn)
   "Define command NAME: split via SPLIT, select it, then `call-interactively' FN.
 For embark actions that are interactive commands taking their target
@@ -156,10 +161,13 @@ For embark actions that are plain one-argument functions."
        ;; returns.  Deferring the re-selection past that unwind with a
        ;; zero-delay `run-at-time' — rather than embark's own private
        ;; `embark--run-after-command', which does the same thing but isn't
-       ;; public API — lets focus land in the split after all.  `win' is
-       ;; passed as a timer argument instead of closed over so this holds
-       ;; regardless of lexical binding.
-       (run-at-time 0 nil #'select-window win))))
+       ;; public API — lets focus land in the split after all.  Wrapped in a
+       ;; closure that checks `window-live-p' — rather than passing
+       ;; `#'select-window' with `win' as a bare timer argument — so a window
+       ;; killed before the timer fires doesn't surface as an async
+       ;; `select-window' error in *Messages* with no visible connection to
+       ;; what the user did.
+       (run-at-time 0 nil (lambda () (when (window-live-p win) (select-window win)))))))
 
 (my/embark-define-split-command my/embark-find-file-right
                                 split-window-right find-file)
