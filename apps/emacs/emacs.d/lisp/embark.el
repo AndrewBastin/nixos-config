@@ -60,42 +60,6 @@
 (keymap-set vertico-map "C-,"   #'embark-act-all)
 (keymap-set vertico-map "C-l"   #'embark-export)
 
-;;; Buffer candidates carry a major-mode suffix ----------------------------
-;; `my/consult-buffer-pair-with-mode' (completion.el) appends the buffer's
-;; major-mode name to the CANDIDATE STRING so the mode can be typed to filter.
-;; consult itself is unaffected — it keeps the real buffer object alongside —
-;; but embark acts on the string, so without this it would hand
-;; `switch-to-buffer' "foo.el  emacs-lisp-mode" and every buffer action would
-;; fail with "No buffer named …".
-;;
-;; The suffix is the only text in the candidate wearing the
-;; `completions-annotations' face, so trimming from the first character with
-;; that face recovers the bare name.  This is coupled to the face chosen in
-;; completion.el — change it there and this stops trimming silently.
-;;
-;; Scoped to the `buffer' type only.  Candidates from other buffer sources
-;; (plain `switch-to-buffer') have no faced run and pass through untouched.
-;;
-;; Displaces the default `(buffer . embark--uniquify-orig-buffer)' (embark.el
-;; line 212).  The default returns the `uniquify-orig-buffer' text property's
-;; buffer-name when present, else the target unchanged.  Nothing sets that
-;; property on Emacs 30.2: only producer is `project--read-project-buffer',
-;; gated on `uniquify-get-unique-names' (absent here).  Even on Emacs 31, that
-;; producer reads with category `project-buffer', not `buffer'.  Replacement is
-;; safe; composing would guard a case nothing produces.
-(defun my/embark--strip-annotation (string)
-  "Return STRING without a trailing `completions-annotations' run."
-  (let ((pos (text-property-any 0 (length string)
-                                'face 'completions-annotations string)))
-    (if pos (substring string 0 pos) string)))
-
-(defun my/embark-buffer-target-strip (type target)
-  "Return (TYPE . TARGET) with TARGET's annotation suffix removed."
-  (cons type (my/embark--strip-annotation target)))
-
-(setf (alist-get 'buffer embark-transformer-alist)
-      #'my/embark-buffer-target-strip)
-
 ;;; Open a candidate in a split -------------------------------------------
 ;; fzf-lua parity: C-. then C-v opens the candidate in a vertical split (right),
 ;; C-x in a horizontal one (below).
@@ -145,29 +109,41 @@ through minibuffer injection."
      (call-interactively #',fn)))
 
 (defmacro my/embark-define-split-jumper (name split fn)
-  "Define function NAME: split via SPLIT, select it, then call FN with the target.
+  "Define function NAME: split via SPLIT, then show FN's jump target there.
 For embark actions that are plain one-argument functions."
   `(defun ,name (target)
-     ,(format "Split the window with `%s', then `%s' TARGET there." split fn)
+     ,(format "Split the window with `%s', then show `%s' TARGET there." split fn)
      (let ((win (,split)))
        (select-window win)
        (,fn target)
-       ;; embark's non-command dispatch path (`embark--act') calls this
-       ;; inside a plain `with-selected-window', not the command path's
-       ;; variant that captures `final-window' and re-applies it after
-       ;; unwinding.  Plain `with-selected-window' restores the window that
-       ;; was selected *before* the call once its body returns, so the
-       ;; `select-window' above is silently discarded the instant `,fn'
-       ;; returns.  Deferring the re-selection past that unwind with a
-       ;; zero-delay `run-at-time' — rather than embark's own private
-       ;; `embark--run-after-command', which does the same thing but isn't
-       ;; public API — lets focus land in the split after all.  Wrapped in a
-       ;; closure that checks `window-live-p' — rather than passing
-       ;; `#'select-window' with `win' as a bare timer argument — so a window
-       ;; killed before the timer fires doesn't surface as an async
-       ;; `select-window' error in *Messages* with no visible connection to
-       ;; what the user did.
-       (run-at-time 0 nil (lambda () (when (window-live-p win) (select-window win)))))))
+       ;; Capture where the jump actually landed, then force the split to show
+       ;; it.  Two things conspire to make this necessary:
+       ;;
+       ;;   1. `consult--jump' (what `,fn' ultimately calls) reuses an EXISTING
+       ;;      window if one already displays the target buffer, ignoring the
+       ;;      split we just made — so after `,fn' the split may still show the
+       ;;      old buffer while point sits in some other window.  Re-pointing
+       ;;      `win' at the buffer/position the jump reached (captured here,
+       ;;      synchronously) makes the split show the target either way.
+       ;;   2. embark's non-command dispatch (`embark--act') runs this inside a
+       ;;      plain `with-selected-window' — unlike the command path, it does
+       ;;      NOT capture and re-apply a `final-window', so it restores the
+       ;;      pre-call window the instant `,fn' returns and any `select-window'
+       ;;      here is discarded.  Deferring past that unwind with a zero-delay
+       ;;      `run-at-time' (not embark's private `embark--run-after-command')
+       ;;      lets focus actually land in the split.
+       ;;
+       ;; The `window-live-p' guard keeps a window killed before the timer fires
+       ;; from surfacing as an async `select-window' error in *Messages'.
+       (let ((buf (current-buffer))
+             (pos (point)))
+         (run-at-time
+          0 nil
+          (lambda ()
+            (when (window-live-p win)
+              (set-window-buffer win buf)
+              (set-window-point win pos)
+              (select-window win))))))))
 
 (my/embark-define-split-command my/embark-find-file-right
                                 split-window-right find-file)

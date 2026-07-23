@@ -13,59 +13,37 @@
 ;; "void-function vertico-mode".  Normal interactive startup does this for us.
 (package-initialize)
 
-;; completion.el first: embark.el modifies `vertico-map' and its transformer is
-;; tested against `my/consult-buffer-pair-with-mode', both of which live there.
-;; Paths are absolutised — `load' does not resolve relative names against
-;; `default-directory' when load-path is set explicitly, as it is in this build.
+;; completion.el first: embark.el modifies `vertico-map', which completion.el
+;; establishes.  Paths are absolutised — `load' does not resolve relative names
+;; against `default-directory' when load-path is set explicitly, as it is in
+;; this build.
 (defvar embark-test--root (or (getenv "REPO") default-directory))
 (load (expand-file-name "apps/emacs/emacs.d/lisp/completion.el" embark-test--root) nil t)
 (load (expand-file-name "apps/emacs/emacs.d/lisp/embark.el" embark-test--root) nil t)
 
-(defun embark-test--candidate (name mode)
-  "Build a consult-buffer candidate string the way completion.el does."
-  (concat name (propertize (concat "  " mode) 'face 'completions-annotations)))
+;; NOTE: the split-open actions in embark.el (my/embark-*-right / -below and the
+;; two consult keymaps) manipulate real windows and jump to real match
+;; positions, so they are exercised interactively (plan Task 5), not here.  The
+;; batch-checkable invariant those actions depend on — the interactive/plain
+;; split of the wrapper commands — is guarded by
+;; `embark-test-split-wrapper-arity' below.
 
-(ert-deftest embark-test-strip-annotation-removes-mode-suffix ()
-  "The appended major-mode name is removed, leaving the bare buffer name."
-  (should (equal (my/embark--strip-annotation
-                  (embark-test--candidate "foo.el" "emacs-lisp-mode"))
-                 "foo.el")))
-
-(ert-deftest embark-test-strip-annotation-preserves-plain-string ()
-  "A candidate with no annotation is returned unchanged.
-Buffer candidates from sources other than `my/consult-buffer-pair-with-mode'
-\(e.g. plain `switch-to-buffer') carry no annotation, and must survive intact."
-  (should (equal (my/embark--strip-annotation "*scratch*") "*scratch*")))
-
-(ert-deftest embark-test-strip-annotation-keeps-spaces-in-name ()
-  "Only the faced run is stripped, not ordinary spaces in the buffer name.
-Buffer names may legitimately contain spaces, so a naive split on \"  \"
-would corrupt them."
-  (should (equal (my/embark--strip-annotation
-                  (embark-test--candidate "my notes.org" "org-mode"))
-                 "my notes.org")))
-
-(ert-deftest embark-test-buffer-target-strip-returns-type-cons ()
-  "The transformer returns a (TYPE . STRIPPED) cons, as embark requires."
-  (should (equal (my/embark-buffer-target-strip
-                  'buffer (embark-test--candidate "foo.el" "emacs-lisp-mode"))
-                 '(buffer . "foo.el"))))
-
-(ert-deftest embark-test-transformer-is-registered ()
-  "The transformer is installed for the `buffer' type."
-  (should (eq (alist-get 'buffer embark-transformer-alist)
-              #'my/embark-buffer-target-strip)))
-
-(ert-deftest embark-test-real-candidate-round-trips-to-a-live-buffer ()
-  "A candidate built by the REAL completion.el function strips to a live buffer.
-This is the end-to-end guard: it catches drift between the face
-`my/consult-buffer-pair-with-mode' applies and the face the transformer
-trims, which no amount of synthetic-candidate testing would."
-  (let* ((cand (car (my/consult-buffer-pair-with-mode
-                     (get-buffer-create "*scratch*"))))
-         (stripped (cdr (my/embark-buffer-target-strip 'buffer cand))))
-    (should (equal stripped "*scratch*"))
-    (should (bufferp (get-buffer stripped)))))
+(ert-deftest embark-test-split-wrapper-arity ()
+  "The split wrappers keep the shapes embark's dispatch depends on.
+embark passes the target to a plain function but injects it into a command's
+minibuffer prompt, so the *jumpers* must be non-interactive one-arg functions
+and the *commands* must be zero-arg interactive commands.  Swap either and the
+action silently misfires — the target is lost or the wrong dispatch path runs.
+This is the load-bearing invariant flagged in the design; assert it so a future
+edit to the generating macros can't quietly break it."
+  (dolist (cmd '(my/embark-find-file-right my/embark-find-file-below
+                 my/embark-switch-buffer-right my/embark-switch-buffer-below))
+    (should (commandp cmd))
+    (should (equal (func-arity (symbol-function cmd)) '(0 . 0))))
+  (dolist (fn '(my/embark-goto-location-right my/embark-goto-location-below
+                my/embark-goto-grep-right my/embark-goto-grep-below))
+    (should-not (commandp fn))
+    (should (equal (func-arity (symbol-function fn)) '(1 . 1)))))
 
 ;;; my/quickfix-open ------------------------------------------------------
 ;; keybindings.el needs evil loaded before it (it calls `evil-define-key' at
@@ -106,10 +84,9 @@ propagate that as a stack trace."
       (should (equal messaged "No error list to open")))))
 
 (ert-deftest embark-test-bracket-q-walks-the-error-list ()
-  "]q and [q are bound in evil normal state.
-Only the bracket motions are checkable in batch; `<leader>' keys resolve
-through evil's leader mechanism and `lookup-key' returns 1 for them, so
-SPC q q / SPC q l are verified interactively instead."
+  "]q and [q are bound to next-error / previous-error in evil normal state.
+The leader keys SPC q q / SPC q l are covered separately by
+`embark-test-leader-qq-and-ql-resolve' below."
   (should (eq (lookup-key evil-normal-state-map (kbd "]q")) #'next-error))
   (should (eq (lookup-key evil-normal-state-map (kbd "[q")) #'previous-error)))
 
