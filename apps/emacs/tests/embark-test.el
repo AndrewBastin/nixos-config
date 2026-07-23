@@ -67,4 +67,59 @@ trims, which no amount of synthetic-candidate testing would."
     (should (equal stripped "*scratch*"))
     (should (bufferp (get-buffer stripped)))))
 
+;;; my/quickfix-open ------------------------------------------------------
+;; keybindings.el needs evil loaded before it (it calls `evil-define-key' at
+;; top level), so require it first — same pattern as vc-test.el requiring
+;; ghostel up front.  Everything else it references (my/neotree-toggle,
+;; eglot-…) appears only as a binding target, never called at load time, so
+;; those staying undefined here is harmless.
+(require 'evil)
+(load (expand-file-name "apps/emacs/emacs.d/lisp/keybindings.el"
+                        embark-test--root)
+      nil t)
+
+(ert-deftest embark-test-quickfix-open-pops-to-error-buffer ()
+  "When an error list exists, pop to it."
+  (let* ((target (generate-new-buffer "*test-grep*"))
+         (popped nil))
+    (unwind-protect
+        (cl-letf (((symbol-function 'next-error-find-buffer)
+                   (lambda (&rest _) target))
+                  ((symbol-function 'pop-to-buffer)
+                   (lambda (buf &rest _) (setq popped buf))))
+          (my/quickfix-open)
+          (should (eq popped target)))
+      (kill-buffer target))))
+
+(ert-deftest embark-test-quickfix-open-reports-when-absent ()
+  "With no error list, report it rather than signalling.
+`next-error-find-buffer' errors when nothing qualifies; SPC q q must not
+propagate that as a stack trace."
+  (let ((messaged nil))
+    (cl-letf (((symbol-function 'next-error-find-buffer)
+               (lambda (&rest _) (error "No buffers contain error message locations")))
+              ((symbol-function 'pop-to-buffer)
+               (lambda (&rest _) (error "should not be called")))
+              ((symbol-function 'message)
+               (lambda (fmt &rest args) (setq messaged (apply #'format fmt args)))))
+      (my/quickfix-open)
+      (should (equal messaged "No error list to open")))))
+
+(ert-deftest embark-test-bracket-q-walks-the-error-list ()
+  "]q and [q are bound in evil normal state.
+Only the bracket motions are checkable in batch; `<leader>' keys resolve
+through evil's leader mechanism and `lookup-key' returns 1 for them, so
+SPC q q / SPC q l are verified interactively instead."
+  (should (eq (lookup-key evil-normal-state-map (kbd "]q")) #'next-error))
+  (should (eq (lookup-key evil-normal-state-map (kbd "[q")) #'previous-error)))
+
+(ert-deftest embark-test-bracket-d-still-bound ()
+  "The pre-existing ]d/[d diagnostics motions survive the edit.
+They are rewritten in the same `evil-define-key' form as ]q/[q, so a
+mistake there would silently drop them."
+  (should (eq (lookup-key evil-normal-state-map (kbd "]d"))
+              #'flymake-goto-next-error))
+  (should (eq (lookup-key evil-normal-state-map (kbd "[d"))
+              #'flymake-goto-prev-error)))
+
 ;;; embark-test.el ends here

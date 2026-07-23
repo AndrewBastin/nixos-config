@@ -31,15 +31,39 @@
   (kbd "<leader>xd")       #'flymake-show-buffer-diagnostics
   (kbd "<leader>xn")       #'flymake-goto-next-error
   (kbd "<leader>xp")       #'flymake-goto-prev-error
+  (kbd "<leader>qq")       #'my/quickfix-open        ; :copen (reopen the error list)
+  (kbd "<leader>ql")       #'next-error-select-buffer ; :colder/:cnewer (pick the list)
   ;; Extra (not in nvim): Emacs's own help system, handy while learning.
   (kbd "<leader>hf")       #'describe-function
   (kbd "<leader>hv")       #'describe-variable
   (kbd "<leader>hk")       #'describe-key)
 
-;; mini.bracketed parity (nvim): ]d / [d jump to the next/previous diagnostic.
+;; mini.bracketed parity (nvim): ]d / [d jump to the next/previous diagnostic,
+;; ]q / [q walk the current error list (see `my/quickfix-open' below).
 (evil-define-key 'normal 'global
   (kbd "]d") #'flymake-goto-next-error
-  (kbd "[d") #'flymake-goto-prev-error)
+  (kbd "[d") #'flymake-goto-prev-error
+  (kbd "]q") #'next-error
+  (kbd "[q") #'previous-error)
+
+;; --- Quickfix list ------------------------------------------------------
+;; Emacs has no single global quickfix list.  Instead `next-error' is a
+;; protocol: any buffer implementing it (grep, occur, xref, flymake diagnostics,
+;; compilation) IS the current error list.  `embark-export' — C-l in the
+;; minibuffer, see lisp/embark.el — is what produces those buffers from a
+;; consult session, so together these keys are nvim's :copen / ]q / [q.
+;;
+;; No accumulating stack (:cadd) and no location list (:lopen): Emacs makes a
+;; fresh results buffer per search, and `next-error-select-buffer' below is the
+;; manual stand-in for :colder/:cnewer when several are alive at once.
+(defun my/quickfix-open ()
+  "Pop to the buffer `next-error' is currently walking (nvim's `:copen').
+That is the buffer \\[next-error] and \\[previous-error] step through: the
+most recent grep / occur / xref / flymake results.  `next-error-find-buffer'
+signals when nothing qualifies, so report that instead of erroring out."
+  (interactive)
+  (let ((buf (ignore-errors (next-error-find-buffer))))
+    (if buf (pop-to-buffer buf) (message "No error list to open"))))
 
 ;; mini.comment parity: <leader>cc comments the line / the visual selection,
 ;; coexisting with the <leader>ca/cr/cf code keys just like in nvim.  Only
@@ -146,6 +170,7 @@
     "SPC G"   "git"
     "SPC G d" "diffview"
     "SPC x"   "diagnostics"
+    "SPC q"   "quickfix"
     "SPC h"   "help"
     "SPC t"   "terminal"))
 
