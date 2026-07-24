@@ -184,9 +184,11 @@ current directory plus the foreground program when one is running, e.g.
 ;; output.  And since reaching for the wheel is itself a "let me look back"
 ;; gesture, scrolling up drops you into normal state automatically.
 ;;
-;; All three are gated on `evil-ghostel--active-p' (a live shell prompt:
+;; All three are gated on `evil-ghostel--prompt-active-p' (a live shell prompt:
 ;; semi-char input mode, not an alt-screen TUI), so vim/htop and friends are
 ;; untouched — normal state and the wheel keep behaving as they do today there.
+
+(declare-function evil-ghostel--prompt-active-p "evil-ghostel")
 
 (defun my/ghostel-browse-on-normal ()
   "Enter ghostel's read-only `emacs' input mode on evil normal-state entry.
@@ -195,7 +197,7 @@ stops yanking the viewport to the bottom, so paging through scrollback stays
 put.  Insert state restores the live following mode (`my/ghostel-follow-on-insert').
 The entry message is suppressed since this fires on every drop to normal — the
 `:Emacs' mode-line tag is indication enough."
-  (when (evil-ghostel--active-p)
+  (when (evil-ghostel--prompt-active-p)
     (let ((inhibit-message t))
       (ghostel-emacs-mode))))
 
@@ -233,7 +235,7 @@ snaps back on the next redraw.  Skips terminals tracking the mouse (TUIs like
 vim/htop), where the wheel must reach the program.  EVENT is the wheel event;
 run in the event's own buffer the way ghostel's own scroll intercept does."
   (with-current-buffer (window-buffer (posn-window (event-start event)))
-    (when (and (evil-ghostel--active-p)
+    (when (and (evil-ghostel--prompt-active-p)
                (evil-insert-state-p)
                (not (my/ghostel--mouse-tracking-active-p)))
       (evil-normal-state))))
