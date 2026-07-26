@@ -30,7 +30,7 @@
   fetchFromGitHub,
   emacsPackages,
   stdenv,
-  zig_0_15,
+  zig_0_16,
   emacs,
   xcbuild,
   # nixpkgs' Darwin SDK: xcbuild alone lacks an SDK, so libghostty's build.zig
@@ -42,16 +42,16 @@
 
 let
   inherit (emacsPackages) melpaBuild;
-  zig = zig_0_15;
+  zig = zig_0_16;
 
   pname = "ghostel";
-  version = "0.45.0";
+  version = "0.46.0";
 
   src = fetchFromGitHub {
     owner = "dakra";
     repo = "ghostel";
     rev = "v${version}";
-    hash = "sha256-SY8tF7KqhlP49lgCvwH6TbVbeY+/gWryK2HVLWoqbpA=";
+    hash = "sha256-AjLBkIVqt9+ijj0mPI4k0w8UTzg5fkHmoNscjoYOzDI=";
   };
 
   libExt = stdenv.hostPlatform.extensions.sharedLibrary;
@@ -67,7 +67,7 @@ let
       inherit (finalAttrs) src pname version;
       fetchAll = true;
       # Vendored Zig dependency set; refreshed alongside `src' by ./update.sh.
-      hash = "sha256-yrVgiofdmVjTGJ+PGPGRCc8gb/JcEca1uAzIoPgHHqU=";
+      hash = "sha256-NcNp0FnMy6FfZ63+pwiTRCmJ8FIovJEOhNvxVr1+uSQ=";
     };
 
     nativeBuildInputs = [ zig ] ++ lib.optionals stdenv.hostPlatform.isDarwin [ xcbuild ];
