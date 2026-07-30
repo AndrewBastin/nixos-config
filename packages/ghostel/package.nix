@@ -45,13 +45,13 @@ let
   zig = zig_0_16;
 
   pname = "ghostel";
-  version = "0.46.0";
+  version = "0.48.0";
 
   src = fetchFromGitHub {
     owner = "dakra";
     repo = "ghostel";
     rev = "v${version}";
-    hash = "sha256-AjLBkIVqt9+ijj0mPI4k0w8UTzg5fkHmoNscjoYOzDI=";
+    hash = "sha256-upIcL4wf2zAc3/3QeERF619nSDml2wEZCOl6/XOaT3E=";
   };
 
   libExt = stdenv.hostPlatform.extensions.sharedLibrary;
