@@ -161,6 +161,33 @@ signals when nothing qualifies, so report that instead of erroring out."
     (kbd "H")         #'neotree-hidden-file-toggle     ; toggle_hidden (dotfiles)
     (kbd "q")         #'neotree-hide))                 ; close_window
 
+;; --- TAB inserts indentation, like vim ----------------------------------
+;; Emacs binds TAB to `indent-for-tab-command', which re-runs the major mode's
+;; indenter instead of inserting anything: the press does nothing whenever the
+;; mode computes the column the line already sits on, and snaps the line back
+;; whenever the mode disagrees — which tree-sitter modes do freely while an
+;; expression is still half-typed and parses as an ERROR node.  vim's TAB just
+;; inserts a tabstop, so do that in insert state.  The mode's indenter is still
+;; a keypress away: `==' / `=' (evil's indent operator) and RET's auto-indent.
+;;
+;; Evil's state maps outrank corfu's (`emulation-mode-map-alists' is consulted
+;; before the `minor-mode-overriding-map-alist' entry corfu binds TAB in), so
+;; this has to hand TAB back while the completion popup is up.
+(defun my/insert-tab ()
+  "Complete if the corfu popup is open, else insert one tabstop of indentation."
+  (interactive)
+  (if (bound-and-true-p completion-in-region-mode)
+      (corfu-complete)
+    (insert-tab)))
+
+;; Bound per keymap rather than in `evil-insert-state-map', which would apply
+;; everywhere insert state does: org and markdown want TAB for their own
+;; cycling, and terminals want it for shell completion.  `prog-mode-map' covers
+;; every code mode by inheritance; yaml derives from `text-mode' and so needs
+;; naming, and is the mode whose indenter fights hand-written nesting hardest.
+(evil-define-key 'insert prog-mode-map      (kbd "TAB") #'my/insert-tab)
+(evil-define-key 'insert yaml-ts-mode-map   (kbd "TAB") #'my/insert-tab)
+
 ;; Name the which-key groups so the SPC menu reads nicely.
 (with-eval-after-load 'which-key
   (which-key-add-key-based-replacements
