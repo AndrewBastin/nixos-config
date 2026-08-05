@@ -1,3 +1,29 @@
+let
+  # Every Syncthing device in the mesh, by name. Machines pick the peers they
+  # want out of this with `inherit`, and never list themselves — Syncthing
+  # knows its own identity.
+  #
+  # Addresses are static Tailscale IPs because the mesh runs with every
+  # discovery mechanism disabled (see ../modules/syncthing), so a peer with no
+  # address is a peer that is never dialed. A machine's ID comes from its own
+  # Syncthing → Actions → Show ID after its first deploy; the hub half of each
+  # pairing lives in ~/serie/containers/syncthing.nix.
+  syncthingDevices = {
+    serie = {
+      id = "O2JGCFL-XXYT5P5-VNF2G2E-B4XVRKJ-XRXBK5S-NTYIGK2-FA7SXMH-3WLROQB";
+      addresses = [ "tcp://100.109.70.82:22000" ];
+    };
+
+    fern = {
+      id = "7YIIAWR-EXMJHKC-JTN5ZD7-QUW4L24-B6BFOZS-JN7LQTH-UZAEUPN-4CPQ4AQ";
+      addresses = [ "tcp://100.100.128.123:22000" ];
+    };
+  };
+
+  # Machines take this list minus themselves; folders stay spelled out per
+  # machine below. Syncthing authorization is mutual, so a peer only actually
+  # connects once it lists this machine back 
+in
 {
   uwu = {
     system = "aarch64-darwin";
@@ -34,6 +60,7 @@
       ./winry/modules/homebrew.nix
       ./winry/modules/machine-home.nix
       ../modules/tailscale
+      ../modules/syncthing
     ];
 
     config = {
@@ -44,6 +71,15 @@
 
       tailscale.ssh = true;
       tailscale.splitDnsDomains = [ "serie" ];
+
+      syncthing = {
+        devices = removeAttrs syncthingDevices [ "winry" ];
+
+        folders.projects = {
+          path = "~/Projects";
+          devices = [ "fern" "serie" ];
+        };
+      };
 
       dev-essentials.emacs = true;
 
@@ -112,6 +148,15 @@
 
       tailscale.ssh = true;
 
+      syncthing = {
+        devices = removeAttrs syncthingDevices [ "fern" ];
+
+        folders.projects = {
+          path = "~/Projects";
+          devices = [ "serie" ];
+        };
+      };
+
       andrew-shell = {
         monitorRules = [
           # Built in monitor - Default configs with a 1.6 scale
@@ -139,6 +184,7 @@
       ../modules/dev-essentials
       ../modules/andrew-shell
       ../modules/tailscale
+      ../modules/syncthing
       ./fern/modules/fern-stuff.nix
     ];
 
