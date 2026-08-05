@@ -18,6 +18,11 @@ let
       id = "7YIIAWR-EXMJHKC-JTN5ZD7-QUW4L24-B6BFOZS-JN7LQTH-UZAEUPN-4CPQ4AQ";
       addresses = [ "tcp://100.100.128.123:22000" ];
     };
+
+    winry = {
+      id = "WYUNEF3-N4DIVEP-6R7B6OG-34ZCKYK-S6MWPNT-VC4LAYT-F6H3NZE-LAZJYAZ";
+      addresses = [ "tcp://100.107.146.67:22000" ];
+    };
   };
 
   # Machines take this list minus themselves; folders stay spelled out per
@@ -153,7 +158,7 @@ in
 
         folders.projects = {
           path = "~/Projects";
-          devices = [ "serie" ];
+          devices = [ "serie" "winry" ];
         };
       };
 
