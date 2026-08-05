@@ -77,6 +77,22 @@
       ignorePatterns = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [
+          "// Machine-local additions, hand-maintained per folder root. Included"
+          "// first so a `!path` line there can override the general patterns"
+          "// below — Syncthing takes the first matching pattern."
+          "//"
+          "// The activation script creates this file empty when absent, and that"
+          "// is load-bearing: an #include whose target is missing is not skipped,"
+          "// it fails the whole ignore file (\"parse error: failed to load"
+          "// include file\") and Syncthing then scans the entire tree with zero"
+          "// patterns applied."
+          "//"
+          "// Ignored from syncing on purpose: it is per-machine, and an empty"
+          "// copy created here meeting a populated copy from a peer is a"
+          "// guaranteed sync conflict. Copy it by hand to share patterns."
+          "#include .stignore-local"
+          ".stignore-local"
+          ""
           "// Build output and dependency trees"
           "node_modules"
           ".pnpm-store"
@@ -180,11 +196,20 @@
       # symlinked .stignore fails to load with ELOOP ("too many levels of
       # symbolic links") and the folder then scans nothing at all. The file is
       # overwritten on every activation, so editing it by hand does not stick.
+      # .stignore-local is created before .stignore, never after: .stignore
+      # carries an `#include .stignore-local`, and Syncthing treats a missing
+      # include target as a fatal parse error that discards every pattern. The
+      # `[ -e ]` guard is what keeps it hand-editable — an unconditional install
+      # or touch would either truncate it or churn its mtime on every
+      # activation.
       home.activation.syncthingIgnores = lib.hm.dag.entryAfter [ "linkGeneration" ] (
         lib.concatMapStringsSep "\n"
-          (folder: ''
-            run install -Dm644 ${stignore} "$HOME/${lib.removePrefix "~/" folder.path}/.stignore"
-          '')
+          (folder:
+            let root = ''$HOME/${lib.removePrefix "~/" folder.path}''; in
+            ''
+              [ -e "${root}/.stignore-local" ] || run install -Dm644 /dev/null "${root}/.stignore-local"
+              run install -Dm644 ${stignore} "${root}/.stignore"
+            '')
           (lib.attrValues folders)
       );
     };
