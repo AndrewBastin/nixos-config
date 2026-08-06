@@ -127,10 +127,6 @@
 
       llm-agents = inputs.llm-agents.packages."${pkgs.stdenv.system}";
 
-      maniyan = pkgs.callPackage ../../apps/maniyan {
-        pi = llm-agents.pi;
-      };
-
       # AI tool skills: combine built-in skill packages with any additional ones from config
       builtinSkills = let
         skillDir = ./ai/skills;
@@ -265,8 +261,6 @@
           llm-agents.claude-code
           llm-agents.amp
           llm-agents.codex
-
-          maniyan
         ] ++ pkgs.lib.optional
           (universalConfig.dev-essentials.emacs or false) my_emacs;
 

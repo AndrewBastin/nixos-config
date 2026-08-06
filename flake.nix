@@ -68,7 +68,8 @@
           {
             packages =
               let
-                packageDirs = builtins.attrNames (builtins.readDir ./packages);
+                packageDirs = builtins.attrNames
+                  (nixpkgs.lib.filterAttrs (_: type: type == "directory") (builtins.readDir ./packages));
                 autoPackages = builtins.listToAttrs (map (name: {
                   inherit name;
                   value = pkgs.callPackage ./packages/${name}/package.nix {};
@@ -87,10 +88,6 @@
                   pkgs = pkgs-unstable;
                 };
 
-                maniyan = pkgs.callPackage ./apps/maniyan {
-                  pi = inputs.llm-agents.packages.${system}.pi;
-                };
-
                 emacs = import ./apps/emacs {
                   pkgs = pkgs-unstable;
                 };
@@ -101,12 +98,6 @@
                 drv = self.packages.${system}.nvim;
                 name = "nvim";
                 exePath = "/bin/nvim";
-              };
-
-              maniyan = flake-utils.lib.mkApp {
-                drv = self.packages.${system}.maniyan;
-                name = "maniyan";
-                exePath = "/bin/maniyan";
               };
             };
 

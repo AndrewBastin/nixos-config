@@ -1,12 +1,12 @@
 # Claude Code Plugins
 
-Plugin packages in this directory are automatically discovered and loaded for Claude Code via `--plugin-dir` flags on the `maniyan` shell alias.
+Plugin packages in this directory are automatically discovered and loaded for Claude Code via `--plugin-dir` flags on the `clod` and `migu` shell aliases.
 
 ## How it works
 
 Every `.nix` file in this directory is auto-discovered at evaluation time and resolved via `pkgs.callPackage`. Each must return a path or derivation that is a valid Claude Code plugin directory (containing `.claude-plugin/plugin.json` or equivalent manifest).
 
-The resolved plugin paths are injected as `--plugin-dir` flags into the `maniyan` shell alias. The `claude` binary itself is left unwrapped — plugins are exclusive to `maniyan`.
+The resolved plugin paths are injected as `--plugin-dir` flags into the `clod` and `migu` shell aliases (`migu` is the same thing against `CLAUDE_CONFIG_DIR=$HOME/.claude-migu`). The `claude` binary itself is left unwrapped — plugins are exclusive to those aliases.
 
 ## Adding a built-in plugin
 
