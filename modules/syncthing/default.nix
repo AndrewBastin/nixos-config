@@ -77,22 +77,6 @@
       ignorePatterns = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [
-          "// Machine-local additions, hand-maintained per folder root. Included"
-          "// first so a `!path` line there can override the general patterns"
-          "// below — Syncthing takes the first matching pattern."
-          "//"
-          "// The activation script creates this file empty when absent, and that"
-          "// is load-bearing: an #include whose target is missing is not skipped,"
-          "// it fails the whole ignore file (\"parse error: failed to load"
-          "// include file\") and Syncthing then scans the entire tree with zero"
-          "// patterns applied."
-          "//"
-          "// Ignored from syncing on purpose: it is per-machine, and an empty"
-          "// copy created here meeting a populated copy from a peer is a"
-          "// guaranteed sync conflict. Copy it by hand to share patterns."
-          "#include .stignore-local"
-          ".stignore-local"
-          ""
           "// Build output and dependency trees"
           "node_modules"
           ".pnpm-store"
@@ -130,6 +114,11 @@
           code: hundreds of thousands of small files, endless rescans, and
           half of it is machine-local anyway.
 
+          Patterns that should not live in this repo — anything naming private
+          or work paths — go in the folder root's hand-maintained
+          .stignore-local instead, which syncs between machines as an ordinary
+          file and is included ahead of these.
+
           A pattern without a slash matches at any depth, so `build` and `dist`
           will also hit a source directory that happens to be named that.
           Un-ignore those case by case with a `!some/path/build` line above the
@@ -143,7 +132,12 @@
     let
       cfg = universalConfig.syncthing or { };
       folders = cfg.folders or { };
-      stignore = pkgs.writeText "stignore" (lib.concatLines (cfg.ignorePatterns or [ ]));
+      patterns = lib.concatLines (cfg.ignorePatterns or [ ]);
+      stignore = pkgs.writeText "stignore" patterns;
+
+      # The include goes first so a `!path` line in .stignore-local can override
+      # a general pattern below it — Syncthing takes the first match.
+      stignoreWithLocal = pkgs.writeText "stignore" ("#include .stignore-local\n" + patterns);
     in
     {
       assertions = lib.mapAttrsToList (name: folder: {
@@ -196,19 +190,28 @@
       # symlinked .stignore fails to load with ELOOP ("too many levels of
       # symbolic links") and the folder then scans nothing at all. The file is
       # overwritten on every activation, so editing it by hand does not stick.
-      # .stignore-local is created before .stignore, never after: .stignore
-      # carries an `#include .stignore-local`, and Syncthing treats a missing
-      # include target as a fatal parse error that discards every pattern. The
-      # `[ -e ]` guard is what keeps it hand-editable — an unconditional install
-      # or touch would either truncate it or churn its mtime on every
-      # activation.
+      #
+      # Patterns that must not live in this repo go in .stignore-local at the
+      # folder root, which is an ordinary synced file — no ignore rule excludes
+      # it, so Syncthing carries it between machines like any other.
+      #
+      # Nothing here creates it, and that is deliberate. Syncthing treats a
+      # missing #include target as a fatal parse error that discards every
+      # pattern, so the include is written only when the file is already there;
+      # a machine that auto-created an empty copy would be offering a competing
+      # version of a synced file, and a fresh empty one can win the conflict and
+      # wipe the patterns mesh-wide. A machine that has not received the file
+      # yet runs on the patterns below until the next activation picks it up.
       home.activation.syncthingIgnores = lib.hm.dag.entryAfter [ "linkGeneration" ] (
         lib.concatMapStringsSep "\n"
           (folder:
             let root = ''$HOME/${lib.removePrefix "~/" folder.path}''; in
             ''
-              [ -e "${root}/.stignore-local" ] || run install -Dm644 /dev/null "${root}/.stignore-local"
-              run install -Dm644 ${stignore} "${root}/.stignore"
+              if [ -e "${root}/.stignore-local" ]; then
+                run install -Dm644 ${stignoreWithLocal} "${root}/.stignore"
+              else
+                run install -Dm644 ${stignore} "${root}/.stignore"
+              fi
             '')
           (lib.attrValues folders)
       );
