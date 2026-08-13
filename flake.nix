@@ -91,6 +91,12 @@
                 emacs = import ./apps/emacs {
                   pkgs = pkgs-unstable;
                 };
+
+                # Same derivation dev-essentials installs; exported so it can be
+                # built and run without rebuilding a whole machine config.
+                muru = pkgs.callPackage ./apps/muru {
+                  pi = inputs.llm-agents.packages.${system}.pi;
+                };
               };
 
             apps = {

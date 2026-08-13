@@ -3,7 +3,7 @@
 # Provides essential development tools and shell configuration.
 #
 # What this module does:
-# - Installs core development tools (gh, tig, nodejs, bat, claude-code, amp, codex)
+# - Installs core development tools (gh, tig, nodejs, bat, claude-code, amp, codex, pi)
 # - Builds and includes custom Neovim configuration via nixvim
 # - Configures git with user info and difftastic integration
 # - Sets up enhanced shell experience (zsh, fzf, zoxide)
@@ -11,6 +11,7 @@
 # - Provides consistent shell aliases and environment variables
 # - Manages AI tool skills (Claude Code + Amp) declaratively
 # - Manages Claude Code plugins declaratively via shell aliases
+# - Provides muru: pi with extensions baked in, configured entirely from the store
 #
 # Imports: ../kitty (terminal emulator)
 #
@@ -261,6 +262,12 @@
           llm-agents.claude-code
           llm-agents.amp
           llm-agents.codex
+
+          # Bare pi, plus muru — pi with our extensions baked in. Bare pi is left
+          # unwrapped on purpose, the same way `claude` is; configuration rides on
+          # muru only.
+          llm-agents.pi
+          (pkgs.callPackage ../../apps/muru { pi = llm-agents.pi; })
         ] ++ pkgs.lib.optional
           (universalConfig.dev-essentials.emacs or false) my_emacs;
 
