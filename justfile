@@ -12,7 +12,7 @@ bump:
     fi
 
     # Skip packages that opt out of auto-updates (e.g. requireFile-based packages)
-    if nix eval --raw ".#packages.${system}.${name}.passthru.skipAutoUpdate" 2>/dev/null | grep -q "true"; then
+    if nix eval ".#packages.${system}.${name}.passthru.skipAutoUpdate" 2>/dev/null | grep -q "true"; then
       echo "Skipping $name (skipAutoUpdate=true)"
       continue
     fi
