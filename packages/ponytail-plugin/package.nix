@@ -20,18 +20,19 @@ stdenvNoCC.mkDerivation {
   dontBuild = true;
 
   # Upstream ships the same ruleset for a dozen different agents. We only need
-  # the Claude Code plugin surface (.claude-plugin + hooks + skills + commands);
-  # everything else is either another agent's packaging (.cursor, .windsurf,
-  # .opencode, …) or repo scaffolding. The hooks are pure node scripts that write
-  # their state to $CLAUDE_CONFIG_DIR / ~/.config/ponytail, never back into the
-  # plugin root, so running them from the read-only store is fine.
+  # the Claude Code plugin surface (.claude-plugin + hooks + skills + commands)
+  # and the pi extension surface (pi-extension + hooks + skills); everything else
+  # is either another agent's packaging (.cursor, .windsurf, .opencode, …) or
+  # repo scaffolding. The hooks are pure node scripts that write their state to
+  # $CLAUDE_CONFIG_DIR / ~/.config/ponytail, never back into the plugin root, so
+  # running them from the read-only store is fine.
   installPhase = ''
     runHook preInstall
     cp -r . $out
     rm -rf $out/.git $out/.github $out/tests $out/benchmarks $out/docs \
            $out/.cursor $out/.windsurf $out/.kiro $out/.clinerules \
            $out/.qoder $out/.qoder-plugin $out/.opencode $out/.openclaw \
-           $out/.devin-plugin $out/pi-extension $out/ponytail-mcp $out/scripts
+           $out/.devin-plugin $out/ponytail-mcp $out/scripts
     runHook postInstall
   '';
 
