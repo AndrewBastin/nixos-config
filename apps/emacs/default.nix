@@ -34,6 +34,17 @@ let
         emacsPackages = epkgs;
         inherit emacs;
       };
+
+      # vc-jj from codeberg main (see packages/vc-jj for why), NOT
+      # `epkgs.elpaPackages.vc-jj': the ELPA release is stuck at 0.5, whose
+      # `vc-jj--process-lines' signature predates the one MELPA rolling diff-hl
+      # calls it with — that mismatch is the diff-hl `(wrong-type-argument
+      # stringp nil)' crash in jj repos.  lisp/vc.el's modeline code calls the
+      # same function and is updated to the new `(file-or-list &rest args)'
+      # convention alongside.
+      vc-jj = pkgs.callPackage ../../packages/vc-jj/package.nix {
+        emacsPackages = epkgs;
+      };
     in [
     epkgs.melpaPackages.evil
     # evil-collection: consistent vim-style bindings across ~150 special-mode
@@ -134,8 +145,9 @@ let
     # lisp/vc.el) puts `JJ' ahead of `Git' in `vc-handled-backends', so in a
     # colocated jj repo `vc-mode' reports the jj change-id instead of git's
     # detached-HEAD hash — which is what the modeline's VC segment renders.
-    # Also gives vc-diff / vc-log / vc-annotate on jj repos for free.
-    epkgs.elpaPackages.vc-jj
+    # Also gives vc-diff / vc-log / vc-annotate on jj repos for free.  Built
+    # from codeberg main (see the `vc-jj' binding above), not the ELPA release.
+    vc-jj
 
     # Per-project environment via direnv. `envrc` applies each project's direnv
     # env buffer-locally so eglot's subprocesses (rust-analyzer, etc.) inherit

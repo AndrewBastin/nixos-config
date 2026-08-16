@@ -23,11 +23,13 @@ STYLED is the 8-char change-id with its shortest unique prefix highlighted
 \(`my/ml--jj-styled-changeid'); TIP is the \"Current change: <full> (<desc>)\"
 tooltip tail.  One `jj log' call; nil on any error or empty output.
 `vc-jj--process-lines' discards stderr, so jj's snapshot warnings can't corrupt
-the fields."
+the fields.  The leading nil is the FILE-OR-LIST arg of the current (codeberg
+main) `(file-or-list &rest args)' signature — pass nil for repo-root-relative
+runs like this one; the ELPA 0.5 signature had no such argument at all."
   (ignore-errors
     (let* ((default-directory dir)
            (out (vc-jj--process-lines
-                 "log" "--no-graph" "-r" "@" "-T"
+                 nil "log" "--no-graph" "-r" "@" "-T"
                  (concat "change_id.shortest(8).prefix() ++ \"\\n\" ++ "
                          "change_id.shortest(8).rest() ++ \"\\n\" ++ "
                          "change_id ++ \"\\n\" ++ "
