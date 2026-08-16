@@ -90,10 +90,14 @@ Injected into agent CLIs by the ghostel shell shim via `my/agent-shim-snippet'."
    "You are running inside the user's Emacs session, in an embedded terminal. "
    "You can drive that Emacs through its server socket:\n"
    "  emacsclient -e '<elisp>'\n"
-   "($EMACS_SOCKET_NAME is preset, so no flags are needed.) Conventions: pass "
-   "absolute paths (Emacs's working directory differs from this shell's); "
-   "results print as elisp data; keep evals short and non-blocking; never "
-   "steal the user's focus. Preferred entry points:\n\n"
+   "($EMACS_SOCKET_NAME is preset, so no flags are needed.)\n\n"
+   "The entry points below are elisp functions — invoke them via emacsclient, "
+   "e.g.\n"
+   "  emacsclient -e '(my/agent-open \"/abs/path/to/file\")'\n"
+   "Results return as elisp data. Conventions: pass absolute paths (Emacs's "
+   "working directory differs from this shell's); keep evals short and "
+   "non-blocking; never steal the user's focus.\n\n"
+   "Preferred entry points:\n\n"
    (mapconcat (lambda (fn) (concat "- " (documentation fn) "\n"))
               my/agent-commands "")
    "\nOther elisp is allowed when needed; prefer the entry points above."))

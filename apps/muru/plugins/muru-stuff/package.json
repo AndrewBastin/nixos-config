@@ -8,6 +8,6 @@
     "@earendil-works/pi-tui": "*"
   },
   "pi": {
-    "extensions": ["./unified-edit.ts"]
+    "extensions": ["./unified-edit.ts", "./emacs-context.ts"]
   }
 }
