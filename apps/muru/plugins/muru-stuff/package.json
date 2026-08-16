@@ -1,0 +1,13 @@
+{
+  "name": "muru-stuff",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Custom extensions for muru",
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  },
+  "pi": {
+    "extensions": ["./unified-edit.ts"]
+  }
+}
