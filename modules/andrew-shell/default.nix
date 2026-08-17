@@ -75,6 +75,12 @@
       };
     };
 
+    # Secret Service (org.freedesktop.secrets) via GNOME Keyring. The Ly and
+    # greetd modules pick up `enableGnomeKeyring` from this option, so the
+    # keyring is unlocked with the login password at login. SSH stays on
+    # gpg-agent (programs.gnupg.agent.enableSSHSupport above).
+    services.gnome.gnome-keyring.enable = true;
+
     # We need upower daemon for battery info (not needed in VM mode)
     services.upower.enable = !(universalConfig.andrew-shell.vm-mode or false);
 
@@ -222,8 +228,9 @@
       };
     };
 
-    # We use Pass as the keyring exposed via pass-secret-service
-    services.pass-secret-service.enable = true;
+    # Secret Service is provided by GNOME Keyring at the NixOS level
+    # (services.gnome.gnome-keyring.enable in the nixos section above).
+    # pass stays installed for manual use via rofi-pass / the pass CLI.
 
     # stochos: keyboard-driven mouse grid overlay for Wayland
     programs.stochos = {
