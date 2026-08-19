@@ -10,8 +10,8 @@
   ];
   
   # Bootloader.
-  # Temporarily pinned to 6.18 until this issue gets resolved: https://github.com/nixos/nixpkgs/issues/489947
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  # Pinned to the latest 7.1.x kernel: the NVIDIA driver fails to build on 7.2.
+  boot.kernelPackages = pkgs.linuxPackages_7_1;
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
