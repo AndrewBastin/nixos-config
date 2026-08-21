@@ -231,6 +231,22 @@
     # Secret Service is provided by GNOME Keyring at the NixOS level
     # (services.gnome.gnome-keyring.enable in the nixos section above).
     # pass stays installed for manual use via rofi-pass / the pass CLI.
+    #
+    # PAM only starts the daemon as `--daemonize --login`: it holds the login
+    # password but runs no components and exits after 120s unless something runs
+    # `gnome-keyring-daemon --start` to finish initialising it. Under GNOME that's
+    # the XDG autostart entry, but xdg-desktop-autostart.target never activates
+    # under Hyprland, so the daemon timed out and the next D-Bus request for
+    # org.freedesktop.secrets activated a fresh, password-less one (unlock prompt).
+    # This unit is that missing `--start`: it hands off to the PAM daemon over
+    # $XDG_RUNTIME_DIR/keyring/control rather than starting a second one.
+    #
+    # No "ssh" component (the module default would start it): SSH is on gpg-agent
+    # and gcr-ssh-agent runs separately, so it'd only fight over SSH_AUTH_SOCK.
+    services.gnome-keyring = {
+      enable = true;
+      components = [ "secrets" "pkcs11" ];
+    };
 
     # stochos: keyboard-driven mouse grid overlay for Wayland
     programs.stochos = {
