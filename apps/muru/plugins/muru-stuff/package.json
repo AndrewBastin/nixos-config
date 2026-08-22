@@ -8,6 +8,11 @@
     "@earendil-works/pi-tui": "*"
   },
   "pi": {
-    "extensions": ["./unified-edit.ts", "./emacs-context.ts", "./agent-bell.ts"]
+    "extensions": [
+      "./unified-edit.ts",
+      "./agent-bell.ts",
+      "./emacs/emacs-context.ts",
+      "./emacs/muru-note.ts"
+    ]
   }
 }
