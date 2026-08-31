@@ -68,6 +68,11 @@ const ACK_TIMEOUT_MS = 8000;
 
 let server: net.Server | null = null;
 let listening = false;
+// Whether the bridge was EVER started this session. session_shutdown uses
+// this to skip stopServer entirely when /emacs was never turned on, so a
+// bridge-less muru instance doesn't fire a pointless emacsclient clear at
+// exit (which, even wrapped in ignore-errors, is one spawn per exit).
+let everListened = false;
 
 const pidDir = () => path.join(SOCKET_ROOT, String(process.pid));
 const sockPath = () => path.join(pidDir(), "emacs.sock");
@@ -382,7 +387,12 @@ function pushEmacsStatus(text: string): void {
 				try {
 					await execFileP("emacsclient", [
 						"-e",
-						`(my/muru-set-status ${JSON.stringify(next)})`,
+						// ignore-errors, not just the catch below: a void
+						// my/muru-set-status (elisp never injected, or wiped by
+						// an Emacs restart) fails SILENTLY on the emacsclient side
+						// but still logs "Symbol's function definition is void"
+						// into the host Emacs's *Messages* every single call.
+						`(ignore-errors (my/muru-set-status ${JSON.stringify(next)}))`,
 					]);
 				} catch {
 					/* Emacs gone, or the bridge elisp never loaded — a status
@@ -488,7 +498,11 @@ export async function stopServer(): Promise<void> {
 	// call loses the race with process exit and leaves a stale "[muru: …]"
 	// segment in the user's mode line until the next /emacs.
 	try {
-		await execFileP("emacsclient", ["-e", '(my/muru-set-status "")']);
+		// ignore-errors: muru.el is only defined after /emacs injected it, and
+		// emacsclient evals that hit a void function fail exit-0 on the client
+		// side while logging the void-function error in *Messages* — the catch
+		// here can never see it, so guard it at the source instead.
+		await execFileP("emacsclient", ["-e", '(ignore-errors (my/muru-set-status ""))']);
 	} catch {
 		/* Emacs gone or bridge never injected — nothing to clear. */
 	}
@@ -539,6 +553,7 @@ export default function (pi: ExtensionAPI) {
 			try {
 				await startServer(pi);
 				listening = true;
+				everListened = true;
 				ctx.ui.setStatus(STATUS_KEY, LISTENING_TEXT);
 			} catch (err) {
 				console.warn("[muru-note] failed to restore the Emacs bridge:", err);
@@ -552,7 +567,10 @@ export default function (pi: ExtensionAPI) {
 
 	pi.on("session_shutdown", async () => {
 		listening = false;
-		await stopServer();
+		// Skip entirely when the bridge never started this session: the clear
+		// only matters if we put a segment in the user's mode line, and a
+		// never-started bridge has a null server and nothing to clean up.
+		if (everListened) await stopServer();
 	});
 
 	pi.registerCommand("emacs", {
@@ -573,6 +591,7 @@ export default function (pi: ExtensionAPI) {
 					return;
 				}
 				listening = true;
+				everListened = true;
 				pi.appendEntry("muru-note", { listening: true });
 				ctx.ui.setStatus(STATUS_KEY, LISTENING_TEXT);
 			}
