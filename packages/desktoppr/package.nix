@@ -10,8 +10,8 @@ stdenv.mkDerivation (finalAttrs: {
   version = "0.5";
 
   src = fetchurl {
-    url = "https://github.com/scriptingosx/desktoppr/releases/download/v${finalAttrs.version}/desktoppr-${finalAttrs.version}-218.zip";
-    hash = "sha256-Oa9gAQjOaJHYyT5JBUiFCxL1sQP1dqlFBm+GdmLHNNM=";
+    url = "https://github.com/scriptingosx/desktoppr/releases/download/v0.5/desktoppr-0.5-218.zip";
+    hash = "sha256-ipw1G85MMB5bVvjnYNWg9tw7+8cFT6ZVfFT+VERSj1k=";
   };
 
   nativeBuildInputs = [ unzip ];
