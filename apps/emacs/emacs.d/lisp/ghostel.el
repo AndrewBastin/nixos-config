@@ -80,12 +80,15 @@ current directory plus the foreground program when one is running, e.g.
        (when (buffer-live-p buffer)
          (with-current-buffer buffer
            (when ghostel-buffer-name-function
-             ;; `ghostel--title' is the buffer-local cache of the last OSC 0/2
-             ;; title report (ghostel core keeps it in sync via `ghostel--set-title').
-             ;; Ghostel's own `ghostel--update-directory' recomputes the name the
-             ;; same way; we mirror it here for the command start/finish markers.
+             ;; `ghostel-title' is the buffer-local cache of the last OSC 0/2
+             ;; title report (ghostel core keeps it in sync; it used to be the
+             ;; private `ghostel--title', renamed to public `ghostel-title' in
+             ;; ghostel 0.52).  Ghostel's own `ghostel--update-directory'
+             ;; recomputes the name the same way; we mirror it here for the
+             ;; command start/finish markers.
              (ghostel--rename-managed
-              (funcall ghostel-buffer-name-function ghostel--title)))))))))
+              (funcall ghostel-buffer-name-function
+                       (bound-and-true-p ghostel-title))))))))))
 
 (with-eval-after-load 'ghostel
   (add-hook 'ghostel-command-start-functions  #'my/ghostel-refresh-name)
