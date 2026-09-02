@@ -10,7 +10,6 @@ in
   # friends still work on demand, just without the always-on ruleset injection
   # Claude Code gets from the plugin.
   #
-  # Codex-only (not ai/skills/) so Amp doesn't also pick these up, and so
-  # Claude Code sees ponytail exactly once — via the plugin, which already
+  # Codex-only (not ai/skills/) so Claude Code sees ponytail exactly once —
   # carries the same skills/ directory.
   "${ponytail}/skills"

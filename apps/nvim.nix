@@ -15,23 +15,18 @@
   nixvim,
   pkgs,
   noLSP ? false,
-  noAmp ? false, # Whether to not add suppport for Amp CLI (https://ampcode.com)
   ...
 }:
   nixvim.makeNixvim {
 
     extraPlugins = [
       pkgs.vimPlugins.claudecode-nvim
-    ] ++ pkgs.lib.optionals (!noAmp) [
-      pkgs.vimPlugins.amp-nvim
     ];
 
     extraConfigLua = /* lua */ ''
       require('claudecode').setup({})
-    '' + pkgs.lib.optionalString (!noAmp) /* lua */ ''
-      require('amp').setup({ auto_start = true, log_level = "info" })
     '';
-
+    
     colorschemes.kanagawa = {
       enable = true;
       settings.theme = "dragon";

@@ -83,7 +83,6 @@
                 nvim-mini = import ./apps/nvim.nix {
                   nixvim = (import nixvim).legacyPackages."${system}";
                   noLSP = true;
-                  noAmp = true;
 
                   pkgs = pkgs-unstable;
                 };

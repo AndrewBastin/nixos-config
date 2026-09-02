@@ -1,6 +1,6 @@
 # AI Tool Skills
 
-Skill packages in this directory are automatically discovered and installed for both Claude Code (`~/.claude/skills/`) and Amp (`~/.config/agents/skills/`).
+Skill packages in this directory are automatically discovered and installed for Claude Code (`~/.claude/skills/`).
 
 ## How it works
 
@@ -59,7 +59,7 @@ config = {
 
 ## Skill file format
 
-Both Claude Code and Amp use the same `SKILL.md` format — YAML frontmatter with markdown instructions:
+Both Claude Code and Codex use the same `SKILL.md` format — YAML frontmatter with markdown instructions:
 
 ```markdown
 ---
@@ -70,4 +70,4 @@ description: What this skill does and when to use it
 Instructions for the AI agent...
 ```
 
-See [Claude Code skills docs](https://code.claude.com/docs/en/skills.md) and [Amp skills docs](https://ampcode.com/news/agent-skills) for the full specification.
+See [Claude Code skills docs](https://code.claude.com/docs/en/skills.md) for the full specification.

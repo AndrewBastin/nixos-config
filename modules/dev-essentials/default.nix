@@ -3,13 +3,13 @@
 # Provides essential development tools and shell configuration.
 #
 # What this module does:
-# - Installs core development tools (gh, tig, nodejs, bat, claude-code, amp, codex, pi)
+# - Installs core development tools (gh, tig, nodejs, bat, claude-code, codex, pi)
 # - Builds and includes custom Neovim configuration via nixvim
 # - Configures git with user info and difftastic integration
 # - Sets up enhanced shell experience (zsh, fzf, zoxide)
 # - Enables direnv for project-specific environments
 # - Provides consistent shell aliases and environment variables
-# - Manages AI tool skills (Claude Code + Amp) declaratively
+# - Manages AI tool skills (Claude Code) declaratively
 # - Manages Claude Code plugins declaratively via shell aliases
 # - Provides muru: pi with extensions baked in, configured entirely from the store
 #
@@ -27,7 +27,7 @@
 # - Development workflow tools (GitHub CLI, git GUI, Node.js)
 # - Enhanced terminal experience with syntax highlighting
 # - Project environment management via direnv
-# - Shared AI skills across Claude Code and Amp
+# - Shared AI skills across Claude Code and other coding agents
 # - Claude Code plugins loaded via shell aliases (--plugin-dir)
 {
   imports = [
@@ -40,7 +40,7 @@
         type = lib.types.listOf lib.types.anything;
         default = [];
         description = ''
-          Additional skills to install for AI tools (Claude Code, Amp, Codex).
+          Additional skills to install for AI tools (Claude Code, Codex).
           Each entry can be:
           - A path to a .nix file: resolved via callPackage, must return a path/derivation containing <skill-name>/SKILL.md subdirectories
           - A path to a directory: used directly, should contain <skill-name>/SKILL.md subdirectories
@@ -54,7 +54,7 @@
         description = ''
           Additional skills to install ONLY for Codex CLI (routed to ~/.agents/skills).
           Use this for skills that depend on codex-specific tools or conventions
-          that other agents (Claude Code, Amp) wouldn't be able to use.
+          that other agents (Claude Code) wouldn't be able to use.
           Same entry shape as additionalSkills.
         '';
       };
@@ -86,7 +86,7 @@
     programs.zsh.enable = true;
     users.users.andrew.shell = pkgs.zsh;
 
-    # Numtide binary cache — backs llm-agents.nix (claude-code, amp, codex, …)
+    # Numtide binary cache — backs llm-agents.nix (claude-code, codex, …)
     # so we pull pre-built binaries instead of rebuilding from source.
     nix.settings = {
       extra-substituters = [ "https://cache.numtide.com" ];
@@ -101,7 +101,7 @@
   # `determinateNix.customSettings` (option defined by the module imported in
   # mac-essentials) which writes /etc/nix/nix.custom.conf.
   darwin = { ... }: {
-    # Numtide binary cache — backs llm-agents.nix (claude-code, amp, codex, …)
+    # Numtide binary cache — backs llm-agents.nix (claude-code, codex, …)
     # so we pull pre-built binaries instead of rebuilding from source.
     determinateNix.customSettings = {
       extra-substituters = [ "https://cache.numtide.com" ];
@@ -157,7 +157,7 @@
 
       # Codex-only skills: shared skills + a separate codex-only auto-discovery
       # directory + machine-supplied codex-only additions. Routed exclusively
-      # to ~/.agents/skills so Claude Code and Amp don't see them.
+      # to ~/.agents/skills so Claude Code don't see them.
       builtinCodexSkills = let
         codexSkillDir = ./ai/skills-codex;
         entries = builtins.readDir codexSkillDir;
@@ -260,7 +260,6 @@
           watchman
 
           llm-agents.claude-code
-          llm-agents.amp
           llm-agents.codex
 
           # Bare pi, plus muru — pi with our extensions baked in. Bare pi is left
@@ -284,7 +283,7 @@
           force = true;
         };
 
-        # Place AI skills for both Claude Code and Amp
+        # Place AI skills for both Claude Code
         home.file.".claude/skills" = {
           source = combinedSkills;
           recursive = true;
@@ -303,7 +302,7 @@
         # Codex CLI looks for skills under ~/.agents/skills (preferred over the
         # legacy ~/.codex/skills location). Same SKILL.md format as Claude Code.
         # Uses combinedCodexSkills so codex-only skills (e.g. superpowers) reach
-        # codex without being mounted into Claude Code / Amp's skill paths.
+        # codex without being mounted into Claude Code's skill paths.
         home.file.".agents/skills" = {
           source = combinedCodexSkills;
           recursive = true;
