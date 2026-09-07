@@ -201,4 +201,24 @@ in
       ];
     };
   };
+
+  suika = {
+    system = "x86_64-linux";
+    stateVersion = "26.05";
+    homeStateVersion = "26.05";
+
+    modules = [
+      ../modules/nixos-essentials
+      ../modules/dev-essentials
+      ../modules/tailscale
+    ];
+
+    nixos = {
+      hardwareConfiguration = import ./suika/hardware-configuration.nix;
+
+      modules = [
+        ./suika/configuration.nix
+      ];
+    };
+  };
 }
