@@ -23,6 +23,11 @@ let
       id = "WYUNEF3-N4DIVEP-6R7B6OG-34ZCKYK-S6MWPNT-VC4LAYT-F6H3NZE-LAZJYAZ";
       addresses = [ "tcp://100.107.146.67:22000" ];
     };
+
+    suika = {
+      id = "E7MG2ZL-CBLPJIJ-D5BUTZD-XN6WRVI-TBYVA5F-CYW2PUT-DAZGFCG-66TQGQ3";
+      addresses = [ "tcp://100.95.96.80:22000" ];
+    };
   };
 
   # Machines take this list minus themselves; folders stay spelled out per
@@ -82,7 +87,7 @@ in
 
         folders.projects = {
           path = "~/Projects";
-          devices = [ "fern" "serie" ];
+          devices = [ "fern" "serie" "suika" ];
         };
       };
 
@@ -158,7 +163,7 @@ in
 
         folders.projects = {
           path = "~/Projects";
-          devices = [ "serie" "winry" ];
+          devices = [ "serie" "winry" "suika" ];
         };
       };
 
@@ -198,6 +203,42 @@ in
 
       modules = [
         ./fern/configuration.nix
+      ];
+    };
+  };
+
+  suika = {
+    system = "x86_64-linux";
+    stateVersion = "26.05";
+    homeStateVersion = "26.05";
+
+    config = {
+      kitty.fontSize = 11;
+
+      tailscale.ssh = true;
+
+      syncthing = {
+        devices = removeAttrs syncthingDevices [ "suika" ];
+
+        folders.projects = {
+          path = "~/Projects";
+          devices = [ "serie" "fern" "winry" ];
+        };
+      };
+    };
+
+    modules = [
+      ../modules/nixos-essentials
+      ../modules/dev-essentials
+      ../modules/tailscale
+      ../modules/syncthing
+    ];
+
+    nixos = {
+      hardwareConfiguration = import ./suika/hardware-configuration.nix;
+
+      modules = [
+        ./suika/configuration.nix
       ];
     };
   };
