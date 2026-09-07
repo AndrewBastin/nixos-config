@@ -262,7 +262,7 @@
           llm-agents.claude-code
           llm-agents.codex
           # ACP adapters: run claude/codex as agents over the Agent Client
-          # Protocol (used by e.g. Zed and Buzz).
+          # Protocol (used by e.g. Zed).
           llm-agents.claude-agent-acp
           llm-agents.codex-acp
 
