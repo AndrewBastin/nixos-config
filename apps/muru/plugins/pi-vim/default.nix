@@ -33,11 +33,12 @@ let
   # nix-update only ever touches package.nix, so ./last-reviewed survives.
   lastReviewed = lib.strings.trim (builtins.readFile ./last-reviewed);
 
-  # pi-vim's clipboard helper resolves this module from the real filesystem at
-  # import time, but llm-agents ships pi as a compiled bun binary with no dist/,
-  # so it exists only inside the binary and the resolve throws — taking the whole
-  # extension down with it. Point it at the clipboard package pi does ship
-  # unpacked, and adapt the generated helper to that module's API.
+  # pi-vim's clipboard helper resolves @earendil-works/pi-coding-agent at import
+  # time, but llm-agents ships pi as a compiled bun binary with no dist/, so the
+  # resolved URL exists only inside the binary and the generated child helper's
+  # import fails (or the resolve throws outright). Point it at the clipboard
+  # package pi does ship unpacked, and adapt the generated write helper to that
+  # module's API (default export with setText).
   clipboardPkg = "${pi}/libexec/pi/node_modules/@mariozechner/clipboard";
 
   # --replace-fail: if a future pi-vim rewrites this file, fail the build loudly
@@ -66,10 +67,8 @@ let
     }
 
     substituteInPlace $out/clipboard-mirror.ts \
-      --replace-fail 'import.meta.resolve(
-  "@earendil-works/pi-coding-agent",
-)' '"file://${clipboardPkg}/index.js"' \
-      --replace-fail 'import { copyToClipboard } from ''${JSON.stringify(PI_CODING_AGENT_MODULE_URL)};' 'import clipboard from ''${JSON.stringify(PI_CODING_AGENT_MODULE_URL)};
+      --replace-fail 'return import.meta.resolve("@earendil-works/pi-coding-agent");' 'return "file://${clipboardPkg}/index.js";' \
+      --replace-fail 'import { copyToClipboard } from ''${JSON.stringify(moduleUrl)};' 'import clipboard from ''${JSON.stringify(moduleUrl)};
 const copyToClipboard = (text) => clipboard.setText(text);'
   '';
 in
