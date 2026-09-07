@@ -9,6 +9,7 @@
       pkgs-unstable.obsidian
       pkgs-unstable.vlc
       pkgs-unstable.signal-desktop
+      (pkgs.callPackage ../../../packages/buzz/package.nix {})
     ];
   };
 
