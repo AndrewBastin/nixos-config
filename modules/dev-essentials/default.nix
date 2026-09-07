@@ -261,6 +261,10 @@
 
           llm-agents.claude-code
           llm-agents.codex
+          # ACP adapters: run claude/codex as agents over the Agent Client
+          # Protocol (used by e.g. Zed and Buzz).
+          llm-agents.claude-agent-acp
+          llm-agents.codex-acp
 
           # Bare pi, plus muru — pi with our extensions baked in. Bare pi is left
           # unwrapped on purpose, the same way `claude` is; configuration rides on
