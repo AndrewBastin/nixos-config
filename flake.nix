@@ -36,6 +36,11 @@
 
     stochos.url = "github:museslabs/stochos";
 
+    # Deliberately not following nixpkgs: paseo is a buildNpmPackage with a
+    # pinned npmDepsHash computed against its own nixpkgs, and fetchNpmDeps can
+    # hash the same lockfile differently across revisions.
+    paseo.url = "github:getpaseo/paseo";
+
     nix-index-database = {
       url = "github:nix-community/nix-index-database";
       inputs.nixpkgs.follows = "nixpkgs-unstable";

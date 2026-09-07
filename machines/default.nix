@@ -232,6 +232,7 @@ in
       ../modules/dev-essentials
       ../modules/tailscale
       ../modules/syncthing
+      ./suika/modules/suika-stuff.nix
     ];
 
     nixos = {
