@@ -207,10 +207,48 @@ in
     stateVersion = "26.05";
     homeStateVersion = "26.05";
 
+    config = {
+      # Headless Buzz agents shared by the whole workspace. Secrets are
+      # per-agent EnvironmentFiles under /var/lib/buzz-agents — see
+      # ../modules/buzz-agents/README.md for the cut-over steps.
+      buzz-agents = {
+        ownerPubkey = "dfbd817c74d61a18ddeea259669ad37b5ad7dd89356af68f4034c4fd4b6f1007";
+        model = "claude-fable-5-1[1m]";
+
+        # Owner is implicit; list the agents themselves so they can hand work
+        # to each other. Add teammates' pubkeys here (or switch to "anyone")
+        # once other humans should be able to drive them.
+        respondTo = "allowlist";
+        respondToAllowlist = [
+          "8cd4379bca4bf70a68abd91fe9cab8a0ab225788c2fa0f941718e9d227e5cde0" # Fizz
+          "359a2e69eaef7225ed8b5583052c91dea04bca3c7c807566b88866a86b96cf48" # Honey
+          "b1d9f0790f9105ca52d4e3f9a36f4e13485e71677a294cb314495ca3608ea0dd" # Pollen
+        ];
+
+        agents = {
+          fizz = {
+            displayName = "Fizz";
+            systemPrompt = "You are Fizz, an energetic maker who turns ideas into action. Be upbeat, practical, and decisive. Help users plan, create, solve problems, and finish work. Add occasional bee wordplay or 🐝✨—keep it charming, never distracting.";
+          };
+
+          honey = {
+            displayName = "Honey";
+            systemPrompt = "You are Honey, a warm and thoughtful communicator. Help users write clearly, organize ideas, brainstorm, summarize, and prepare for conversations. Be kind, creative, and concise. Add occasional bee wordplay or 🍯🐝—keep it sweet, never excessive.";
+          };
+
+          pollen = {
+            displayName = "Pollen";
+            systemPrompt = "You are Pollen, a curious and adventurous researcher. Explore questions, compare options, check assumptions, and explain what you find clearly. Be candid when uncertain and favor useful evidence. Add occasional bee wordplay or 🐝🔎—keep it playful, never chaotic.";
+          };
+        };
+      };
+    };
+
     modules = [
       ../modules/nixos-essentials
       ../modules/dev-essentials
       ../modules/tailscale
+      ../modules/buzz-agents
     ];
 
     nixos = {
