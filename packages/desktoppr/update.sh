@@ -16,7 +16,7 @@ if [[ -z "$zip_url" || "$zip_url" == "null" ]]; then
 fi
 
 # Prefetch and get SRI hash
-hash=$(nix-prefetch-url --unpack "$zip_url" 2>/dev/null)
+hash=$(nix-prefetch-url "$zip_url" 2>/dev/null)
 sri_hash=$(nix hash convert --hash-algo sha256 --to sri "$hash")
 
 # NOTE: no sed -i (not portable between GNU and BSD sed); write to temp + mv instead.
