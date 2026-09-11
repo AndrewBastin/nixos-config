@@ -3,11 +3,19 @@
 # serves desktop/mobile/web clients so long-running sessions survive the client
 # going away.
 {
-  nixos = { inputs, ... }: {
+  nixos = { inputs, pkgs, ... }: {
     imports = [ inputs.paseo.nixosModules.paseo ];
 
     services.paseo = {
       enable = true;
+
+      # Codex >= 0.148 and Claude Code >= 2.1.257 echo MCP protocol 2026-07-28
+      # on post-initialize requests, which the bundled MCP SDK rejects with a
+      # 400 — Codex agents then silently run without any Paseo tools. Patch
+      # from getpaseo/paseo#4375; drop once that (or #4570) lands upstream.
+      package = inputs.paseo.packages.${pkgs.stdenv.hostPlatform.system}.default.overrideAttrs (old: {
+        patches = (old.patches or [ ]) ++ [ ./paseo-mcp-protocol-version.patch ];
+      });
 
       # Running as andrew (not the `paseo` system user) flips
       # inheritUserEnvironment on, which puts the home-manager profile on the
