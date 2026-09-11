@@ -2,7 +2,7 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ pkgs, inputs, ... }:
+{ pkgs, pkgs-unstable, inputs, ... }:
 
 {
   imports = [ 
@@ -10,8 +10,8 @@
   ];
   
   # Bootloader.
-  # Pinned to the latest 7.1.x kernel: the NVIDIA driver fails to build on 7.2.
-  boot.kernelPackages = pkgs.linuxPackages_7_1;
+  # Kernel from unstable: stable's nvidia (595.71.05) doesn't build on 7.2.
+  boot.kernelPackages = pkgs-unstable.linuxPackages_latest;
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;

@@ -12,8 +12,8 @@ stdenvNoCC.mkDerivation {
   src = fetchFromGitHub {
     owner = "ayghri";
     repo = "i-have-adhd";
-    rev = "ff690b6fbd3383e4fce6a7e50c7b409ca9a6a804";
-    hash = "sha256-bx7DTaiwQ5HfrExQ0pOwXYA+mCnMA8qsuNNL+mBmNvg=";
+    rev = "6f1f982d0a47c65899af3c5a7450b7098bc65325";
+    hash = "sha256-ijQ7Mz0FbeWxlkn7rbn5JuG0e6jQeEYBkuroE2N/MZY=";
   };
 
   dontBuild = true;
