@@ -169,14 +169,15 @@ in
 
       andrew-shell = {
         monitorRules = [
-          # Built in monitor - Default configs with a 1.6 scale
-          "eDP-1, preferred, auto, 1.6"
+          # Docked layout, left to right: S2725QS, U2724DE, built in (vertically centered)
+          # S2725QS - 4K @ 1.5 scale = 2560x1440 logical
+          "desc:Dell Inc. DELL S2725QS DRDT364, 3840x2160@60, 0x0, 1.5"
 
           # Dell Monitor on office desk
-          "desc:Dell Inc. DELL U2724DE 3SBQ6P3, 2560x1440@120, auto, 1"
+          "desc:Dell Inc. DELL U2724DE 3SBQ6P3, 2560x1440@120, 2560x0, 1"
 
-          # Lenovo Monitor on office desk
-          "desc:Lenovo Group Limited L24i-30 UPB4NZH2, 1920x1080@75, auto, 1"
+          # Built in monitor - 1.6 scale = 1600x1000 logical
+          "eDP-1, preferred, 5120x220, 1.6"
         ];
         
         wallpaper = ./fern/wallpaper.jpg;
