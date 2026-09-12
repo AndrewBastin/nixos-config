@@ -43,10 +43,18 @@
       # the daemon 404s at / until this is set. Passed as an env var rather
       # than through `settings` for the config.json reason below.
       environment.PASEO_WEB_UI_ENABLED = "true";
+
+      # `settings` is deliberately unset: the module rewrites config.json on every
+      # start, which would clobber `paseo daemon set-password`. Set the password
+      # once by hand on the box instead.
     };
 
-    # `settings` is deliberately unset: the module rewrites config.json on every
-    # start, which would clobber `paseo daemon set-password`. Set the password
-    # once by hand on the box instead.
+    # Enable Rootless docker and lingering services to power specific deployments on Suika
+    virtualisation.docker.rootless = {
+      enable = true;
+      setSocketVariable = true;
+    };
+
+    users.users.andrew.linger = true;
   };
 }
