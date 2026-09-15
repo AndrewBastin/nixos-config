@@ -15,14 +15,14 @@
 # package.json rather than us hardcoding an entrypoint that upstream may move.
 stdenvNoCC.mkDerivation rec {
   pname = "pi-ollama-cloud";
-  version = "0.12.0";
+  version = "0.12.1";
 
   # See packages/pi-vim/package.nix for why `name` embeds the version: without it
   # a stale hash silently resolves to the previously fetched source.
   src = fetchzip {
     name = "${pname}-${version}-source";
     url = "https://registry.npmjs.org/pi-ollama-cloud/-/pi-ollama-cloud-${version}.tgz";
-    hash = "sha256-pfM+k1VX/WeerORiaADwugxhq2l1hkyEVzJegzTABYo=";
+    hash = "sha256-ca6X/XQaQA9atusBcvp+w05f6c8MXZqoFJFz3/AZ7d4=";
   };
 
   dontBuild = true;
