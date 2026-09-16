@@ -167,7 +167,16 @@ current directory plus the foreground program when one is running, e.g.
                     ;; Jump between links, vim-style (cf. ]q/[q).  C-c C-n/C-p
                     ;; still work too (evil doesn't shadow C-c).
                     (kbd "]l") #'ghostel-next-hyperlink
-                    (kbd "[l") #'ghostel-previous-hyperlink))
+                    (kbd "[l") #'ghostel-previous-hyperlink)
+  ;; Drop evil-ghostel's `C-c C-r' (`evil-ghostel-toggle-send-escape'): it
+  ;; rewrites this buffer's ESC routing away from the `terminal' default set
+  ;; above, and it is far too easy to hit by accident.  `C-c' is a live Emacs
+  ;; prefix in normal state (the insert-state `ghostel-send-C-c' passthrough
+  ;; doesn't apply there), and normal state is a place you land constantly here
+  ;; — scrolling up drops you into it (section 2.5).  So a stray `C-c C-r'
+  ;; silently turned ESC back into `evil-normal-state'.  The command is still
+  ;; reachable via `M-x' if a buffer ever needs different routing.
+  (define-key evil-ghostel-mode-map (kbd "C-c C-r") nil))
 
 ;; ==========================================================================
 ;; 2.5 Browse scrollback without the viewport snapping back to the bottom
