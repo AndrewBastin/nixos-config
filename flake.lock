@@ -828,11 +828,11 @@
         "nixpkgs": "nixpkgs_10"
       },
       "locked": {
-        "lastModified": 1789633826,
-        "narHash": "sha256-ZT32XrXBtEnUfeS4JsCAv1RmxDcL7F4cizE+Q9YuFwg=",
+        "lastModified": 1789724977,
+        "narHash": "sha256-WzUzGqIenuU9vc1dj0BHoCCfyZzlW8EIgncg0vC9QFk=",
         "owner": "getpaseo",
         "repo": "paseo",
-        "rev": "bb4763b38cb6d8e26b0eca54088fb14ce899ec68",
+        "rev": "d636abd7a4ce302e7ccb9eb6074f637c6dd4d83b",
         "type": "github"
       },
       "original": {
