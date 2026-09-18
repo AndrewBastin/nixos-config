@@ -218,6 +218,8 @@ in
 
       tailscale.ssh = true;
 
+      dev-essentials.claudeExecWrappers = true;
+
       syncthing = {
         devices = removeAttrs syncthingDevices [ "suika" ];
 

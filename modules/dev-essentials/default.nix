@@ -20,6 +20,7 @@
 # Configuration options:
 # - dev-essentials.additionalSkills: Extra skill directories to install for AI tools
 # - dev-essentials.additionalPlugins: Extra Claude Code plugin directories to load
+# - dev-essentials.claudeExecWrappers: Install clod-exec/migu-exec, the clod/migu aliases as real binaries
 #
 # Key features:
 # - Self-contained Neovim built from nixvim input
@@ -77,6 +78,16 @@
         description = ''
           Install the opt-in, store-baked Emacs (apps/emacs) for this user.
           Exploration tooling; off by default. Installs the `emacs` command.
+        '';
+      };
+
+      claudeExecWrappers = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = ''
+          Install `clod-exec` and `migu-exec`: the clod/migu aliases (plugins,
+          and ~/.claude-migu for migu) as real binaries, for launchers that
+          exec a command instead of going through zsh (e.g. Paseo).
         '';
       };
     };
@@ -272,7 +283,19 @@
           llm-agents.pi
           (pkgs.callPackage ../../apps/muru { pi = llm-agents.pi; })
         ] ++ pkgs.lib.optional
-          (universalConfig.dev-essentials.emacs or false) my_emacs;
+          (universalConfig.dev-essentials.emacs or false) my_emacs
+        # The aliases stay the interactive entry point — the Emacs ghostel shim
+        # wraps `claude` as a shell function, which a script would bypass. No
+        # --allow-dangerously-skip-permissions here: the caller decides.
+        ++ pkgs.lib.optionals
+          (universalConfig.dev-essentials.claudeExecWrappers or false) [
+            (pkgs.writeShellScriptBin "clod-exec" ''
+              exec ${llm-agents.claude-code}/bin/claude ${pluginDirFlags} "$@"
+            '')
+            (pkgs.writeShellScriptBin "migu-exec" ''
+              CLAUDE_CONFIG_DIR=$HOME/.claude-migu exec ${llm-agents.claude-code}/bin/claude ${pluginDirFlags} "$@"
+            '')
+          ];
 
         # Claude Code settings — written to both config dirs (clod uses
         # ~/.claude, migu uses ~/.claude-migu via CLAUDE_CONFIG_DIR).
