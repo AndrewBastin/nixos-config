@@ -17,6 +17,15 @@
 ;; evil normal state instead (mirrors evil's usual insert-state ESC binding).
 (setq evil-ghostel-escape 'terminal)
 
+;; ...and set evil-collection's knob for the same thing.  evil-collection ships
+;; its own `evil-ghostel' module whose `evil-collection-evil-ghostel-set-escape'
+;; sits on `evil-ghostel-mode-hook' and overwrites the buffer-local routing with
+;; `evil-collection-evil-ghostel-escape' (default `evil') — it runs *after*
+;; evil-ghostel's own minor-mode body has initialized that routing from the
+;; variable above, so without this every terminal came up sending ESC to evil no
+;; matter what `evil-ghostel-escape' said.
+(setq evil-collection-evil-ghostel-escape 'terminal)
+
 ;; Rename buffers "term: TITLE" instead of stock ghostel's "*ghostel: TITLE*"
 ;; (this is what shows in the modeline).  The "term: " prefix doubles as a
 ;; marker: it makes terminals distinguishable from file paths (used by the
@@ -168,15 +177,22 @@ current directory plus the foreground program when one is running, e.g.
                     ;; still work too (evil doesn't shadow C-c).
                     (kbd "]l") #'ghostel-next-hyperlink
                     (kbd "[l") #'ghostel-previous-hyperlink)
-  ;; Drop evil-ghostel's `C-c C-r' (`evil-ghostel-toggle-send-escape'): it
-  ;; rewrites this buffer's ESC routing away from the `terminal' default set
-  ;; above, and it is far too easy to hit by accident.  `C-c' is a live Emacs
-  ;; prefix in normal state (the insert-state `ghostel-send-C-c' passthrough
-  ;; doesn't apply there), and normal state is a place you land constantly here
-  ;; — scrolling up drops you into it (section 2.5).  So a stray `C-c C-r'
-  ;; silently turned ESC back into `evil-normal-state'.  The command is still
-  ;; reachable via `M-x' if a buffer ever needs different routing.
-  (define-key evil-ghostel-mode-map (kbd "C-c C-r") nil))
+  ;; Unbind `evil-ghostel-toggle-send-escape' on both its keys: it rewrites this
+  ;; buffer's ESC routing away from the `terminal' default set above, and it is
+  ;; far too easy to hit by accident.  `C-c' is a live Emacs prefix in normal
+  ;; state (the insert-state `ghostel-send-C-c' passthrough doesn't apply there),
+  ;; and normal state is a place you land constantly here — scrolling up drops
+  ;; you into it (section 2.5).  evil-ghostel binds the command to `C-c C-r' in
+  ;; the base map; evil-collection binds it a *second* time, as its
+  ;; `term-toggle-escape' entry on `C-c C-z'.  Only its normal-state binding is
+  ;; live — in insert state `C-c' is `ghostel-send-C-c' above, a non-prefix, so
+  ;; its insert `C-c C-z' never lands (and unbinding it there would error).
+  ;; This block runs after evil-collection's own evil-ghostel setup (its
+  ;; `with-eval-after-load' is registered earlier, by `evil-collection-init' in
+  ;; evil.el), so these nils win.  The command stays reachable via `M-x' if a
+  ;; buffer ever needs different routing.
+  (define-key evil-ghostel-mode-map (kbd "C-c C-r") nil)
+  (evil-define-key* 'normal evil-ghostel-mode-map (kbd "C-c C-z") nil))
 
 ;; ==========================================================================
 ;; 2.5 Browse scrollback without the viewport snapping back to the bottom
