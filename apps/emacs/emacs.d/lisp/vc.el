@@ -158,11 +158,29 @@ it from."
 ;; drags in working-revision lookups and a `revert-buffer-function' that forgets
 ;; the buffer it was given.  `-r REV' (not `--from REV- --to REV') is what stays
 ;; correct on merge commits.
+(defun my/jjui--resolve (root rev)
+  "Resolve REV in the repo at ROOT to (ID . WORKING-COPY-P).
+ID is an 8-char change id.  jjui passes the SHORTEST unique prefix (often one
+letter): fine right now, but it names buffers \"vc.el.~s~\" and turns ambiguous
+as the repo grows, which would break `g' in a diff buffer kept around."
+  (let ((default-directory (file-name-as-directory root)))
+    (with-temp-buffer
+      (unless (zerop (process-file
+                      "jj" nil '(t nil) nil "log" "--no-graph" "--color=never"
+                      "-r" rev "-T"
+                      "change_id.shortest(8) ++ \" \" ++ current_working_copy ++ \"\\n\""))
+        (user-error "jj log -r %s failed" rev))
+      (pcase (split-string (buffer-string) "\n" t)
+        (`(,line) (pcase-let ((`(,id ,wc) (split-string line " ")))
+                    (cons id (equal wc "true"))))
+        (_ (user-error "%s is not exactly one revision" rev))))))
+
 (defun my/jjui-diff (root rev &optional file)
   "Show the diff of jj revision REV in the repo at ROOT, in the other window.
 With FILE (a path relative to ROOT), limit the diff to that file.  One buffer
 per repo, reused; `revert-buffer' re-runs the diff.  Returns the buffer."
   (let* ((default-directory (file-name-as-directory root))
+         (rev (car (my/jjui--resolve root rev)))
          (buffer (get-buffer-create
                   (format "*jj diff: %s*"
                           (abbreviate-file-name (directory-file-name root))))))
@@ -181,12 +199,36 @@ per repo, reused; `revert-buffer' re-runs the diff.  Returns the buffer."
       ;; Lets diff-mode fetch either side from jj: hunk fontification, and
       ;; `C-u RET' to visit the pre-change version of the file.
       (setq-local diff-vc-backend 'JJ
-                  diff-vc-revisions (list (format "(%s)-" rev) rev)
+                  diff-vc-revisions (list (concat rev "-") rev)
                   revert-buffer-function
                   (lambda (&rest _) (my/jjui-diff root rev file)))
       (goto-char (point-min)))
     (unless (eq (window-buffer) buffer)
       (pop-to-buffer buffer t))
+    buffer))
+
+(defun my/jjui-find-file (root rev file)
+  "Visit FILE (relative to ROOT) as of jj revision REV, in the other window.
+A read-only \"FILE.~ID~\" buffer in FILE's own major mode — except when REV is
+the working copy, where the real, editable file is the useful thing to get.
+Returns the buffer."
+  (pcase-let* ((`(,id . ,working-copy) (my/jjui--resolve root rev))
+               (path (expand-file-name file root))
+               (buffer
+                ;; A file the revision deleted is still listed in jjui's details
+                ;; pane.  Say so, rather than open an empty new-file buffer (working
+                ;; copy) or surface jj's bare exit status (old revision).
+                (if working-copy
+                    (if (file-exists-p path)
+                        (find-file-noselect path)
+                      (user-error "%s does not exist in the working copy" file))
+                  ;; Without this, `vc-find-revision' WRITES \"FILE.~ID~\" next to
+                  ;; FILE — inside the repo, where jj snapshots it into @.
+                  (let ((vc-find-revision-no-save t))
+                    (condition-case nil
+                        (vc-find-revision path id 'JJ)
+                      (error (user-error "%s does not exist at %s" file id)))))))
+    (pop-to-buffer buffer t)
     buffer))
 
 ;;; vc.el ends here

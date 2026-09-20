@@ -146,4 +146,51 @@ not the working copy's."
       (should (string-match-p "^\\+bee$" text))
       (should-not (string-match-p "one" text)))))
 
+(ert-deftest vc-test-jjui-diff-pins-change-id ()
+  "jjui hands over the SHORTEST unique prefix (\"s\"), which stops being unique as
+the repo grows — so the buffer stores an 8-char id, and `g' keeps working later."
+  (vc-test--with-jj-repo
+    (let ((buf (my/jjui-diff default-directory "description(substring:\"c2\")")))
+      (unwind-protect
+          (should (string-match-p "\\`[k-z]\\{8\\}\\'"
+                                  (nth 1 (buffer-local-value 'diff-vc-revisions buf))))
+        (kill-buffer buf)))))
+
+(ert-deftest vc-test-jjui-find-file-old-revision ()
+  "RET on a file of an old revision: a read-only buffer holding THAT revision's
+content, in the file's own major mode — and nothing written into the repo, where
+jj would snapshot a stray `a.txt.~REV~' straight into @."
+  (vc-test--with-jj-repo
+    (let* ((dir default-directory)
+           (buf (my/jjui-find-file dir "description(substring:\"c2\")" "a.txt")))
+      (unwind-protect
+          (with-current-buffer buf
+            (should (equal (buffer-string) "two\n"))
+            (should buffer-read-only)
+            (should (derived-mode-p 'text-mode))
+            (should-not (directory-files dir nil "~\\'")))
+        (kill-buffer buf)))))
+
+(ert-deftest vc-test-jjui-find-file-working-copy ()
+  "RET on a file of the working-copy revision visits the real, editable file."
+  (vc-test--with-jj-repo
+    (let* ((dir default-directory)
+           (buf (my/jjui-find-file dir "@" "a.txt")))
+      (unwind-protect
+          (with-current-buffer buf
+            (should (equal buffer-file-name (expand-file-name "a.txt" dir)))
+            (should-not buffer-read-only))
+        (kill-buffer buf)))))
+
+(ert-deftest vc-test-jjui-find-file-deleted ()
+  "RET on a file the revision DELETED is a clean `user-error' (jjui flashes it) —
+not a cryptic jj exit status, and for the working copy not an empty new-file
+buffer pretending the file exists."
+  (vc-test--with-jj-repo
+    (delete-file "b.txt")
+    (should-error (my/jjui-find-file default-directory "@" "b.txt") :type 'user-error)
+    (should-not (get-buffer "b.txt"))
+    (should (zerop (call-process "jj" nil nil nil "new")))
+    (should-error (my/jjui-find-file default-directory "@-" "b.txt") :type 'user-error)))
+
 ;;; vc-test.el ends here
