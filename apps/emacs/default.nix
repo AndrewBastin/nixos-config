@@ -19,8 +19,7 @@ let
     else pkgs.emacs-pgtk;
   emacsPkgs = emacs.pkgs;
 
-  # Same package set as the source emacs-explore dev shell. `which-key` is built
-  # into Emacs 30, so it needs no package here.
+  # `which-key` is built into Emacs 30, so it needs no package here.
   emacsWithPkgs = emacsPkgs.withPackages (epkgs:
     let
       # Ghostel terminal (core + native Zig module) and its evil integration,
@@ -211,7 +210,7 @@ if isDarwin then
   #   2. ship `emacs-gui`, which `open`s that bundle — this is what the aerospace
   #      keybind runs;
   #   3. keep a normal terminal `emacs` (+ emacsclient et al.) for CLI use.
-  pkgs.runCommand "emacs-explore" { nativeBuildInputs = [ pkgs.makeBinaryWrapper ]; } ''
+  pkgs.runCommand "emacs" { nativeBuildInputs = [ pkgs.makeBinaryWrapper ]; meta.mainProgram = "emacs"; } ''
     mkdir -p $out/bin $out/Applications
 
     # Symlink everything except bin/ and Applications/, which we customise.
@@ -244,7 +243,8 @@ if isDarwin then
   ''
 else
   pkgs.symlinkJoin {
-    name = "emacs-explore";
+    name = "emacs";
+    meta.mainProgram = "emacs";
     paths = [ emacsWithPkgs ];
     nativeBuildInputs = [ pkgs.makeWrapper ];
     postBuild = ''
