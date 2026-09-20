@@ -82,4 +82,68 @@ terminal buffer.  Guards the `executable-find' check in `my/vc--jjui'."
   (cl-letf (((symbol-function 'executable-find) (lambda (&rest _) nil)))
     (should-error (my/vc--jjui "/repo/") :type 'user-error)))
 
+;; --- jjui -> Emacs diff bridge ------------------------------------------------
+
+(ert-deftest vc-test-jjui-runs-emacs-wrapper ()
+  "`SPC G G' spawns `jjui-emacs' (the wrapper carrying the Emacs-only jjui config),
+never the stock `jjui' — that one must stay free of the Emacs key overrides."
+  (let (program)
+    (cl-letf (((symbol-function 'executable-find) (lambda (&rest _) "/x"))
+              ((symbol-function 'pop-to-buffer) (lambda (buf &rest _) (set-buffer buf)))
+              ((symbol-function 'ghostel-exec)
+               (lambda (_buffer prog &rest _) (setq program prog))))
+      (kill-buffer (my/vc--jjui "/tmp/repo/")))
+    (should (equal program "jjui-emacs"))))
+
+(defmacro vc-test--with-jj-repo (&rest body)
+  "Run BODY in a throwaway jj repo: c1 adds a.txt+b.txt, c2 edits a.txt, @ edits it again.
+An empty $JJ_CONFIG keeps the user's config (watchman, signing, …) out of it."
+  (declare (indent 0))
+  ;; The temp dir is held in its OWN variable and deleted by that name — never
+  ;; via `default-directory', which is buffer-local: BODY may leave another
+  ;; buffer current, and cleanup would then recursively delete THAT buffer's
+  ;; directory (it once took out the whole checkout the suite was run from).
+  `(let* ((vc-test--dir (file-name-as-directory (make-temp-file "vc-test-jj" t)))
+          (default-directory vc-test--dir)
+          (process-environment
+           (append (list (concat "JJ_CONFIG=" (make-temp-file "vc-test-jjcfg"))
+                         "JJ_USER=t" "JJ_EMAIL=t@example.com")
+                   process-environment)))
+     (unwind-protect
+         (cl-flet ((jj (&rest args)
+                     (should (zerop (apply #'call-process "jj" nil nil nil args)))))
+           (jj "git" "init")
+           (write-region "one\n" nil "a.txt") (write-region "bee\n" nil "b.txt")
+           (jj "commit" "-m" "c1")
+           (write-region "two\n" nil "a.txt")
+           (jj "commit" "-m" "c2")
+           (write-region "three\n" nil "a.txt")
+           ,@body)
+       (delete-directory vc-test--dir t))))
+
+(defun vc-test--jjui-diff-text (rev &optional file)
+  "Text of the buffer `my/jjui-diff' shows for REV (and FILE) in the current repo."
+  (let ((buf (my/jjui-diff default-directory rev file)))
+    (unwind-protect
+        (with-current-buffer buf
+          (should (derived-mode-p 'diff-mode))
+          (buffer-string))
+      (kill-buffer buf))))
+
+(ert-deftest vc-test-jjui-diff-revision ()
+  "The diff buffer holds exactly the chosen revision's change — not its parent's,
+not the working copy's."
+  (vc-test--with-jj-repo
+    (let ((text (vc-test--jjui-diff-text "description(substring:\"c2\")")))
+      (should (string-match-p "^-one$" text))
+      (should (string-match-p "^\\+two$" text))
+      (should-not (string-match-p "three\\|bee" text)))))
+
+(ert-deftest vc-test-jjui-diff-file ()
+  "With FILE, the diff is limited to that file (the details-pane `d')."
+  (vc-test--with-jj-repo
+    (let ((text (vc-test--jjui-diff-text "description(substring:\"c1\")" "b.txt")))
+      (should (string-match-p "^\\+bee$" text))
+      (should-not (string-match-p "one" text)))))
+
 ;;; vc-test.el ends here

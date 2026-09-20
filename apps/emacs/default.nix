@@ -158,6 +158,14 @@ let
     epkgs.treesit-grammars.with-all-grammars
   ]);
 
+  # The jjui that `SPC G G' runs (lisp/vc.el).  Stock jjui under its own name,
+  # pointed at ./jjui — the config that sends diffs to Emacs buffers.  A separate
+  # binary rather than anything in ~/.config/jjui, so every OTHER jjui (shell,
+  # SSH, even one typed into a ghostel terminal) stays free of those overrides.
+  jjuiEmacs = pkgs.runCommand "jjui-emacs" { nativeBuildInputs = [ pkgs.makeBinaryWrapper ]; } ''
+    makeWrapper ${pkgs.jjui}/bin/jjui $out/bin/jjui-emacs --set JJUI_CONFIG_DIR ${./jjui}
+  '';
+
   # Tools eglot launches and consult shells out to. Bundled so the editor is
   # self-contained (the source had these in the dev shell).
   runtimeTools = [
@@ -184,7 +192,7 @@ let
 
     # Jujutsu tooling and support.
     # Required espectially in macOS to have access to Jujutsu
-    pkgs.jjui
+    jjuiEmacs
     pkgs.jujutsu
     pkgs.git # Needed for jjui and such to do git operations
   ];

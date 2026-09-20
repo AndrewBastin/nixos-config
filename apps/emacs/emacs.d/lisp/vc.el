@@ -104,8 +104,8 @@ Named \"jjui: DIR\" — not the \"term: …\" of a shell terminal (`my/ghostel-b
 whose prefix is there to tell terminals apart from file buffers.  This buffer runs
 ONE program that is named right there in the buffer name, and its major mode
 already says it is a ghostel terminal."
-  (unless (executable-find "jjui")
-    (user-error "jjui not found in PATH"))
+  (unless (executable-find "jjui-emacs")
+    (user-error "jjui-emacs not found in PATH"))
   (require 'ghostel)
   (let ((buffer (generate-new-buffer
                  (format "jjui: %s"
@@ -117,7 +117,10 @@ already says it is a ghostel terminal."
     ;; Display BEFORE spawning: `ghostel-exec' sizes the PTY to the buffer's
     ;; window if it has one, and falls back to a fixed 80x24 if it does not.
     (pop-to-buffer buffer display-buffer--same-window-action)
-    (ghostel-exec buffer "jjui")
+    ;; `jjui-emacs', not `jjui': the wrapper from apps/emacs/default.nix that
+    ;; points jjui at the Emacs-only config (apps/emacs/jjui/config.lua, the
+    ;; jjui -> Emacs bridge below).  A `jjui' started any other way stays stock.
+    (ghostel-exec buffer "jjui-emacs")
     ;; Keep the name we chose.  jjui reports an OSC-2 title ("jjui - <ROOT>",
     ;; always an unabbreviated absolute path), and ghostel renames a terminal to
     ;; match every title report — so without this the buffer turns into
@@ -144,5 +147,46 @@ it from."
   (if-let* ((root (locate-dominating-file default-directory ".jj")))
       (my/vc--jjui (expand-file-name root))
     (magit-status)))
+
+;; --- jjui -> Emacs bridge ---------------------------------------------------
+;; Called BY jjui, not by me: apps/emacs/jjui/config.lua rebinds jjui's `d' to
+;; `emacsclient -e (my/jjui-diff ROOT REV [FILE])', so a diff opens as a real
+;; buffer here instead of in jjui's pager.  Only the jjui that `my/vc--jjui'
+;; spawns loads that config.
+;;
+;; Runs `jj diff' itself rather than going through `vc-diff-internal': that one
+;; drags in working-revision lookups and a `revert-buffer-function' that forgets
+;; the buffer it was given.  `-r REV' (not `--from REV- --to REV') is what stays
+;; correct on merge commits.
+(defun my/jjui-diff (root rev &optional file)
+  "Show the diff of jj revision REV in the repo at ROOT, in the other window.
+With FILE (a path relative to ROOT), limit the diff to that file.  One buffer
+per repo, reused; `revert-buffer' re-runs the diff.  Returns the buffer."
+  (let* ((default-directory (file-name-as-directory root))
+         (buffer (get-buffer-create
+                  (format "*jj diff: %s*"
+                          (abbreviate-file-name (directory-file-name root))))))
+    (with-current-buffer buffer
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        ;; stderr dropped: jj's snapshot warnings must not land in the diff.
+        ;; `%S' quoting of FILE matches jj's fileset string-literal syntax.
+        (unless (zerop (apply #'process-file "jj" nil '(t nil) nil
+                              "diff" "--git" "--color=never" "-r" rev
+                              (and file (list (format "root-file:%S" file)))))
+          (user-error "jj diff -r %s failed" rev)))
+      (diff-mode)
+      (setq buffer-read-only t
+            default-directory (file-name-as-directory root))
+      ;; Lets diff-mode fetch either side from jj: hunk fontification, and
+      ;; `C-u RET' to visit the pre-change version of the file.
+      (setq-local diff-vc-backend 'JJ
+                  diff-vc-revisions (list (format "(%s)-" rev) rev)
+                  revert-buffer-function
+                  (lambda (&rest _) (my/jjui-diff root rev file)))
+      (goto-char (point-min)))
+    (unless (eq (window-buffer) buffer)
+      (pop-to-buffer buffer t))
+    buffer))
 
 ;;; vc.el ends here
