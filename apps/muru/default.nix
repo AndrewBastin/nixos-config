@@ -12,6 +12,7 @@
   runCommand,
   callPackage,
   pi,
+  nodejs,
 }:
 
 let
@@ -22,7 +23,7 @@ let
     pluginDir = ./plugins;
     entries = builtins.readDir pluginDir;
     dirs = lib.filterAttrs (name: type: type == "directory") entries;
-  in map (name: import (pluginDir + "/${name}/default.nix") { inherit lib runCommand callPackage pi; })
+  in map (name: import (pluginDir + "/${name}/default.nix") { inherit lib runCommand callPackage pi nodejs; })
     (builtins.attrNames dirs);
 
   pluginFlags = lib.concatMapStringsSep " " (p: "-e ${p}") builtinPlugins;

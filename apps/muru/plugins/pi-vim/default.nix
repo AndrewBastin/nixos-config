@@ -1,10 +1,12 @@
 # pi-vim — Vim keybindings extension for pi, patched for muru.
 #
-# pi-vim's clipboard helper resolves @earendil-works/pi-coding-agent from the real
-# filesystem at import time, but llm-agents ships pi as a compiled bun binary with
-# no dist/, so it exists only inside the binary and the resolve throws — taking the
-# whole extension down with it. Point it at the clipboard package pi does ship
-# unpacked, and adapt the generated helper to that module's API.
+# pi-vim mirrors the vim register to the system clipboard by spawning a child
+# helper for every clipboard read/write. The child is assumed to be a JS runtime
+# (`process.execPath`) importing a clipboard module resolved from pi's install.
+# Neither assumption holds for llm-agents' pi: it is a bun-compiled binary that
+# rejects `-e` ("Unknown option: --input-type"), and it no longer ships a
+# @mariozechner/clipboard package to resolve. Run the helper with node instead,
+# and point it at a shim that drives the platform clipboard tools pi itself uses.
 #
 # Returns the entry point to pass to pi's -e flag.
 {
@@ -12,6 +14,7 @@
   runCommand,
   callPackage,
   pi,
+  nodejs,
 }:
 
 let
@@ -33,17 +36,22 @@ let
   # nix-update only ever touches package.nix, so ./last-reviewed survives.
   lastReviewed = lib.strings.trim (builtins.readFile ./last-reviewed);
 
-  # pi-vim's clipboard helper resolves @earendil-works/pi-coding-agent at import
-  # time, but llm-agents ships pi as a compiled bun binary with no dist/, so the
-  # resolved URL exists only inside the binary and the generated child helper's
-  # import fails (or the resolve throws outright). Point it at the clipboard
-  # package pi does ship unpacked, and adapt the generated write helper to that
-  # module's API (default export with setText).
-  clipboardPkg = "${pi}/libexec/pi/node_modules/@mariozechner/clipboard";
+  # The module the generated helper imports instead of pi's coding-agent package.
+  # It answers to the @mariozechner/clipboard shape pi-vim expects (default
+  # export with setText for writes; hasText/getText for reads) so the only patch
+  # to clipboard-mirror.ts is the module URL, not its logic.
+  clipboardShim = runCommand "pi-vim-clipboard-shim" { } ''
+    mkdir -p $out/node_modules/@mariozechner/clipboard
+    cp ${./clipboard-shim.js} $out/node_modules/@mariozechner/clipboard/index.js
+    cat > $out/node_modules/@mariozechner/clipboard/package.json <<'EOF'
+    { "name": "@mariozechner/clipboard", "version": "0.0.0", "main": "index.js" }
+    EOF
+  '';
+  clipboardPkg = "${clipboardShim}/node_modules/@mariozechner/clipboard";
 
   # --replace-fail: if a future pi-vim rewrites this file, fail the build loudly
   # rather than shipping an extension that silently no-ops.
-  patched = runCommand "${pi-vim.name}-patched" {} ''
+  patched = runCommand "${pi-vim.name}-patched" { } ''
     cp -r ${pi-vim} $out
     chmod -R u+w $out
 
@@ -51,23 +59,15 @@ let
       echo "pi-vim ${pi-vim.version} has not been reviewed against muru's patch (last reviewed: ${lastReviewed})." >&2
       echo "" >&2
       echo "Diff the new clipboard-mirror.ts against the --replace-fail needles in" >&2
-      echo "apps/muru/plugins/pi-vim/default.nix, confirm the redirect to @mariozechner/clipboard" >&2
-      echo "still makes sense, then put ${pi-vim.version} in apps/muru/plugins/pi-vim/last-reviewed." >&2
+      echo "apps/muru/plugins/pi-vim/default.nix, confirm running the helper with node" >&2
+      echo "and the clipboard shim still makes sense, then put ${pi-vim.version} in" >&2
+      echo "apps/muru/plugins/pi-vim/last-reviewed." >&2
       exit 1
     fi
 
-    # If a future pi release renames or drops this path, the substitutions
-    # below still succeed (they don't reference it) and the build still
-    # produces a working-looking extension — the failure would only surface
-    # silently, at runtime, in a spawned child process whose stderr nothing
-    # reads. Fail the build instead.
-    test -e ${clipboardPkg}/index.js || {
-      echo "pi no longer ships @mariozechner/clipboard at the expected path" >&2
-      exit 1
-    }
-
     substituteInPlace $out/clipboard-mirror.ts \
       --replace-fail 'return import.meta.resolve("@earendil-works/pi-coding-agent");' 'return "file://${clipboardPkg}/index.js";' \
+      --replace-fail 'process.execPath' '"${nodejs}/bin/node"' \
       --replace-fail 'import { copyToClipboard } from ''${JSON.stringify(moduleUrl)};' 'import clipboard from ''${JSON.stringify(moduleUrl)};
 const copyToClipboard = (text) => clipboard.setText(text);'
   '';

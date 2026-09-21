@@ -13,7 +13,7 @@
 #
 # `callPackage` and `pi` are accepted (and unused) so the auto-discovery in
 # apps/muru/default.nix can pass the same arg set to every plugin.
-{ lib, runCommand, callPackage, pi }:
+{ lib, runCommand, callPackage, pi, nodejs }:
 
 runCommand "muru-stuff" {} ''
   cp -r ${./.} $out
