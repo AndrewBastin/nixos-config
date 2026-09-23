@@ -1,0 +1,20 @@
+--- a/packages/server/src/server/agent/providers/claude/agent.ts	2026-09-23 14:24:08.796045443 +0530
++++ b/packages/server/src/server/agent/providers/claude/agent.ts	2026-09-23 14:24:08.799569876 +0530
+@@ -1613,7 +1613,7 @@
+   async listImportableSessions(
+     options?: ListImportableSessionsOptions,
+   ): Promise<ImportableProviderSession[]> {
+-    const configDir = process.env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), ".claude");
++    const configDir = this.configDir ?? this.runtimeSettings?.env?.CLAUDE_CONFIG_DIR ?? process.env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), ".claude");
+     const sessionsRoot = options?.cwd
+       ? claudeProjectDirSync(options.cwd, { configDir })
+       : path.join(configDir, "projects");
+@@ -5030,7 +5030,7 @@
+   private resolveHistoryPath(sessionId: string): string | null {
+     const cwd = this.config.cwd;
+     if (!cwd) return null;
+-    const configDir = process.env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), ".claude");
++    const configDir = this.launchEnv?.CLAUDE_CONFIG_DIR ?? this.runtimeSettings?.env?.CLAUDE_CONFIG_DIR ?? process.env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), ".claude");
+     const candidates = [cwd];
+     try {
+       const realCwd = fs.realpathSync(cwd);
