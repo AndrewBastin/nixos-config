@@ -7,13 +7,13 @@
 
 stdenvNoCC.mkDerivation {
   pname = "superpowers-plugin";
-  version = "6.4.1-unstable-2026-09-19";
+  version = "6.4.2-unstable-2026-09-25";
 
   src = fetchFromGitHub {
     owner = "obra";
     repo = "superpowers";
-    rev = "5bf4e78011075bcfc0dc295f0724994cd123ee71";
-    hash = "sha256-rgeJhjQyABYlhlyFRmgyhbZmmmIPPNkch4CXyTkGEyM=";
+    rev = "8ca22dba9a94f28898bbce59f2537ff4d87c747d";
+    hash = "sha256-BWPiXoXV+jePP+wn/Z+Af4iehIL7oei00plaWaTzq8s=";
   };
 
   dontBuild = true;
