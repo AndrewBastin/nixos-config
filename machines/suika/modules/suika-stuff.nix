@@ -14,23 +14,16 @@
       # 400 — Codex agents then silently run without any Paseo tools. Patch
       # from getpaseo/paseo#4375; drop once that (or #4570) lands upstream.
       #
-      # Transcript lookup ignores the provider's `env` and only reads the
-      # daemon's CLAUDE_CONFIG_DIR, so "Claude (Personal)" agents (whose
-      # sessions live in ~/.claude-migu) render an empty timeline after a
-      # daemon restart. Needs `env.CLAUDE_CONFIG_DIR` on that provider in
-      # ~/.paseo/config.json. Drop once getpaseo/paseo#4661 is fixed.
-      #
-      # Pinned to the version the patches were reviewed against: a release
-      # bump fails eval until someone checks whether each is still needed
+      # Pinned to the version the patch was reviewed against: a release
+      # bump fails eval until someone checks whether it is still needed
       # (upstream fixed it?) and still correct, then updates this string.
       package = inputs.paseo.packages.${pkgs.stdenv.hostPlatform.system}.default.overrideAttrs (old: {
-        patches = (old.patches or [ ]) ++ lib.throwIfNot (old.version == "0.9.1") ''
-          Paseo is now ${old.version}; review the patches in
-          machines/suika/modules/suika-stuff.nix (drop any fixed upstream),
+        patches = (old.patches or [ ]) ++ lib.throwIfNot (old.version == "0.10.0-beta.1") ''
+          Paseo is now ${old.version}; review the patch in
+          machines/suika/modules/suika-stuff.nix (drop it if fixed upstream),
           then bump the pinned version there.
         '' [
           ./paseo-mcp-protocol-version.patch
-          ./paseo-claude-config-dir.patch
         ];
       });
 
