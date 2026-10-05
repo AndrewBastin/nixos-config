@@ -1,16 +1,15 @@
 diff --git a/packages/server/src/server/bootstrap.ts b/packages/server/src/server/bootstrap.ts
-index 1cfea1c99d7..6f8beb8e6be 100644
---- a/packages/server/src/server/bootstrap.ts
+--- a/packages/server/src/server/bootstrap.ts	2026-10-05 13:15:46.563284607 +0530
 +++ b/packages/server/src/server/bootstrap.ts
-@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
- import { hostname as getHostname } from "node:os";
+@@ -8,6 +8,7 @@
+ import { getHostName } from "./host-name.js";
  import path from "node:path";
  import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 +import { SUPPORTED_PROTOCOL_VERSIONS } from "@modelcontextprotocol/sdk/types.js";
  import type { Logger } from "pino";
  import { z } from "zod";
  import { createBranchChangeRouteHandler } from "./script-route-branch-handler.js";
-@@ -1507,6 +1508,41 @@ export async function createPaseoDaemon(
+@@ -1541,6 +1542,41 @@
            });
            return;
          }
