@@ -7,7 +7,7 @@
 
 stdenvNoCC.mkDerivation {
   pname = "ponytail-plugin";
-  version = "4.10.3";
+  version = "4.12.0";
 
   src = fetchFromGitHub {
     owner = "DietrichGebert";
