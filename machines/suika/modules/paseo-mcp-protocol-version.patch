@@ -1,5 +1,5 @@
 diff --git a/packages/server/src/server/bootstrap.ts b/packages/server/src/server/bootstrap.ts
---- a/packages/server/src/server/bootstrap.ts	2026-10-05 13:15:46.563284607 +0530
+--- a/packages/server/src/server/bootstrap.ts
 +++ b/packages/server/src/server/bootstrap.ts
 @@ -8,6 +8,7 @@
  import { getHostName } from "./host-name.js";
@@ -9,7 +9,7 @@ diff --git a/packages/server/src/server/bootstrap.ts b/packages/server/src/serve
  import type { Logger } from "pino";
  import { z } from "zod";
  import { createBranchChangeRouteHandler } from "./script-route-branch-handler.js";
-@@ -1541,6 +1542,41 @@
+@@ -1548,6 +1549,41 @@
            });
            return;
          }
