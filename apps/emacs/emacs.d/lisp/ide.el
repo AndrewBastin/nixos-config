@@ -44,7 +44,8 @@
                 bash-ts-mode-hook
                 dockerfile-ts-mode-hook
                 docker-compose-ts-mode-hook
-                qml-mode-hook))
+                qml-mode-hook
+                zig-ts-mode-hook))
   (add-hook hook #'eglot-ensure))
 
 ;; Don't let code-action availability clutter the echo area. eglot's default
@@ -134,6 +135,7 @@ commands keep following the pinned/terminal working dir."
                  ("\\.py\\'"      . python-ts-mode)
                  ("\\.\\(sh\\|bash\\)\\'" . bash-ts-mode)
                  ("\\.qml\\'"     . qml-mode)
+                 ("\\.zig\\(?:\\.zon\\)?\\'" . zig-ts-mode)
                  ;; Compose files first so they win over the generic Dockerfile/
                  ;; YAML matches below.
                  ("\\(?:^\\|/\\)\\(?:docker-\\)?compose\\(?:\\.[^/]*\\)?\\.ya?ml\\'"

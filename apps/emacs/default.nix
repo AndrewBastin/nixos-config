@@ -216,15 +216,29 @@ if isDarwin then
   # registers as a foreground GUI app — no Dock icon, no keyboard focus, and
   # invisible to aerospace. A GUI app must be launched as its `.app` bundle via
   # `open` (Launch Services). So here we:
-  #   1. copy Emacs.app (tiny — ~1.2M; lisp/eln live in the store, referenced via
-  #      EMACSLOADPATH) and re-wrap its Mach-O launcher so --init-directory and
-  #      the runtime-tools PATH are baked in (a bash launcher would itself break
-  #      GUI launch, so this must stay a binary wrapper);
-  #   2. ship `emacs-gui`, which `open`s that bundle — this is what the aerospace
-  #      keybind runs;
-  #   3. keep a normal terminal `emacs` (+ emacsclient et al.) for CLI use.
+  #   1. launch the UNWRAPPED macport Emacs.app as-is. Its entry point must be
+  #      the real Mach-O, never a wrapper (bash or binary): when the bundle
+  #      executable exec()s another binary, the app is invisible to the macOS
+  #      Accessibility API, so aerospace can't see or tile it and its keybinds
+  #      die while Emacs is focused. (withPackages' own Emacs.app is such a
+  #      wrapper.)
+  #   2. ship `emacs-gui`, which `open`s that bundle and hands over everything
+  #      the wrappers used to: withPackages' load paths, PATH, and
+  #      --init-directory. Caller env beats Info.plist LSEnvironment, so it must
+  #      be `open --env`. This is what the aerospace keybind runs;
+  #   3. expose a tiny launcher Emacs.app (for Spotlight/Finder via Home Manager
+  #      Apps) that just runs `emacs-gui` and exits. Being a script is fine
+  #      here: the launcher never owns a window, and the real Emacs is started
+  #      by `open`. Background-only + its own bundle id, so it doesn't bounce in
+  #      the Dock or get confused with the running Emacs. ponytail: pinning the
+  #      running Emacs in the Dock pins the unwrapped bundle (no config) —
+  #      launch via Spotlight/alt-y instead;
+  #   4. keep a normal terminal `emacs` (+ emacsclient et al.) for CLI use.
+  let
+    inherit (emacsWithPkgs) deps;
+  in
   pkgs.runCommand "emacs" { nativeBuildInputs = [ pkgs.makeBinaryWrapper ]; meta.mainProgram = "emacs"; } ''
-    mkdir -p $out/bin $out/Applications
+    mkdir -p $out/bin
 
     # Symlink everything except bin/ and Applications/, which we customise.
     for entry in ${emacsWithPkgs}/*; do
@@ -244,15 +258,37 @@ if isDarwin then
     makeWrapper "${emacsWithPkgs}/bin/emacs" "$out/bin/emacs" \
       --add-flags "--init-directory ${initDir}" \
       --suffix PATH : "${pathSuffix}"
-    makeWrapper /usr/bin/open "$out/bin/emacs-gui" \
-      --add-flags "-a $out/Applications/Emacs.app"
 
-    # Applications/: real copy so we can re-wrap the bundle's Mach-O entry point.
-    cp -R ${emacsWithPkgs}/Applications/Emacs.app "$out/Applications/"
-    chmod -R u+w "$out/Applications/Emacs.app"
-    wrapProgram "$out/Applications/Emacs.app/Contents/MacOS/Emacs" \
-      --add-flags "--init-directory ${initDir}" \
-      --suffix PATH : "${pathSuffix}"
+    # Same env the withPackages bundle wrapper (wrapper.sh) would set.
+    cat > $out/bin/emacs-gui <<EOF
+    #!/bin/sh
+    exec /usr/bin/open -a ${emacs}/Applications/Emacs.app \\
+      --env EMACSLOADPATH=${deps}/share/emacs/site-lisp: \\
+      --env EMACSNATIVELOADPATH=${deps}/share/emacs/native-lisp: \\
+      --env "PATH=${deps}/bin:\$PATH:${pathSuffix}" \\
+      --args --init-directory ${initDir} "\$@"
+    EOF
+    chmod +x $out/bin/emacs-gui
+
+    launcher=$out/Applications/Emacs.app/Contents
+    mkdir -p $launcher/MacOS $launcher/Resources
+    ln -s ${emacs}/Applications/Emacs.app/Contents/Resources/Emacs.icns $launcher/Resources/
+    printf '#!/bin/sh\nexec %s\n' $out/bin/emacs-gui > $launcher/MacOS/Emacs
+    chmod +x $launcher/MacOS/Emacs
+    cat > $launcher/Info.plist <<EOF
+    <?xml version="1.0" encoding="UTF-8"?>
+    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+    <plist version="1.0">
+    <dict>
+      <key>CFBundleExecutable</key><string>Emacs</string>
+      <key>CFBundleIdentifier</key><string>org.gnu.Emacs.launcher</string>
+      <key>CFBundleName</key><string>Emacs</string>
+      <key>CFBundleIconFile</key><string>Emacs</string>
+      <key>CFBundlePackageType</key><string>APPL</string>
+      <key>LSBackgroundOnly</key><true/>
+    </dict>
+    </plist>
+    EOF
   ''
 else
   pkgs.symlinkJoin {
