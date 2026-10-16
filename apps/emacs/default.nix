@@ -70,6 +70,10 @@ let
     # below); this provides `qml-mode', which eglot attaches `qmlls' to.
     epkgs.melpaPackages.qml-mode
 
+    # Zig has no built-in Emacs major mode; `zig-ts-mode' uses the zig grammar
+    # from `with-all-grammars' below, and eglot attaches `zls' to it.
+    epkgs.melpaPackages.zig-ts-mode
+
     # Ghostel terminal (core + native module) and its evil integration, both from
     # packages/ghostel — a single pinned rev (see the `ghostel' binding above),
     # replacing the old `epkgs.ghostel' + `melpaStablePackages.evil-ghostel' pair
@@ -189,6 +193,7 @@ let
     pkgs.dockerfile-language-server             # docker-langserver
     pkgs.docker-compose-language-service        # docker-compose-langserver
     pkgs.qt6.qtdeclarative                       # qmlls
+    pkgs.zls                                     # zls (a project's devshell zls wins, see above)
 
     # Jujutsu tooling and support.
     # Required espectially in macOS to have access to Jujutsu
