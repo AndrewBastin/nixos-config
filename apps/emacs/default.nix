@@ -166,20 +166,6 @@ let
     makeWrapper ${pkgs.jjui}/bin/jjui $out/bin/jjui-emacs --set JJUI_CONFIG_DIR ${./jjui}
   '';
 
-  # Temporary: nixpkgs-unstable shipped typescript-language-server 6.0.2 with a
-  # wrong pnpmDeps hash, fixed upstream in NixOS/nixpkgs#572951.  The assert
-  # trips once that fix lands in our lock, forcing this override's removal.
-  typescript-language-server =
-    let ts = pkgs.typescript-language-server;
-    in assert lib.assertMsg
-      (ts.pnpmDeps.outputHash == "sha256-MUSxDMlbG21KSesGdEvqa2kEpuVfLlXRUX1qV/FGsSo=")
-      "apps/emacs: typescript-language-server pnpmDeps hash changed upstream; remove the override";
-    ts.overrideAttrs (old: {
-      pnpmDeps = old.pnpmDeps.overrideAttrs {
-        outputHash = "sha256-xR/EF60lVBsITKgH7wCM2wHM46PFQevD51KfCENSUH4=";
-      };
-    });
-
   # Tools eglot launches and consult shells out to. Bundled so the editor is
   # self-contained (the source had these in the dev shell).
   runtimeTools = [
@@ -190,7 +176,7 @@ let
     # loaded direnv). `envrc` shells out to this.
     pkgs.direnv
     pkgs.rust-analyzer
-    typescript-language-server
+    pkgs.typescript-language-server
     pkgs.nixd
     # LSP servers mirroring apps/nvim.nix. Bundled (like the three above) so the
     # editor works out of the box; a project's direnv flake can still shadow any

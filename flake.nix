@@ -27,7 +27,13 @@
 
     llm-agents.url = "github:numtide/llm-agents.nix";
 
-    mac-app-util.url = "github:hraban/mac-app-util";
+    mac-app-util = {
+      url = "github:hraban/mac-app-util";
+
+      # Needed due to SBCL dependency having a crash on macOS 27
+      # Reconsider this when NixOS 26.11 is cut
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
+    };
 
     naersk = {
       url = "github:nix-community/naersk";
