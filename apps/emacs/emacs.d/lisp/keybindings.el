@@ -202,3 +202,49 @@ signals when nothing qualifies, so report that instead of erroring out."
     "SPC t"   "terminal"))
 
 ;;; keybindings.el ends here
+
+;; --- C-<tab>: Alt-Tab style buffer cycling ---------------------------------
+;; A fresh press jumps to the most recently used other buffer, so tapping C-<tab>
+;; toggles between the two latest.  Consecutive presses keep walking the MRU list
+;; snapshotted at the first press (wrapping), so the order doesn't reshuffle
+;; mid-cycle; C-S-<tab> walks it backwards.  Each step re-records the origin then
+;; the target, leaving them as the top two of `buffer-list' — the next fresh
+;; press toggles straight back.  Hidden and *special* buffers are skipped, like
+;; SPC bb.  Bound in every evil state; the ghostel-mode aux map rebinds the same
+;; commands so they outrank the terminal passthrough there.
+(defvar my/buffer-cycle--ring nil "MRU snapshot of buffers, origin first.")
+(defvar my/buffer-cycle--index 0 "Position of the shown buffer in the ring.")
+
+(defun my/buffer-cycle (step)
+  "Move STEP buffers along the MRU ring (1 = next most recent)."
+  (unless (memq last-command '(my/buffer-cycle-next my/buffer-cycle-previous))
+    (setq my/buffer-cycle--ring
+          (cons (current-buffer)
+                (seq-remove (lambda (b)
+                              (or (eq b (current-buffer))
+                                  (string-match-p "\\`[ *]" (buffer-name b))))
+                            (buffer-list)))
+          my/buffer-cycle--index 0))
+  (setq my/buffer-cycle--ring (seq-filter #'buffer-live-p my/buffer-cycle--ring))
+  (when (cdr my/buffer-cycle--ring)
+    (setq my/buffer-cycle--index
+          (mod (+ my/buffer-cycle--index step) (length my/buffer-cycle--ring)))
+    (switch-to-buffer (car my/buffer-cycle--ring))
+    (switch-to-buffer (nth my/buffer-cycle--index my/buffer-cycle--ring))))
+
+(defun my/buffer-cycle-next ()
+  "Go to the most recently used other buffer; repeat to go further back."
+  (interactive)
+  (my/buffer-cycle 1))
+
+(defun my/buffer-cycle-previous ()
+  "Like `my/buffer-cycle-next' but walk the MRU ring backwards."
+  (interactive)
+  (my/buffer-cycle -1))
+
+(global-set-key (kbd "C-<tab>")   #'my/buffer-cycle-next)
+(global-set-key (kbd "C-S-<tab>") #'my/buffer-cycle-previous)
+(evil-define-key '(normal insert visual motion emacs) 'global
+  (kbd "C-<tab>")         #'my/buffer-cycle-next
+  (kbd "C-S-<tab>")       #'my/buffer-cycle-previous
+  (kbd "C-<iso-lefttab>") #'my/buffer-cycle-previous)

@@ -148,14 +148,14 @@ current directory plus the foreground program when one is running, e.g.
                     (kbd "C-c") #'ghostel-send-C-c
                     (kbd "C-x") (lambda () (interactive) (ghostel-send-key "x" "ctrl"))
                     ;; C-t opens a brand-new terminal buffer; C-<tab> /
-                    ;; C-S-<tab> cycle forward / backward through the ghostel
-                    ;; buffers in order (name-sorted, wraps).  Like C-c above,
-                    ;; these evil aux bindings outrank the terminal passthrough,
-                    ;; so they stay Emacs commands.
+                    ;; C-S-<tab> are the global Alt-Tab buffer cycler (see
+                    ;; keybindings.el).  Like C-c above, these evil aux
+                    ;; bindings outrank the terminal passthrough, so they stay
+                    ;; Emacs commands.
                     (kbd "C-t") #'my/ghostel-fresh
-                    (kbd "C-<tab>") #'ghostel-next
-                    (kbd "C-S-<tab>") #'ghostel-previous
-                    (kbd "C-<iso-lefttab>") #'ghostel-previous
+                    (kbd "C-<tab>") #'my/buffer-cycle-next
+                    (kbd "C-S-<tab>") #'my/buffer-cycle-previous
+                    (kbd "C-<iso-lefttab>") #'my/buffer-cycle-previous
                     ;; C-S-v pastes the system clipboard into the terminal.
                     (kbd "C-S-v") #'my/ghostel-paste-clipboard)
   ;; The new-terminal / cycle shortcuts should also work after dropping to
@@ -164,9 +164,9 @@ current directory plus the foreground program when one is running, e.g.
   ;; since they only make sense while sending keys to the program.
   (evil-define-key* 'normal evil-ghostel-mode-map
                     (kbd "C-t") #'my/ghostel-fresh
-                    (kbd "C-<tab>") #'ghostel-next
-                    (kbd "C-S-<tab>") #'ghostel-previous
-                    (kbd "C-<iso-lefttab>") #'ghostel-previous
+                    (kbd "C-<tab>") #'my/buffer-cycle-next
+                    (kbd "C-S-<tab>") #'my/buffer-cycle-previous
+                    (kbd "C-<iso-lefttab>") #'my/buffer-cycle-previous
                     ;; Follow the hyperlink at point (OSC 8, auto-detected URL,
                     ;; or file:line ref).  Ghostel only binds RET-to-open in its
                     ;; read-only mode map; in evil normal-state scrollback RET is
