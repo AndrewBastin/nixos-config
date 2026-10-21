@@ -7,7 +7,7 @@
 
 stdenvNoCC.mkDerivation {
   pname = "i-have-adhd-plugin";
-  version = "0-unstable-2026-10-11";
+  version = "0.4.1-unstable-2026-10-11";
 
   src = fetchFromGitHub {
     owner = "ayghri";
