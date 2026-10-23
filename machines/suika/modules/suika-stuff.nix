@@ -14,18 +14,32 @@
       # 400 — Codex agents then silently run without any Paseo tools. Patch
       # from getpaseo/paseo#4375; drop once that (or #4570) lands upstream.
       #
-      # Pinned to the version the patch was reviewed against: a release
-      # bump fails eval until someone checks whether it is still needed
-      # (upstream fixed it?) and still correct, then updates this string.
-      package = inputs.paseo.packages.${pkgs.stdenv.hostPlatform.system}.default.overrideAttrs (old: {
-        patches = (old.patches or [ ]) ++ lib.throwIfNot (old.version == "0.11.2") ''
-          Paseo is now ${old.version}; review the patch in
-          machines/suika/modules/suika-stuff.nix (drop it if fixed upstream),
+       # Pinned to the version the patch was reviewed against: a release
+       # bump fails eval until someone checks whether it is still needed
+       # (upstream fixed it?) and still correct, then updates this string.
+       package = inputs.paseo.packages.${pkgs.stdenv.hostPlatform.system}.default.overrideAttrs (old: {
+-        patches = (old.patches or [ ]) ++ lib.throwIfNot (old.version == "0.13.0-beta.1") ''
+      # The flake builds with --ignore-scripts, so the repo's postinstall
+      # (patch-package over patches/) never runs; the web UI then crashes with
+      # React #130 because the @gorhom/bottom-sheet patch exporting
+      # BottomSheetModalInternalProvider is missing. Drop the preBuild once
+      # getpaseo/paseo#7673 is fixed upstream.
+      #
+      # Pinned to the version both fixes were reviewed against: a release
+      # bump fails eval until someone checks whether they are still needed
+      # (upstream fixed them?) and still correct, then updates this string.
+      package = inputs.paseo.packages.${pkgs.stdenv.hostPlatform.system}.default.overrideAttrs (old:
+        lib.throwIfNot (old.version == "0.13.0-beta.1") ''
+          Paseo is now ${old.version}; review the patch and preBuild in
+          machines/suika/modules/suika-stuff.nix (drop them if fixed upstream),
+>>>>>>> conflict 1 of 1 ends
           then bump the pinned version there.
-        '' [
-          ./paseo-mcp-protocol-version.patch
-        ];
-      });
+        '' {
+          patches = (old.patches or [ ]) ++ [ ./paseo-mcp-protocol-version.patch ];
+          preBuild = (old.preBuild or "") + ''
+            npm run postinstall
+          '';
+        });
 
       # Running as andrew (not the `paseo` system user) flips
       # inheritUserEnvironment on, which puts the home-manager profile on the
