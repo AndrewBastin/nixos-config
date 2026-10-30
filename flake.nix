@@ -86,6 +86,10 @@
                   value = pkgs.callPackage ./packages/${name}/package.nix {};
                 }) packageDirs);
               in autoPackages // {
+                # Needs zig_0_17, which stable nixpkgs lacks (Emacs builds it
+                # from unstable too, so this matches what gets installed).
+                ghostel = pkgs-unstable.callPackage ./packages/ghostel/package.nix {};
+
                 nvim = import ./apps/nvim.nix {
                   nixvim = (import nixvim).legacyPackages."${system}";
                   pkgs = pkgs-unstable;
