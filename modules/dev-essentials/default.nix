@@ -212,6 +212,8 @@
         theme = "dark";
         editorMode = "vim";
         agentPushNotifEnabled = true;
+        model = "claude-opus-5-5";
+        autoCompactWindow = 400000;
 
         # Turn off background agents and the `claude agents` agent view.
         disableAgentView = true;
