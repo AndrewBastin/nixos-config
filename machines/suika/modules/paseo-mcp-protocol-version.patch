@@ -1,7 +1,7 @@
 diff --git a/packages/server/src/server/bootstrap.ts b/packages/server/src/server/bootstrap.ts
 --- a/packages/server/src/server/bootstrap.ts
 +++ b/packages/server/src/server/bootstrap.ts
-@@ -8,6 +8,7 @@
+@@ -17,6 +17,7 @@
  import { getHostName } from "./host-name.js";
  import path from "node:path";
  import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -9,7 +9,7 @@ diff --git a/packages/server/src/server/bootstrap.ts b/packages/server/src/serve
  import type { Logger } from "pino";
  import { z } from "zod";
  import { createBranchChangeRouteHandler } from "./script-route-branch-handler.js";
-@@ -1548,6 +1549,41 @@
+@@ -1689,6 +1690,41 @@
            });
            return;
          }

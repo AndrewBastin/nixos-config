@@ -24,7 +24,7 @@
       # bump fails eval until someone checks whether they are still needed
       # (upstream fixed them?) and still correct, then updates this string.
       package = inputs.paseo.packages.${pkgs.stdenv.hostPlatform.system}.default.overrideAttrs (old:
-        lib.throwIfNot (old.version == "0.14.0-beta.2") ''
+        lib.throwIfNot (old.version == "0.15.0-beta.1") ''
           Paseo is now ${old.version}; review the patch and preBuild in
           machines/suika/modules/suika-stuff.nix (drop them if fixed upstream),
           then bump the pinned version there.
