@@ -81,6 +81,15 @@
         '';
       };
 
+      jsd = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = ''
+          Install jsd (apps/jsd): run Node apps and tests with Chrome DevTools
+          opening on `debugger` statements. Linux only; pulls in Chromium.
+        '';
+      };
+
       claudeExecWrappers = lib.mkOption {
         type = lib.types.bool;
         default = false;
@@ -258,6 +267,11 @@
       claudeSettingsJson = builtins.toJSON claudeSettings;
     in
       {
+        assertions = [{
+          assertion = !((universalConfig.dev-essentials.jsd or false) && pkgs.stdenv.isDarwin);
+          message = "dev-essentials.jsd is Linux-only (apps/jsd needs Chromium from nixpkgs)";
+        }];
+
         home.packages = with pkgs; [
           tig
           nodejs_24
@@ -286,6 +300,8 @@
           (pkgs.callPackage ../../apps/muru { pi = llm-agents.pi; })
         ] ++ pkgs.lib.optional
           (universalConfig.dev-essentials.emacs or false) my_emacs
+        ++ pkgs.lib.optional
+          (universalConfig.dev-essentials.jsd or false) (pkgs.callPackage ../../apps/jsd { })
         # The aliases stay the interactive entry point — the Emacs ghostel shim
         # wraps `claude` as a shell function, which a script would bypass. No
         # --allow-dangerously-skip-permissions here: the caller decides.

@@ -111,6 +111,9 @@
                 muru = pkgs.callPackage ./apps/muru {
                   pi = inputs.llm-agents.packages.${system}.pi;
                 };
+              } // nixpkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
+                # Linux only (needs nixpkgs Chromium); also installed via dev-essentials.jsd.
+                jsd = pkgs.callPackage ./apps/jsd {};
               };
 
             apps = {

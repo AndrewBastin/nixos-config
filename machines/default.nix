@@ -117,6 +117,8 @@ in
     config = {
       kitty.fontSize = 10;
 
+      dev-essentials.jsd = true;
+
       andrew-shell = {
         # VMWare Fusion on ARM Macs have an issue with their graphics driver not passing
         # some validations that Hyprland does on rendering out buffers from the GPU
@@ -191,6 +193,7 @@ in
       };
 
       dev-essentials.emacs = true;
+      dev-essentials.jsd = true;
     };
 
     modules = [
