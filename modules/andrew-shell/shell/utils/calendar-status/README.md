@@ -58,7 +58,7 @@ On each tick (every 60s, or once with `--once`) it:
      `LOCATION` > `DESCRIPTION`. The first three are used verbatim when they
      look like http(s) URLs; for the last two the first http(s) substring is
      extracted from the free text.
-   - Keeps events starting within `[now, now + horizon)` (default 24h),
+   - Keeps events starting within `[now - since, now + horizon)` (defaults 0h and 24h),
      sorted by start time.
 
 4. **Emits one JSON object per line** on stdout:
@@ -81,13 +81,14 @@ widget recovers on its own.
 ## CLI
 
 ```
-calendar-status [--once] [--exclude-calendar <substr>]... [--horizon-hours <n>]
+calendar-status [--once] [--exclude-calendar <substr>]... [--horizon-hours <n>] [--since-hours <n>]
 ```
 
 - `--once` — print current events and exit instead of polling.
 - `--exclude-calendar` — skip calendars whose name contains this substring
   (case-insensitive, repeatable).
 - `--horizon-hours` — how many hours ahead to look (default 24).
+- `--since-hours` — how many hours back to also include events that already started (default 0).
 
 ## Assumptions
 

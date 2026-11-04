@@ -25,6 +25,9 @@ struct Cli {
 
     #[arg(long, default_value_t = 24, help = "How many hours ahead to look for events")]
     horizon_hours: u64,
+
+    #[arg(long, default_value_t = 0, help = "How many hours back to include events that started (for ones under way or earlier today)")]
+    since_hours: u64,
 }
 
 #[derive(Serialize)]
@@ -89,8 +92,10 @@ fn resolve_emission(
 fn compute(cli: &Cli) -> Result<Vec<events::Event>> {
     let home = std::env::home_dir().ok_or_else(|| anyhow::anyhow!("no home directory"))?;
     let info = profile::discover(&home)?;
-    let now_micros = chrono::Utc::now().timestamp_micros();
-    let horizon_micros = (cli.horizon_hours as i64) * 3_600_000_000;
+    // Looking back moves the window's start; its end stays `horizon_hours` from now.
+    let since_micros = (cli.since_hours as i64) * 3_600_000_000;
+    let now_micros = chrono::Utc::now().timestamp_micros() - since_micros;
+    let horizon_micros = (cli.horizon_hours as i64) * 3_600_000_000 + since_micros;
 
     // Try a direct read-only connection first (works when Thunderbird is closed).
     // Thunderbird holds an exclusive lock on cache.sqlite while running, so the

@@ -33,6 +33,12 @@
         description = "Enable VM mode - a mode optimised for VMs: bottom bar, minimal status components, auto-login without display manager";
       };
 
+      experimentalNewBar = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Experimental: run the Rune-rendered bar (rune-bar/) instead of Quickshell and SwayNC. It is also the notification daemon.";
+      };
+
       extraKeybinds = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [ ];
@@ -89,6 +95,8 @@
 
     environment.systemPackages = with pkgs; [
       blueman         # Bluetooth management
+    ] ++ pkgs.lib.optionals (!(universalConfig.andrew-shell.experimentalNewBar or false)) [
+      # Quickshell's notifications; the new bar is its own notification daemon.
       swaynotificationcenter
     ];
 
@@ -321,9 +329,6 @@
 
         # hyprpaper is launched by its systemd user service (services.hyprpaper),
         # not here.
-        exec-once = [
-          "${lib.getExe pkgs.swaynotificationcenter}"
-        ];
 
         plugin = {
           hyprsplit = {

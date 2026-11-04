@@ -182,6 +182,9 @@ in
         
         wallpaper = ./fern/wallpaper.jpg;
 
+        # The Rune bar (and its notifications) instead of Quickshell and SwayNC.
+        experimentalNewBar = true;
+
         extraKeybinds = [
           "$mod, Y, exec, emacs"
         ];

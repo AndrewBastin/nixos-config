@@ -149,7 +149,20 @@ fn get_desktop_file_path(
         }
     }
 
-    None
+    // Apps whose desktop file isn't named after their class (Cider: `cider-2.desktop` with
+    // `StartupWMClass=Cider`) say which class they own instead.
+    let wm_class_matches = |path: &Path| {
+        fs::read_to_string(path).ok().is_some_and(|content| {
+            content.lines().filter_map(|l| l.trim().strip_prefix("StartupWMClass=")).any(|class| {
+                class.eq_ignore_ascii_case(app_identifier)
+                    || (!alternative_app_identifier.is_empty() && class.eq_ignore_ascii_case(alternative_app_identifier))
+            })
+        })
+    };
+    get_system_data_dirs().into_iter().find_map(|data_dir| {
+        fs::read_dir(data_dir.join("applications")).ok()?.flatten().map(|e| e.path())
+            .find(|p| p.extension().is_some_and(|e| e == "desktop") && wm_class_matches(p))
+    })
 }
 
 fn has_icon_in_theme(icon_name: &str) -> bool {

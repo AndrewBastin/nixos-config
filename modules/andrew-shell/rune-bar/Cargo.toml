@@ -1,0 +1,22 @@
+[workspace]
+resolver = "3"
+members = ["bar"]
+
+# Rune's crates inherit these from their upstream workspace root.
+[workspace.package]
+edition = "2024"
+license = "MIT"
+
+[workspace.lints.rust]
+unsafe_code = "allow"
+
+[profile.release]
+codegen-units = 16
+
+# The build to ship: whole-program LTO in one codegen unit, symbols stripped. Slow to build,
+# so day-to-day `--release` keeps the quick settings above.
+[profile.dist]
+inherits = "release"
+lto = "fat"
+codegen-units = 1
+strip = true
