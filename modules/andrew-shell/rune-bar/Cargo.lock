@@ -36,7 +36,6 @@ dependencies = [
  "rune",
  "serde",
  "serde_json",
- "skrifa",
  "system-tray",
  "tokio",
  "zbus 6.1.0",

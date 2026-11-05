@@ -16,14 +16,11 @@ use store::{Out, Store};
 static OWED: OnceLock<tokio::sync::mpsc::UnboundedSender<Out>> = OnceLock::new();
 static TIMER: OnceLock<std::sync::Mutex<mpsc::Sender<()>>> = OnceLock::new();
 
-/// Starts the bus server and the card timer, each on a thread of its own.
+/// Starts the bus server (on `rt`) and the card timer (a thread of its own).
 pub fn start() {
     let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
     let _ = OWED.set(tx);
-    let _ = std::thread::Builder::new().name("notify-bus".into()).spawn(move || {
-        let Ok(rt) = tokio::runtime::Builder::new_current_thread().enable_all().build() else { return };
-        if let Err(e) = rt.block_on(bus::serve(rx)) { eprintln!("andrew-bar: notifications: {e}"); }
-    });
+    crate::rt::spawn(async { if let Err(e) = bus::serve(rx).await { eprintln!("andrew-bar: notifications: {e}"); } });
     let (poke, woken) = mpsc::channel();
     let _ = TIMER.set(std::sync::Mutex::new(poke));
     let _ = std::thread::Builder::new().name("notify-timer".into()).spawn(move || loop {

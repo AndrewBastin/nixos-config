@@ -16,7 +16,8 @@ fn flow(status: &str, power_uw: u64, adapters: &[(bool, u64, u64)]) -> Flow {
     let battery_w = if status == "Discharging" { -w } else if status == "Charging" { w } else { 0.0 };
     let on_ac = adapters.iter().any(|a| a.0);
     let input: f32 = adapters.iter().filter(|a| a.0).map(|&(_, uv, ua)| uv as f32 * ua as f32 / 1e12).sum();
-    let adapter_w = (input > 0.0).then_some(input);
+    // Less than the battery takes in is a stale reading (UCSI often reports 5 V × 3 A): unknown.
+    let adapter_w = (input > 0.0 && input >= battery_w).then_some(input);
     let system_w = match adapter_w {
         _ if !on_ac => Some(-battery_w),
         Some(a) => Some((a - battery_w.max(0.0)).max(0.0)),
@@ -308,9 +309,8 @@ fn start_sampler() -> u64 {
     let g = next_gen();
     let _ = std::thread::Builder::new().name("power".into()).spawn(move || {
         let (Some(battery), adapters) = supplies() else { return };
-        let Ok(rt) = tokio::runtime::Builder::new_current_thread().enable_all().build() else { return };
-        let bus = rt.block_on(zbus::Connection::system()).ok();
-        let history = |secs, points| bus.as_ref().map_or_else(Vec::new, |bus| rt.block_on(history(bus, &battery, secs, points)));
+        let bus = crate::rt::block_on(crate::rt::system()).ok();
+        let history = |secs, points| bus.as_ref().map_or_else(Vec::new, |bus| crate::rt::block_on(history(bus, &battery, secs, points)));
         // SAFETY: sysconf only reads a constant.
         let hz = unsafe { libc::sysconf(libc::_SC_CLK_TCK) }.max(1) as f32;
         let compositor = compositor();
@@ -368,7 +368,7 @@ fn start_sampler() -> u64 {
                 d.power = new;
                 changed
             };
-            if changed { crate::hub::wake(); }
+            if changed { crate::hub::wake_where(|b| b.power_open); }
             // Until the first list, sample sooner.
             std::thread::sleep(Duration::from_secs(if apps.0.is_none() { 1 } else { 2 }));
         }
@@ -471,10 +471,14 @@ fn sankey(f: &Flow) -> El {
     };
     let mut out = el().key("sankey").w_full().h(SANKEY_H).my(6.0).child(canvas);
     let rx = LABEL_W + 8.0 + SANKEY_W + 8.0;
-    if f.on_ac { out = out.child(label("adapter", 0.0, adapter_y + (a2s + a2b) / 2.0, "Adapter", watts(f.adapter_w), false)); }
-    if b2s > 0.0 || !f.on_ac { out = out.child(label("battery", 0.0, battery_y + b2s / 2.0, "Battery", watts(Some(-f.battery_w.min(0.0))), false)); }
-    out = out.child(label("system", rx, system_y + (a2s + b2s) / 2.0, "System", watts(f.system_w), true));
-    if a2b > 0.0 { out = out.child(label("charge", rx, charge_y + a2b / 2.0, "Battery", watts(Some(f.battery_w.max(0.0))), true)); }
+    // A side showing two labels keeps them apart.
+    let pair = |both: bool, a: f32, b: f32| if both { apart(a, b) } else { (a, b) };
+    let (adapter_y, battery_y) = pair(f.on_ac && b2s > 0.0, adapter_y + (a2s + a2b) / 2.0, battery_y + b2s / 2.0);
+    let (system_y, charge_y) = pair(a2b > 0.0, system_y + (a2s + b2s) / 2.0, charge_y + a2b / 2.0);
+    if f.on_ac { out = out.child(label("adapter", 0.0, adapter_y, "Adapter", watts(f.adapter_w), false)); }
+    if b2s > 0.0 || !f.on_ac { out = out.child(label("battery", 0.0, battery_y, "Battery", watts(Some(-f.battery_w.min(0.0))), false)); }
+    out = out.child(label("system", rx, system_y, "System", watts(f.system_w), true));
+    if a2b > 0.0 { out = out.child(label("charge", rx, charge_y, "Battery", watts(Some(f.battery_w.max(0.0))), true)); }
     out
 }
 
@@ -547,7 +551,16 @@ fn links(f: &Flow) -> [f32; 3] {
     let charge = f.battery_w.max(0.0);
     let drain = (-f.battery_w).max(0.0);
     let from_adapter = if f.on_ac { f.adapter_w.map_or(0.0, |a| (a - charge).max(0.0)) } else { 0.0 };
-    [from_adapter, if f.adapter_w.is_some() { charge } else { 0.0 }, drain]
+    [from_adapter, if f.on_ac { charge } else { 0.0 }, drain]
+}
+
+/// Two labels' middles on one side, the upper first, moved apart enough not to overlap and
+/// kept inside the diagram.
+fn apart(upper: f32, lower: f32) -> (f32, f32) {
+    const H: f32 = 32.0;
+    if lower - upper >= H { return (upper, lower); }
+    let m = ((upper + lower) / 2.0).clamp(15.0 + H / 2.0, SANKEY_H - 15.0 - H / 2.0);
+    (m - H / 2.0, m + H / 2.0)
 }
 
 /// A band's top at `u` across: eased between its ends, as a Sankey's curves are.
@@ -617,6 +630,12 @@ mod tests {
     #[test] fn flow_charging() {
         let f = flow("Charging", 20_000_000, &[(true, 20_000_000, 3_000_000)]);
         assert!((f.adapter_w.unwrap() - 60.0).abs() < 0.01 && (f.battery_w - 20.0).abs() < 0.01 && (f.system_w.unwrap() - 40.0).abs() < 0.01);
+    }
+
+    #[test] fn flow_adapter_reading_below_charge_rate() {
+        // UCSI can report a stale 5 V × 3 A while a 60 W contract charges at 43 W.
+        let f = flow("Charging", 43_315_000, &[(true, 5_000_000, 3_000_000)]);
+        assert_eq!((f.on_ac, f.adapter_w, f.system_w), (true, None, None));
     }
 
     #[test] fn flow_ac_unknown_current() {
@@ -718,8 +737,17 @@ mod tests {
         // Plugged in, adapter too weak: both feed the system.
         let short = flow("Discharging", 5_000_000, &[(true, 20_000_000, 1_000_000)]);
         assert_eq!(links(&short), [20.0, 0.0, 5.0]);
-        // Adapter watts unknown: nothing to draw from it.
+        // Adapter watts unknown: no adapter → system link, but the battery still shows its charge.
         assert_eq!(links(&flow("Not charging", 0, &[(true, 20_000_000, 0)])), [0.0, 0.0, 0.0]);
+        assert_eq!(links(&flow("Charging", 40_000_000, &[(true, 5_000_000, 3_000_000)])), [0.0, 40.0, 0.0]);
+    }
+
+    #[test] fn labels_never_overlap() {
+        // Same middle (an empty system node above the charge): pushed a label's height apart.
+        assert_eq!(apart(30.0, 30.0), (15.0, 47.0));
+        // Already apart: untouched. Near an edge: kept inside.
+        assert_eq!(apart(10.0, 60.0), (10.0, 60.0));
+        assert_eq!(apart(70.0, 72.0), (SANKEY_H - 47.0, SANKEY_H - 15.0));
     }
 
     #[test] fn energy_estimate() {

@@ -21,8 +21,6 @@ pub struct Entry {
 #[derive(Debug, Default, PartialEq)]
 pub struct Who {
     pub app: String,
-    /// The desktop entry found for it.
-    pub entry: Option<String>,
     pub icon: Option<PathBuf>,
     /// For a browser notification from a site that isn't an installed web app: the site.
     pub context: Option<String>,
@@ -121,7 +119,7 @@ pub fn identify(entries: &[Entry], app: &str, app_icon: &str, desktop: Option<&s
     let candidates: Vec<&Entry> = [desktop.and_then(|d| by_id(entries, d)), by_name(entries, app)].into_iter()
         .chain(launcher.iter().map(|n| by_name(entries, n))).flatten().collect();
     let named = candidates.first().copied();
-    let mut who = Who { app: app.to_owned(), entry: named.map(|e| e.id.clone()), body: body.to_owned(), ..Who::default() };
+    let mut who = Who { app: app.to_owned(), body: body.to_owned(), ..Who::default() };
     if named.is_some_and(|e| e.browser) && let Some((site, rest)) = web_site(body) {
         who.body = rest.to_owned();
         if let Some(web) = entries.iter().find(|e| e.site.as_deref() == Some(site.as_str())) {
@@ -249,10 +247,12 @@ mod tests {
     #[test]
     fn unmatched_name_falls_back_to_the_senders_program() {
         // Zen sends app "Zen" and desktop-entry "zen"; its launcher is zen-beta.desktop.
-        let es = vec![e("zen-beta", "Name=Zen Browser (Beta)\nStartupWMClass=zen-beta\nIcon=zen-browser\nExec=zen-beta --name zen-beta %U")];
+        let icon = std::env::temp_dir().join("andrew-bar-test-zen-beta.png");
+        std::fs::write(&icon, b"x").unwrap();
+        let es = vec![e("zen-beta", &format!("Name=Zen Browser (Beta)\nStartupWMClass=zen-beta\nIcon={}\nExec=zen-beta --name zen-beta %U", icon.display()))];
         let w = identify(&es, "Zen", "", Some("zen"), "b", &["zen-beta".to_owned()]);
-        assert_eq!((w.app.as_str(), w.entry.as_deref()), ("Zen", Some("zen-beta")));
-        assert_eq!(identify(&es, "Zen", "", Some("zen"), "b", &[]).entry, None);
+        assert_eq!((w.app.as_str(), w.icon), ("Zen", Some(icon)));
+        assert_eq!(identify(&es, "Zen", "", Some("zen"), "b", &[]).icon, None);
     }
 
     #[test]
@@ -265,6 +265,6 @@ mod tests {
             e("zen-beta", &format!("Name=Zen Browser (Beta)\nIcon={}\nExec=zen-beta %U", icon.display())),
         ];
         let w = identify(&es, "Zen", "", Some("zen"), "b", &["zen-beta".to_owned()]);
-        assert_eq!((w.entry.as_deref(), w.icon), (Some("userapp-Zen-QR59E3"), Some(icon)));
+        assert_eq!((w.app.as_str(), w.icon), ("Zen", Some(icon)));
     }
 }

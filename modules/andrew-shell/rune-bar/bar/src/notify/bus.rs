@@ -128,11 +128,6 @@ impl Server {
     async fn notify(&self, app_name: String, replaces_id: u32, app_icon: String, summary: String, body: String,
         actions: Vec<String>, hints: HashMap<String, OwnedValue>, expire_timeout: i32) -> u32 {
         let id = assign(&self.next, replaces_id);
-        // One line per notification, for working out why an app shows the way it does.
-        let desktop: Option<String> = hint(&hints, "desktop-entry");
-        let mut keys: Vec<&str> = hints.keys().map(String::as_str).collect();
-        keys.sort();
-        eprintln!("andrew-bar: notify {id}: app {app_name:?} icon {app_icon:?} desktop-entry {desktop:?} hints {keys:?}");
         let request = Request { id, app_name, app_icon, summary, body, actions, hints, expire_timeout };
         let (done, applied) = tokio::sync::oneshot::channel();
         if self.jobs.send(Job::Notify(request, done)).is_ok() { let _ = applied.await; }

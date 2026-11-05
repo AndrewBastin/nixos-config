@@ -108,11 +108,7 @@ pub struct AirPodsPeer {
 /// The output devices in one `pw-dump`, by name, leaving out ports nothing is plugged into
 /// (an HDMI output with no monitor): their card route says `available: no`.
 fn sinks(objs: &[serde_json::Value]) -> Vec<Sink> {
-    let default = objs.iter()
-        .filter(|o| o["type"] == "PipeWire:Interface:Metadata" && o["props"]["metadata.name"] == "default")
-        .flat_map(|o| o["metadata"].as_array().into_iter().flatten())
-        .find(|m| m["key"] == "default.audio.sink")
-        .and_then(|m| m["value"]["name"].as_str());
+    let default = default_sink(objs);
     // (device id, card profile device) of every unplugged output route.
     let mut unplugged = std::collections::HashSet::new();
     for o in objs.iter().filter(|o| o["type"] == "PipeWire:Interface:Device") {
@@ -127,12 +123,42 @@ fn sinks(objs: &[serde_json::Value]) -> Vec<Sink> {
         let node = p["node.name"].as_str().unwrap_or_default();
         // The nick is the friendly one ("Speaker", a monitor's model); Bluetooth has none.
         let name = p["node.nick"].as_str().or(p["node.description"].as_str()).unwrap_or(node).to_owned();
-        let kind = if p["device.api"] == "bluez5" { SinkKind::Bluetooth } else if node.contains("HDMI") { SinkKind::Display } else { SinkKind::Speaker };
+        let display = { let n = node.to_ascii_lowercase(); n.contains("hdmi") || n.contains("displayport") };
+        let kind = if p["device.api"] == "bluez5" { SinkKind::Bluetooth } else if display { SinkKind::Display } else { SinkKind::Speaker };
         let mac = p["api.bluez5.address"].as_str().map(str::to_owned);
         Some(Sink { id: o["id"].as_u64()?, name, kind, default: Some(node) == default, mac })
     }).collect();
     out.sort_by(|a, b| a.name.cmp(&b.name));
     out
+}
+
+/// The default output's node name, from the "default" metadata.
+fn default_sink(objs: &[serde_json::Value]) -> Option<&str> {
+    objs.iter()
+        .filter(|o| o["type"] == "PipeWire:Interface:Metadata" && o["props"]["metadata.name"] == "default")
+        .flat_map(|o| o["metadata"].as_array().into_iter().flatten())
+        .find(|m| m["key"] == "default.audio.sink")
+        .and_then(|m| m["value"]["name"].as_str())
+}
+
+/// What the bar shows of one `pw-dump`: the default output's volume, mute and name, and the
+/// lists for the Sound panel. One process per change, where `wpctl` took two more.
+fn audio_of(objs: &[serde_json::Value]) -> Audio {
+    let default = default_sink(objs);
+    let node = objs.iter().find(|o| o["info"]["props"]["media.class"] == "Audio/Sink" && o["info"]["props"]["node.name"].as_str() == default);
+    let p = node.map(|o| &o["info"]["props"]);
+    let props = node.and_then(|o| o["info"]["params"]["Props"].as_array()?.iter().find(|x| x["channelVolumes"].is_array()));
+    // Channel volumes are linear; wpctl and the slider show their cube root.
+    let vols: Vec<f64> = props.and_then(|x| x["channelVolumes"].as_array()).into_iter().flatten().filter_map(|v| v.as_f64()).collect();
+    let linear = if vols.is_empty() { 0.0 } else { vols.iter().sum::<f64>() / vols.len() as f64 };
+    Audio {
+        volume: (linear.cbrt() * 100.0).round() as u32,
+        muted: props.is_some_and(|x| x["mute"] == true),
+        bluetooth: p.is_some_and(|p| p["device.api"] == "bluez5"),
+        name: p.and_then(|p| p["node.description"].as_str().or(p["node.name"].as_str())).unwrap_or("Audio Device").to_owned(),
+        sinks: sinks(objs),
+        bt_names: bt_names(objs),
+    }
 }
 
 fn bt_names(objs: &[serde_json::Value]) -> std::collections::HashMap<String, String> {
@@ -278,12 +304,15 @@ pub fn nmcli_action(key: String, steps: Vec<Vec<String>>) {
     });
 }
 
-/// Spawns `cmd` and hands each stdout line to `f`, restarting it if it exits.
+/// Spawns `cmd` and hands each stdout line to `f`, restarting it if it exits: at once after a
+/// long run, backing off to a minute if it keeps dying, and never if it isn't installed.
 fn lines(cmd: &'static str, args: &'static [&'static str], f: impl Fn(&str) + Send + 'static) {
+    let mut backoff = Duration::from_secs(2);
     std::thread::spawn(move || loop {
+        let started = std::time::Instant::now();
         let mut command = Command::new(cmd);
         command.args(args).stdout(Stdio::piped()).stderr(Stdio::null());
-        // Helpers like `upower --monitor` rarely write, so a dead pipe alone won't stop them:
+        // Watchers like `librepods-ctl watch` rarely write, so a dead pipe alone won't stop them:
         // they get SIGTERM when this (spawning) thread goes, i.e. when the bar exits.
         // SAFETY: prctl is async-signal-safe.
         unsafe { std::os::unix::process::CommandExt::pre_exec(&mut command, || { libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGTERM); Ok(()) }); }
@@ -294,9 +323,13 @@ fn lines(cmd: &'static str, args: &'static [&'static str], f: impl Fn(&str) + Se
                 }
                 let _ = child.wait();
             }
-            Err(e) => eprintln!("andrew-bar: {cmd}: {e}"),
+            Err(e) => {
+                eprintln!("andrew-bar: {cmd}: {e}");
+                if e.kind() == std::io::ErrorKind::NotFound { return; }
+            }
         }
-        std::thread::sleep(Duration::from_secs(2));
+        backoff = if started.elapsed() > Duration::from_secs(60) { Duration::from_secs(2) } else { (backoff * 2).min(Duration::from_secs(60)) };
+        std::thread::sleep(backoff);
     });
 }
 
@@ -314,22 +347,30 @@ fn on_change(watch: &'static str, args: &'static [&'static str], relevant: impl 
     });
 }
 
-/// Which `pw-dump --monitor` lines can change what the bar shows: outputs (nodes), cards
-/// (devices) and the default-device metadata appearing, changing or going. Clients and ports
-/// churn constantly (the bar's own `pw-dump` and `wpctl` runs are clients, so reacting to
-/// them refreshed in a loop); removals carry only an id, so the ids of the kinds that matter
-/// are remembered.
+/// Which `pw-dump --monitor` lines can change what the bar shows: outputs (sink nodes), cards
+/// (devices) and the default-device metadata appearing, changing or going. Clients, ports and
+/// apps' playback streams churn constantly (the bar's own `pw-dump` and `wpctl` runs are
+/// clients, so reacting to them refreshed in a loop); removals carry only an id, so the ids of
+/// the kinds that matter are remembered.
 #[derive(Default)]
-struct PwFilter { id: Option<u64>, watched: std::collections::HashSet<u64> }
+struct PwFilter { id: Option<u64>, node: bool, watched: std::collections::HashSet<u64> }
 
 impl PwFilter {
     fn relevant(&mut self, line: &str) -> bool {
+        // A node is an output only by its class, a few lines further into the object.
+        if self.node && line == "        \"media.class\": \"Audio/Sink\"," {
+            self.node = false;
+            if let Some(id) = self.id { self.watched.insert(id); }
+            return true;
+        }
         // Each object's own fields sit four spaces in.
         let Some(field) = line.strip_prefix("    \"") else { return false };
         if let Some(id) = field.strip_prefix("id\": ") {
             self.id = id.trim_end_matches(',').parse().ok();
+            self.node = false;
         } else if let Some(kind) = field.strip_prefix("type\": \"PipeWire:Interface:") {
-            if ["Node\"", "Device\"", "Metadata\""].iter().any(|k| kind.starts_with(k)) {
+            self.node = kind.starts_with("Node\"");
+            if ["Device\"", "Metadata\""].iter().any(|k| kind.starts_with(k)) {
                 if let Some(id) = self.id { self.watched.insert(id); }
                 return true;
             }
@@ -346,35 +387,67 @@ fn output(cmd: &str, args: &[&str]) -> String {
 
 fn audio() -> Audio {
     let dump = match serde_json::from_str(&output("pw-dump", &["--no-colors"])) { Ok(serde_json::Value::Array(objs)) => objs, _ => Vec::new() };
-    // "Volume: 0.76 [MUTED]"
-    let vol = output("wpctl", &["get-volume", "@DEFAULT_AUDIO_SINK@"]);
-    let inspect = output("wpctl", &["inspect", "@DEFAULT_AUDIO_SINK@"]);
-    let prop = |key: &str| inspect.lines().find_map(|l| {
-        let l = l.trim_start_matches([' ', '*']);
-        l.strip_prefix(key)?.strip_prefix(" = ")?.trim_matches('"').to_owned().into()
-    });
-    Audio {
-        volume: vol.split_whitespace().nth(1).and_then(|v| v.parse::<f32>().ok()).map_or(0, |v| (v * 100.0).round() as u32),
-        muted: vol.contains("[MUTED]"),
-        bluetooth: inspect.contains("bluez"),
-        name: prop("node.description").or_else(|| prop("node.name")).unwrap_or_else(|| "Audio Device".into()),
-        sinks: sinks(&dump),
-        bt_names: bt_names(&dump),
-    }
+    audio_of(&dump)
 }
 
-fn battery() -> Option<Battery> {
-    let info = output("upower", &["-i", "/org/freedesktop/UPower/devices/DisplayDevice"]);
-    let field = |key: &str| info.lines().find_map(|l| l.trim().strip_prefix(key).map(|v| v.trim().to_owned()));
-    let percent = field("percentage:")?.trim_end_matches('%').parse::<f32>().ok()?.ceil() as u32;
-    let charging = field("state:").as_deref() == Some("charging");
-    let time = field(if charging { "time to full:" } else { "time to empty:" });
-    Some(Battery { percent, charging, time })
+/// The bar's battery from UPower's DisplayDevice properties (None without a battery). State 1
+/// is charging; the time is worded as `upower -i` words it.
+fn battery_of(present: bool, percentage: f64, state: u32, to_empty: i64, to_full: i64) -> Option<Battery> {
+    if !present { return None; }
+    let charging = state == 1;
+    let secs = if charging { to_full } else { to_empty } as f64;
+    let time = match secs {
+        s if s <= 0.0 => None,
+        s if s < 60.0 => Some(format!("{s:.0} seconds")),
+        s if s < 3600.0 => Some(format!("{:.1} minutes", s / 60.0)),
+        s if s < 86_400.0 => Some(format!("{:.1} hours", s / 3600.0)),
+        s => Some(format!("{:.1} days", s / 86_400.0)),
+    };
+    Some(Battery { percent: percentage.ceil() as u32, charging, time })
+}
+
+const DISPLAY_DEVICE: &str = "/org/freedesktop/UPower/devices/DisplayDevice";
+
+/// Reads UPower's DisplayDevice now and again on each of its PropertiesChanged signals: no
+/// processes, and other devices (a mouse's battery) don't wake the bar.
+// ponytail: UPower restarting mid-session ends the watch until the bar restarts.
+async fn watch_battery() -> zbus::Result<()> {
+    let conn = crate::rt::system().await?;
+    use futures_util::StreamExt;
+    let rule = zbus::MatchRule::builder().msg_type(zbus::message::Type::Signal).sender("org.freedesktop.UPower")
+        .path(DISPLAY_DEVICE).interface("org.freedesktop.DBus.Properties").member("PropertiesChanged").build()?;
+    let mut signals = zbus::MessageStream::for_match_rule(rule, &conn, None).await?;
+    loop {
+        let reply = conn.call_method(Some("org.freedesktop.UPower"), DISPLAY_DEVICE, Some("org.freedesktop.DBus.Properties"), "GetAll", &("org.freedesktop.UPower.Device",)).await?;
+        let mut p: HashMap<String, zbus::OwnedVariant> = reply.body().deserialize()?;
+        let mut get = |k: &str| p.remove(k);
+        let b = battery_of(
+            get("IsPresent").and_then(|v| bool::try_from(v).ok()).unwrap_or(false),
+            get("Percentage").and_then(|v| f64::try_from(v).ok()).unwrap_or(0.0),
+            get("State").and_then(|v| u32::try_from(v).ok()).unwrap_or(0),
+            get("TimeToEmpty").and_then(|v| i64::try_from(v).ok()).unwrap_or(0),
+            get("TimeToFull").and_then(|v| i64::try_from(v).ok()).unwrap_or(0),
+        );
+        hub::put(|d| &mut d.battery, b);
+        if signals.next().await.is_none() { return Ok(()); }
+    }
 }
 
 /// The freedesktop icon file for `name`: a path as given, else hicolor or pixmaps, as
 /// Quickshell's `iconPath` finds it. SVG wins over the largest PNG.
 pub fn icon_path(name: &str, theme_path: Option<&str>) -> Option<PathBuf> {
+    // Each lookup walks the icon directories (thousands of entries): remember the answers.
+    // ponytail: an icon installed while the bar runs isn't found until it restarts.
+    type Cache = HashMap<(String, Option<String>), Option<PathBuf>>;
+    static CACHE: std::sync::Mutex<Option<Cache>> = std::sync::Mutex::new(None);
+    let key = (name.to_owned(), theme_path.map(str::to_owned));
+    if let Some(hit) = CACHE.lock().unwrap().get_or_insert_default().get(&key) { return hit.clone(); }
+    let found = find_icon(name, theme_path);
+    CACHE.lock().unwrap().get_or_insert_default().insert(key, found.clone());
+    found
+}
+
+fn find_icon(name: &str, theme_path: Option<&str>) -> Option<PathBuf> {
     if name.starts_with('/') { return Some(PathBuf::from(name)).filter(|p| p.exists()); }
     let mut roots: Vec<PathBuf> = theme_path.into_iter().filter(|p| !p.is_empty()).map(PathBuf::from).collect();
     if let Some(home) = std::env::var_os("HOME") { roots.push(PathBuf::from(home).join(".local/share/icons")); }
@@ -420,16 +493,26 @@ pub fn start() {
         Err(e) => eprintln!("andrew-bar: hyprland-info: {e}"),
     });
     if crate::vm_mode() { return; }
-    lines("librepods-ctl", &["watch"], |line| if let Ok(a) = serde_json::from_str::<AirPods>(line) { hub::put(|d| &mut d.airpods, Some(a)) });
+    lines("librepods-ctl", &["watch"], |line| if let Ok(a) = serde_json::from_str::<AirPods>(line)
+        && hub::data().airpods.as_ref() != Some(&a) {
+        // Shown only in the Sound panel.
+        hub::set_where(|b| b.sound_open, |d| d.airpods = Some(a));
+    });
     lines("calendar-status", &["--horizon-hours", "168", "--since-hours", "24"], |line| {
         #[derive(Deserialize)]
         struct Out { #[serde(default)] events: Vec<Event> }
         if let Ok(o) = serde_json::from_str::<Out>(line) { hub::put(|d| &mut d.events, o.events) }
     });
     let mut pw = PwFilter::default();
-    on_change("pw-dump", &["--monitor", "--no-colors"], move |l| pw.relevant(l), || hub::put(|d| &mut d.audio, audio()));
+    on_change("pw-dump", &["--monitor", "--no-colors"], move |l| pw.relevant(l), || {
+        let a = audio();
+        // The bar shows the default output; the lists are only in the open Sound panel.
+        let seen = |a: &Audio| (a.volume, a.muted, a.bluetooth, a.name.clone());
+        let (bar, panel) = { let d = hub::data(); (seen(&d.audio) != seen(&a), d.audio != a) };
+        if bar { hub::set(|d| d.audio = a) } else if panel { hub::set_where(|b| b.sound_open, |d| d.audio = a) }
+    });
     crate::nm::start();
-    on_change("upower", &["--monitor"], |_| true, || hub::put(|d| &mut d.battery, battery()));
+    crate::rt::spawn(async { if let Err(e) = watch_battery().await { eprintln!("andrew-bar: UPower: {e}"); } });
     // The clock: wake on each minute boundary.
     std::thread::spawn(|| loop {
         hub::set(|d| d.now = crate::clock::now());
@@ -459,17 +542,48 @@ mod tests {
     }
 
     #[test]
+    fn default_output() {
+        let dump = r#"[
+          {"id":9,"type":"PipeWire:Interface:Metadata","props":{"metadata.name":"default"},
+           "metadata":[{"key":"default.audio.sink","value":{"name":"bluez_output.1"}}]},
+          {"id":113,"info":{"props":{"media.class":"Audio/Sink","node.name":"alsa.HDMI2"},"params":{"Props":[{"channelVolumes":[1.0,1.0],"mute":false}]}}},
+          {"id":35,"info":{"props":{"media.class":"Audio/Sink","node.name":"bluez_output.1","node.description":"AirPods","device.api":"bluez5"},
+           "params":{"Props":[{"volume":1.0},{"channelVolumes":[0.71902,0.71902],"mute":true}]}}}
+        ]"#;
+        let objs: Vec<serde_json::Value> = serde_json::from_str(dump).unwrap();
+        let a = super::audio_of(&objs);
+        // Channel volumes are cubic: 0.719 is wpctl's 0.90.
+        assert_eq!((a.volume, a.muted, a.bluetooth, a.name.as_str()), (90, true, true, "AirPods"));
+        assert_eq!(super::audio_of(&[]).name, "Audio Device");
+    }
+
+    #[test]
+    fn battery_props() {
+        use super::{Battery, battery_of};
+        // UPower's State 1 is charging; times read as `upower -i` words them.
+        assert_eq!(battery_of(true, 44.2, 1, 0, 3697), Some(Battery { percent: 45, charging: true, time: Some("1.0 hours".into()) }));
+        assert_eq!(battery_of(true, 80.0, 2, 1500, 0), Some(Battery { percent: 80, charging: false, time: Some("25.0 minutes".into()) }));
+        assert_eq!(battery_of(true, 100.0, 4, 0, 0).unwrap().time, None);
+        assert_eq!(battery_of(false, 0.0, 0, 0, 0), None);
+    }
+
+    #[test]
     fn pw_filter() {
         let mut f = super::PwFilter::default();
         let obj = |id: u32, kind: &str| format!("  {{\n    \"id\": {id},\n    \"type\": \"PipeWire:Interface:{kind}\",\n    \"info\": {{\n      \"id\": 9,\n    }}\n  }}");
+        let node = |id: u32, class: &str| format!("  {{\n    \"id\": {id},\n    \"type\": \"PipeWire:Interface:Node\",\n    \"info\": {{\n      \"props\": {{\n        \"media.class\": \"{class}\",\n      }}\n    }}\n  }}");
         let gone = |id: u32| format!("  {{\n    \"id\": {id},\n    \"info\": null\n  }}");
         let fires = |f: &mut super::PwFilter, text: String| text.lines().fold(false, |any, l| f.relevant(l) | any);
         // A client (the bar's own pw-dump) coming and going is ignored; a sink isn't.
         assert!(!fires(&mut f, obj(170, "Client")));
         assert!(!fires(&mut f, gone(170)));
-        assert!(fires(&mut f, obj(35, "Node")));
+        assert!(fires(&mut f, node(35, "Audio/Sink")));
         assert!(fires(&mut f, gone(35)));
         assert!(!fires(&mut f, gone(35)));
+        // An app's playback stream starting, changing or going doesn't touch the outputs.
+        assert!(!fires(&mut f, node(80, "Stream/Output/Audio")));
+        assert!(!fires(&mut f, gone(80)));
+        assert!(fires(&mut f, obj(47, "Device")));
     }
 
     #[test]

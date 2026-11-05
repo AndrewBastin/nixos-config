@@ -18,14 +18,11 @@ const DEVICE_ETHERNET: u32 = 1;
 const DEVICE_WIFI: u32 = 2;
 
 pub fn start() {
-    let _ = std::thread::Builder::new().name("nm".into()).spawn(|| {
-        let Ok(rt) = tokio::runtime::Builder::new_current_thread().enable_all().build() else { return };
-        if let Err(e) = rt.block_on(watch()) { eprintln!("andrew-bar: NetworkManager: {e}"); }
-    });
+    crate::rt::spawn(async { if let Err(e) = watch().await { eprintln!("andrew-bar: NetworkManager: {e}"); } });
 }
 
 async fn watch() -> zbus::Result<()> {
-    let conn = Connection::system().await?;
+    let conn = crate::rt::system().await?;
     // Subscribe before the first read, so nothing between the two is missed.
     let rule = MatchRule::builder().msg_type(zbus::message::Type::Signal).sender(NM).build()?;
     let mut signals = MessageStream::for_match_rule(rule, &conn, None).await?;
@@ -68,6 +65,11 @@ async fn watch() -> zbus::Result<()> {
                 // Anything else about it changed (rare): look it up again.
                 aps.remove(&key);
             }
+            // A scan's finishing time changing (each scan) shows nothing.
+            if h.member().is_some_and(|m| m == "PropertiesChanged")
+                && let Ok((_, changed, gone)) = m.body().deserialize::<(String, HashMap<String, OwnedVariant>, Vec<String>)>()
+                && gone.is_empty() && !changed.is_empty() && changed.keys().all(|k| k == "LastScan")
+            { continue; }
             state = None;
         }
     }
@@ -77,14 +79,15 @@ async fn watch() -> zbus::Result<()> {
 fn publish(snap: Snapshot) {
     let shown = hub::data().wifi.networks.clone();
     let networks = merge_networks(snap.aps, &shown);
-    // Most signals change nothing visible once the dead band has had its say.
-    let changed = {
+    // Most signals change nothing visible once the dead band has had its say. The bar shows
+    // the joined network; the rest are only in the open panel.
+    let joined = |n: &[WifiNet]| n.iter().find(|n| n.active).cloned();
+    let (bar, panel) = {
         let d = hub::data();
-        snap.wifi_enabled != d.wifi.enabled || networks != shown || snap.vpns != d.vpns || snap.wired != d.wired
+        (snap.wifi_enabled != d.wifi.enabled || joined(&networks) != joined(&shown) || snap.vpns != d.vpns || snap.wired != d.wired, networks != shown)
     };
-    if changed {
-        hub::set(|d| { d.wifi.enabled = snap.wifi_enabled; d.wifi.networks = networks; d.vpns = snap.vpns; d.wired = snap.wired; });
-    }
+    let apply = |d: &mut crate::Data| { d.wifi.enabled = snap.wifi_enabled; d.wifi.networks = networks; d.vpns = snap.vpns; d.wired = snap.wired; };
+    if bar { hub::set(apply) } else if panel { hub::set_where(|b| b.wifi_open, apply) }
 }
 
 async fn call<R>(conn: &Connection, path: &str, iface: &str, method: &str, body: &(impl serde::Serialize + zbus::DynamicType)) -> zbus::Result<R>

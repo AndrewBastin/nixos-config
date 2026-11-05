@@ -23,6 +23,21 @@ pub struct Item {
     pub menu: Option<TrayMenu>,
 }
 
+/// What the bar shows of an item is the same: a repeated snapshot publishes nothing. Menus
+/// aren't comparable but serialise; icons compare by content hash.
+impl PartialEq for Item {
+    fn eq(&self, o: &Self) -> bool {
+        (&self.address, &self.id, &self.title, self.item_is_menu, &self.menu_path) == (&o.address, &o.id, &o.title, o.item_is_menu, &o.menu_path)
+            && self.icon.as_ref().map(rune::Image::id) == o.icon.as_ref().map(rune::Image::id)
+            && serde_json::to_value(&self.menu).ok() == serde_json::to_value(&o.menu).ok()
+    }
+}
+
+/// The tray shows only in bars with it expanded.
+fn publish(items: Vec<Item>) {
+    if hub::data().tray != items { hub::set_where(|b| b.tray_open, |d| d.tray = items); }
+}
+
 static REQUESTS: OnceLock<mpsc::UnboundedSender<ActivateRequest>> = OnceLock::new();
 
 pub fn activate(req: ActivateRequest) {
@@ -61,41 +76,38 @@ fn snapshot(client: &Client, icons: &mut IconCache) -> Vec<Item> {
 }
 
 pub fn start() {
-    std::thread::spawn(|| {
-        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
-        rt.block_on(async {
-            let client = match Client::new().await {
-                Ok(c) => c,
-                Err(e) => return eprintln!("andrew-bar: tray: {e}"),
-            };
-            let (tx, mut requests) = mpsc::unbounded_channel();
-            let _ = REQUESTS.set(tx);
-            let mut events = client.subscribe();
-            let mut icons = IconCache::new();
-            let items = snapshot(&client, &mut icons);
-            hub::set(|d| d.tray = items);
-            loop {
-                tokio::select! {
-                    ev = events.recv() => {
-                        let ev = match ev {
-                            Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
-                            Err(_) => None,
-                            Ok(ev) => Some(ev),
-                        };
-                        // Only what the bar shows: the icon, title and menu of a shown item.
-                        if let Some(Event::Update(address, update)) = &ev {
-                            let shown = hub::data().tray.iter().any(|i| &i.address == address);
-                            if !shown || matches!(update, UpdateEvent::Tooltip(_) | UpdateEvent::Status(_)
-                                | UpdateEvent::OverlayIcon(_) | UpdateEvent::AttentionIcon(_)) { continue; }
-                        }
-                        let items = snapshot(&client, &mut icons);
-                        hub::set(|d| d.tray = items);
+    crate::rt::spawn(async {
+        let client = match Client::new().await {
+            Ok(c) => c,
+            Err(e) => return eprintln!("andrew-bar: tray: {e}"),
+        };
+        let (tx, mut requests) = mpsc::unbounded_channel();
+        let _ = REQUESTS.set(tx);
+        let mut events = client.subscribe();
+        let mut icons = IconCache::new();
+        let items = snapshot(&client, &mut icons);
+        publish(items);
+        loop {
+            tokio::select! {
+                ev = events.recv() => {
+                    let ev = match ev {
+                        Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+                        Err(_) => None,
+                        Ok(ev) => Some(ev),
+                    };
+                    // Only what the bar shows: the icon, title and menu of a shown item.
+                    if let Some(Event::Update(address, update)) = &ev {
+                        let shown = hub::data().tray.iter().any(|i| &i.address == address);
+                        if !shown || matches!(update, UpdateEvent::Tooltip(_) | UpdateEvent::Status(_)
+                            | UpdateEvent::OverlayIcon(_) | UpdateEvent::AttentionIcon(_)) { continue; }
                     }
-                    Some(req) = requests.recv() => {
-                        if let Err(e) = client.activate(req).await { eprintln!("andrew-bar: tray activate: {e}"); }
-                    }
+                    let items = snapshot(&client, &mut icons);
+                    publish(items);
+                }
+                Some(req) = requests.recv() => {
+                    if let Err(e) = client.activate(req).await { eprintln!("andrew-bar: tray activate: {e}"); }
                 }
             }
-        });
+        }
     });
 }

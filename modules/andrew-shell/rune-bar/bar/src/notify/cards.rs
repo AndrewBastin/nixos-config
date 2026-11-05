@@ -46,7 +46,7 @@ pub(crate) fn accent() -> Color { c("#3584e4") }
 /// A circular icon button (`.message-close-button`, `.message-collapse-button`).
 pub(crate) fn round_button(key: &str, glyph: &str, size: f32, fill: Color, hover: Color) -> El {
     el().key(key).size(size, size).radius(size / 2.0).center().fill(fill).hover(hover).hit()
-        .child(text(glyph.to_owned()).key("glyph").font(TextStyle::new(14.0, 400.0).family(rune::tok::Family::Named("BerkeleyMono Nerd Font"))).color(fg()))
+        .child(text(glyph.to_owned()).key("glyph").font(TextStyle::new(14.0, 400.0).family(rune::tok::Family::Named(crate::ICON_FAMILY))).color(fg()))
 }
 
 /// The cards overlay's state: everything it draws comes from `hub`.

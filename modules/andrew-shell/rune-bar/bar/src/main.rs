@@ -28,7 +28,11 @@ const BAR_H: f32 = 33.0;
 const PANEL_H: f32 = BAR_H + 560.0;
 
 // Qt points at 96 dpi, as the Quickshell bar sizes them: 10 pt = 13.33 px.
-pub(crate) const ICON_FONT: TextStyle = TextStyle::new(13.33, 400.0).family(Family::Named("BerkeleyMono Nerd Font"));
+/// The Nerd Font the icons come from.
+pub(crate) const ICON_FAMILY: &str = "BerkeleyMono Nerd Font";
+pub(crate) const ICON_FONT: TextStyle = TextStyle::new(13.33, 400.0).family(Family::Named(ICON_FAMILY));
+/// What the calendar's clicks open.
+pub(crate) const CALENDAR_APP: &str = "thunderbird -calendar";
 const ANIM_SPEED: f32 = 4.5;
 const LABEL: TextStyle = TextStyle::new(12.0, 400.0);
 
@@ -40,7 +44,10 @@ fn urgent() -> Color { c("#B85F40") }
 fn separator() -> Color { c("#565656") }
 fn hover() -> Color { c("#ffffff").alpha(0.08) }
 
-pub fn vm_mode() -> bool { std::env::var("ANDREW_SHELL_VM_MODE").as_deref() == Ok("1") }
+pub fn vm_mode() -> bool {
+    static VM: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *VM.get_or_init(|| std::env::var("ANDREW_SHELL_VM_MODE").as_deref() == Ok("1"))
+}
 
 /// Everything the sources know, shared by every monitor's bar.
 #[derive(Default)]
@@ -95,6 +102,18 @@ pub mod hub {
         wake();
     }
 
+    /// Re-renders only the bars `shows` picks: for data seen only inside a panel, which a bar
+    /// opening it later reads fresh from here as it rebuilds.
+    pub fn wake_where(shows: fn(&Bar) -> bool) {
+        for bar in BARS.lock().unwrap().iter() { bar.update_if(move |b, _| shows(b)); }
+    }
+
+    /// `set` for data seen only where `shows` picks (see `wake_where`).
+    pub fn set_where(shows: fn(&Bar) -> bool, f: impl FnOnce(&mut Data)) {
+        f(&mut data());
+        wake_where(shows);
+    }
+
     pub fn add_bar(bar: rune::OverlayHandle<Bar>) { BARS.lock().unwrap().push(bar); }
 
     pub fn bar(i: usize) -> rune::OverlayHandle<Bar> { BARS.lock().unwrap()[i].clone() }
@@ -112,6 +131,33 @@ pub mod hub {
         if new.is_empty() { return; }
         let found: Vec<_> = new.iter().map(|n| (n.to_string(), crate::sources::icon_path(n, None).map(|p| images().file(p, 24.0, 2.0)))).collect();
         set(|d| d.app_icons.extend(found));
+    }
+}
+
+/// One thread runs every D-Bus task (NetworkManager, UPower, the tray, notifications), and the
+/// system-bus ones share a connection.
+// ponytail: a task that blocks (the tray's first icon lookups) stalls the others for that long.
+pub mod rt {
+    use std::sync::OnceLock;
+
+    fn handle() -> &'static tokio::runtime::Handle {
+        static H: OnceLock<tokio::runtime::Handle> = OnceLock::new();
+        H.get_or_init(|| {
+            let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().expect("tokio runtime");
+            let h = rt.handle().clone();
+            let _ = std::thread::Builder::new().name("dbus".into()).spawn(move || rt.block_on(std::future::pending::<()>()));
+            h
+        })
+    }
+
+    pub fn spawn(f: impl Future<Output = ()> + Send + 'static) { handle().spawn(f); }
+
+    /// Runs `f` to the end from a thread outside the runtime.
+    pub fn block_on<T>(f: impl Future<Output = T>) -> T { handle().block_on(f) }
+
+    pub async fn system() -> zbus::Result<zbus::Connection> {
+        static SYSTEM: tokio::sync::OnceCell<zbus::Connection> = tokio::sync::OnceCell::const_new();
+        SYSTEM.get_or_try_init(zbus::Connection::system).await.cloned()
     }
 }
 
@@ -212,35 +258,16 @@ fn icon_text(s: impl Into<String>) -> El {
     }
 }
 
-static ICON_FONT_BYTES: std::sync::OnceLock<&'static [u8]> = std::sync::OnceLock::new();
-
 /// The ink box of `s` in the icon font at `size` points, relative to its text box:
-/// [left, width, top, height]. The top assumes Rune's 1.25 × size line with the font's
-/// ascent and descent centred in it (half leading above and below).
+/// [left, width, top, height]. Rune measures it as drawn, and caches it.
 fn ink(s: &str, size: f32) -> Option<[f32; 4]> {
-    use skrifa::MetadataProvider;
-    let font = skrifa::FontRef::new(ICON_FONT_BYTES.get()?).ok()?;
-    let loc = skrifa::instance::LocationRef::default();
-    let (charmap, metrics) = (font.charmap(), font.glyph_metrics(skrifa::instance::Size::new(size), loc));
-    let (mut pen, mut x0, mut x1, mut y0, mut y1) = (0.0f32, f32::MAX, f32::MIN, f32::MAX, f32::MIN);
-    for ch in s.chars() {
-        let gid = charmap.map(ch)?;
-        if let Some(b) = metrics.bounds(gid) {
-            (x0, x1) = (x0.min(pen + b.x_min), x1.max(pen + b.x_max));
-            (y0, y1) = (y0.min(b.y_min), y1.max(b.y_max));
-        }
-        pen += metrics.advance_width(gid)?;
-    }
-    if x1 <= x0 { return None; }
-    let m = font.metrics(skrifa::instance::Size::new(size), loc);
-    let baseline = (size * 1.25 - (m.ascent - m.descent)) / 2.0 + m.ascent;
-    Some([x0, x1 - x0, baseline - y1, y1 - y0])
+    let [x, y, w, h] = rune::text::ink(s, TextStyle { size, ..ICON_FONT })?.bounds;
+    Some([x, w, y, h])
 }
 
 /// A Nerd Font glyph in a box exactly its ink, so centring it centres what's drawn.
 fn glyph(s: &str, size: f32, color: Color) -> El {
-    let style = TextStyle::new(size, 400.0).family(Family::Named("BerkeleyMono Nerd Font"));
-    let t = text(s).font(style).color(color);
+    let t = text(s).font(TextStyle { size, ..ICON_FONT }).color(color);
     match ink(s, size) {
         Some([left, width, top, height]) => el().size(width, height).child(t.ml(-left).mt(-top)),
         None => t,
@@ -260,7 +287,7 @@ fn sep(key: &str) -> El { el().key(key).w(1.0).h(18.0).fill(separator()) }
 fn app_icon(d: &Data, name: Option<&str>, size: f32, key: String) -> El {
     match name.and_then(|n| d.app_icons.get(n)).and_then(|i| i.as_ref()) {
         Some(img) => el().key(key.as_str()).size(size, size).pixels(img.pixels()),
-        None => text("\u{f2d0}").key(key.as_str()).font(TextStyle::new(size * 0.65, 400.0).family(Family::Named("BerkeleyMono Nerd Font"))).color(fg()),
+        None => text("\u{f2d0}").key(key.as_str()).font(TextStyle::new(size * 0.65, 400.0).family(Family::Named(ICON_FAMILY))).color(fg()),
     }
 }
 
@@ -358,7 +385,7 @@ fn calendar(s: &Bar, d: &Data) -> Option<El> {
                 s.copied = Some(std::time::Instant::now());
                 tx.wake_after(COPIED);
             }
-            None => spawn("hyprctl", &["dispatch", "exec", "thunderbird -calendar"]),
+            None => spawn("hyprctl", &["dispatch", "exec", CALENDAR_APP]),
         })
         .on_secondary_press(move |s: &mut Bar, _, _| s.dismissed = start))
 }
@@ -465,7 +492,8 @@ pub fn close_popups(s: &mut Bar) {
     let monitor = s.monitor.clone();
     hub::each_bar(|bar| {
         let monitor = monitor.clone();
-        bar.update(move |b, _| if b.monitor != monitor && b.any_open() { close_here(b) });
+        // Only a bar that had something open rebuilds.
+        bar.update_if(move |b, _| { let open = b.monitor != monitor && b.any_open(); if open { close_here(b) } open });
     });
 }
 
@@ -499,7 +527,7 @@ fn tray_item(s: &Bar, item: &tray::Item) -> El {
 }
 
 fn concealed(s: &Bar, d: &Data) -> El {
-    let chevron = slot("chevron", text("\u{f0141}").key("glyph").font(TextStyle::new(18.67, 400.0).family(Family::Named("BerkeleyMono Nerd Font")))
+    let chevron = slot("chevron", text("\u{f0141}").key("glyph").font(TextStyle::new(18.67, 400.0).family(Family::Named(ICON_FAMILY)))
         .color(separator()).rotate(if s.tray_open { std::f32::consts::PI } else { 0.0 }))
         .on_press(|s: &mut Bar| { s.tray_open = !s.tray_open; if !s.tray_open { s.menu = None; } });
     // pr(5): the collapsed Quickshell group keeps its RowLayout's default 5 pt spacing.
@@ -660,13 +688,12 @@ fn first_monitor() -> String {
 
 /// The Nerd Font file fontconfig finds, for `ICON_FONT`. Rune only names fonts it's handed.
 fn icon_font() -> &'static [&'static [u8]] {
-    let out = Command::new("fc-match").args(["-f", "%{file}", "BerkeleyMono Nerd Font"]).output();
+    let out = Command::new("fc-match").args(["-f", "%{file}", ICON_FAMILY]).output();
     match out.ok().and_then(|o| std::fs::read(String::from_utf8_lossy(&o.stdout).as_ref()).ok()) {
         Some(bytes) => {
             let bytes: &'static [u8] = Box::leak(bytes.into_boxed_slice());
-            let _ = ICON_FONT_BYTES.set(bytes);
             Box::leak(vec![bytes].into_boxed_slice())
         }
-        None => { eprintln!("andrew-bar: BerkeleyMono Nerd Font not found; icons fall back to Inter"); &[] }
+        None => { eprintln!("andrew-bar: {ICON_FAMILY} not found; icons fall back to Inter"); &[] }
     }
 }

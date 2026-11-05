@@ -84,7 +84,7 @@ fn event_row(e: &Event, weekday: bool) -> El {
             .child(text("Join").key("l").font(SMALL).color(c("#ffffff")))
             .on_press(move |s: &mut Bar| { close(s); spawn("xdg-open", &[&url]); }));
     }
-    r.hover(hover()).hit().on_press(|s: &mut Bar| { close(s); spawn("hyprctl", &["dispatch", "exec", "thunderbird -calendar"]); })
+    r.hover(hover()).hit().on_press(|s: &mut Bar| { close(s); spawn("hyprctl", &["dispatch", "exec", crate::CALENDAR_APP]); })
 }
 
 fn panel(s: &Bar, d: &Data) -> Option<El> {
@@ -116,6 +116,6 @@ fn panel(s: &Bar, d: &Data) -> Option<El> {
     }
     rows.push(sep("open-sep"));
     rows.push(row_base("open").py(8.0).child(text("Open Calendar…").key("l").font(LABEL).color(fg()))
-        .hover(hover()).hit().on_press(|s: &mut Bar| { close(s); spawn("hyprctl", &["dispatch", "exec", "thunderbird -calendar"]); }));
+        .hover(hover()).hit().on_press(|s: &mut Bar| { close(s); spawn("hyprctl", &["dispatch", "exec", crate::CALENDAR_APP]); }));
     Some(panel_box(s, "calendar-panel", rows))
 }
