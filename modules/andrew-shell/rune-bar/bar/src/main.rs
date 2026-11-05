@@ -10,6 +10,7 @@ mod calendar;
 mod sound;
 mod wifi;
 mod notify;
+mod power;
 
 use std::process::Command;
 
@@ -49,6 +50,8 @@ pub struct Data {
     pub events: Vec<sources::Event>,
     pub audio: sources::Audio,
     pub battery: Option<sources::Battery>,
+    /// The battery panel's numbers, while it's open.
+    pub power: Option<power::Stats>,
     pub tray: Vec<tray::Item>,
     pub wifi: sources::Wifi,
     pub vpns: Vec<sources::Vpn>,
@@ -174,6 +177,10 @@ pub struct Bar {
     notify_open: bool,
     /// Apps whose notification groups are expanded in it.
     notify_expanded: std::collections::HashSet<String>,
+    /// The battery item's panel is open.
+    power_open: bool,
+    /// Its sampler's generation (`power::close` stops only that one).
+    power_gen: u64,
 }
 
 impl Bar {
@@ -182,7 +189,7 @@ impl Bar {
     }
 
     /// A menu or panel is open: clicks elsewhere close it, and this monitor shows no cards.
-    pub(crate) fn any_open(&self) -> bool { self.menu.is_some() || self.wifi_open || self.sound_open || self.calendar_open || self.notify_open }
+    pub(crate) fn any_open(&self) -> bool { self.menu.is_some() || self.wifi_open || self.sound_open || self.calendar_open || self.notify_open || self.power_open }
 }
 
 /// Headless `--notify-demo`: the bar's own view draws the card stack, for `--snap`.
@@ -315,7 +322,7 @@ pub fn battery_glyph(percent: u32) -> &'static str {
         .iter().find(|(max, _)| percent <= *max).map_or("\u{f0079}", |(_, g)| g)
 }
 
-fn battery(d: &Data) -> El {
+fn battery(s: &Bar, d: &Data) -> El {
     let Some(b) = &d.battery else { return el().key("battery") };
     let glyph = battery_glyph(b.percent);
     let status = match (&b.time, b.charging) {
@@ -324,7 +331,10 @@ fn battery(d: &Data) -> El {
         (Some(t), false) => format!("{t} remaining"),
         (None, false) => String::new(),
     };
-    slot("battery", icon_text(glyph)).help(format!("{}% {status}", b.percent).trim().to_owned())
+    let mut e = slot("battery", icon_text(glyph)).on_press(power::toggle_panel);
+    if !s.power_open { e = e.help(format!("{}% {status}", b.percent).trim().to_owned()); }
+    if let Some(p) = power::panel(s, d) { e = e.child(p); }
+    e
 }
 
 fn calendar(s: &Bar, d: &Data) -> Option<El> {
@@ -465,6 +475,7 @@ fn close_here(s: &mut Bar) {
     sound::close(s);
     calendar::close(s);
     notify::panel::close(s);
+    power::close(s);
 }
 
 fn tray_item(s: &Bar, item: &tray::Item) -> El {
@@ -507,7 +518,7 @@ pub fn view(s: &Bar, cx: &mut Cx<Bar>) -> El {
     let d = hub::data();
     let vm = vm_mode();
     let mut right = row().key("right").gap(13.0).items_center().child(concealed(s, &d));
-    if !vm { right = right.child(audio(s, &d)).child(wifi::status(s, &d)).child(battery(&d)); }
+    if !vm { right = right.child(audio(s, &d)).child(wifi::status(s, &d)).child(battery(s, &d)); }
     right = right.child(notify::panel::status(s, &d));
     if !vm && let Some(cal) = calendar(s, &d) { right = right.child(cal); }
     if !vm { right = right.child(calendar::clock(s, &d)); }
@@ -546,8 +557,11 @@ fn main() {
     if !vm_mode() { tray::start(); }
     let headless = std::env::args().any(|a| a.starts_with("--snap") || a == "--tree");
     if !headless { notify::start(); }
+    if !headless && !vm_mode() { power::start(); }
     let demo = std::env::args().any(|a| a == "--notify-demo");
     if demo { notify::demo(); }
+    // Headless snaps run on virtual time: sample before the frame, so the battery panel has numbers.
+    if headless && std::env::args().any(|a| a == "--power-demo") { power::demo(); }
     if headless {
         // Let the sources fill in before the one rendered frame.
         std::thread::sleep(std::time::Duration::from_millis(1500));
