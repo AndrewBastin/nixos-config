@@ -42,6 +42,13 @@
 
     stochos.url = "github:museslabs/stochos";
 
+    # Voice typing (Hex). Its Rust needs a newer rustc than stable nixpkgs has.
+    hex = {
+      url = "github:anomalyco/hex";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
+      inputs.home-manager.follows = "home-manager";
+    };
+
     # Deliberately not following nixpkgs: paseo is a buildNpmPackage with a
     # pinned npmDepsHash computed against its own nixpkgs, and fetchNpmDeps can
     # hash the same lockfile differently across revisions.

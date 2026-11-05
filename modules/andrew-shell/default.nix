@@ -39,6 +39,24 @@
         description = "Experimental: run the Rune-rendered bar (rune-bar/) instead of Quickshell and SwayNC. It is also the notification daemon.";
       };
 
+      voiceTyping = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+          description = "Voice typing with Hex (local dictation): installed, started with the session, and bound to the shortcuts below.";
+        };
+        shortcut = lib.mkOption {
+          type = lib.types.str;
+          default = "ALT+space";
+          description = "Hold to dictate. Hex's trigger format: CTRL/ALT/SHIFT/LOGO, then an xkb key name, joined by `+`, e.g. \"LOGO+space\".";
+        };
+        pasteLastShortcut = lib.mkOption {
+          type = lib.types.str;
+          default = "CTRL+ALT+v";
+          description = "Paste the last dictation again. Same format as `shortcut`.";
+        };
+      };
+
       extraKeybinds = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [ ];
@@ -138,11 +156,14 @@
   home = { config, pkgs, pkgs-unstable, lib, inputs, universalConfig ? {}, ... }:
     let
       fontName = universalConfig.fonts.monospace.name;
+      voiceTyping = universalConfig.andrew-shell.voiceTyping;
+      voiceKeys = import ./voice-typing-keys.nix { inherit lib; };
     in
     {
     imports = [
       inputs.zen-browser.homeModules.beta
       inputs.stochos.homeModules.stochos
+      inputs.hex.homeManagerModules.hex
 
       ./shell
       (import ./lock.nix { fontFamily = fontName; })
@@ -172,6 +193,17 @@
     ];
 
     programs.zen-browser.enable = true;
+
+    # Voice typing: Hex's settings window does the rest (hold or toggle, model, language).
+    programs.hex = {
+      enable = voiceTyping.enable;
+      autostart = true;
+      installModel = true;
+      settings = {
+        dictation_hotkey = voiceKeys.hexSetting voiceTyping.shortcut;
+        paste_last_hotkey = voiceKeys.hexSetting voiceTyping.pasteLastShortcut;
+      };
+    };
 
       dconf.settings = {
         "org/gnome/desktop/interface" = {
@@ -534,6 +566,10 @@
             "$mod, H, movefocus, l"
             "$mod, L, movefocus, r"
           ] ++ lib.optional (!isVmMode) "$mod, B, exec, ${quickmenu.bluetooth}"
+            ++ lib.optionals voiceTyping.enable [
+              (voiceKeys.hyprBind "dictation" voiceTyping.shortcut)
+              (voiceKeys.hyprBind "paste-last" voiceTyping.pasteLastShortcut)
+            ]
             ++ universalConfig.andrew-shell.extraKeybinds;
 
         bindm = [

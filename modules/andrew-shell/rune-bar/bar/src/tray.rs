@@ -44,9 +44,10 @@ pub fn activate(req: ActivateRequest) {
     if let Some(tx) = REQUESTS.get() { let _ = tx.send(req); }
 }
 
-/// The tray item the bar leaves out: nm-applet keeps running as NetworkManager's password
-/// agent, and the Wi-Fi item replaces its icon.
-const HIDDEN: &str = "nm-applet";
+/// The tray items the bar leaves out: nm-applet keeps running as NetworkManager's password
+/// agent, and the Wi-Fi item replaces its icon; Hex (voice typing) is reached from the Sound
+/// panel.
+const HIDDEN: &[&str] = &["nm-applet", "hex"];
 
 /// Themed icons found so far, by (name, theme path): finding one walks the icon directories.
 type IconCache = HashMap<(String, Option<String>), Option<rune::Image>>;
@@ -54,7 +55,7 @@ type IconCache = HashMap<(String, Option<String>), Option<rune::Image>>;
 fn snapshot(client: &Client, icons: &mut IconCache) -> Vec<Item> {
     let items = client.items();
     let items = items.lock().unwrap();
-    let mut out: Vec<Item> = items.iter().filter(|(_, (item, _))| item.id != HIDDEN).map(|(address, (item, menu))| {
+    let mut out: Vec<Item> = items.iter().filter(|(_, (item, _))| !HIDDEN.contains(&item.id.as_str())).map(|(address, (item, menu))| {
         let icon_name = item.icon_name.clone().unwrap_or_default();
         let themed = (!icon_name.is_empty()).then(|| icons.entry((icon_name.clone(), item.icon_theme_path.clone())).or_insert_with(|| {
             crate::sources::icon_path(&icon_name, item.icon_theme_path.as_deref()).map(|p| hub::images().file(p, 16.0, 2.0))

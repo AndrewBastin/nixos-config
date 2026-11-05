@@ -159,5 +159,39 @@ pub fn panel(s: &Bar, d: &Data) -> Option<El> {
     rows.push(sep("settings-sep"));
     rows.push(row_base("settings").py(8.0).child(text("Sound Settings…").key("label").font(LABEL).color(fg()))
         .hover(hover()).hit().on_press(|s: &mut Bar| { close(s); spawn("pavucontrol", &[]); }));
+    if voice_typing() {
+        rows.push(row_base("voice-typing").py(8.0).child(text("Voice Typing Settings…").key("label").font(LABEL).color(fg()))
+            .hover(hover()).hit().on_press(|s: &mut Bar| { close(s); spawn("hex", &["window", "show", "settings"]); }));
+    }
     Some(panel_box(s, "sound-panel", rows))
+}
+
+/// Whether Hex (voice typing) is installed: Andrew Shell installs it only when it's on.
+fn voice_typing() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| std::env::var_os("PATH").is_some_and(|p| on_path("hex", &p)))
+}
+
+/// Whether an executable `name` is in one of `path`'s directories.
+fn on_path(name: &str, path: &std::ffi::OsStr) -> bool {
+    use std::os::unix::fs::PermissionsExt;
+    std::env::split_paths(path).any(|dir| std::fs::metadata(dir.join(name)).is_ok_and(|m| m.is_file() && m.permissions().mode() & 0o111 != 0))
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn finds_a_program_on_path() {
+        let dir = std::env::temp_dir().join(format!("andrew-bar-path-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let hex = dir.join("hex");
+        std::fs::write(&hex, "").unwrap();
+        let path = std::env::join_paths(["/nonexistent".into(), dir.clone()]).unwrap();
+        // Present but not executable doesn't count.
+        assert!(!super::on_path("hex", &path));
+        std::fs::set_permissions(&hex, std::os::unix::fs::PermissionsExt::from_mode(0o755)).unwrap();
+        assert!(super::on_path("hex", &path));
+        assert!(!super::on_path("nope", &path));
+        std::fs::remove_dir_all(dir).unwrap();
+    }
 }

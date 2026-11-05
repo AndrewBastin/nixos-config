@@ -381,6 +381,29 @@
         "url": "https://flakehub.com/f/cachix/git-hooks.nix/0.1.941"
       }
     },
+    "hex": {
+      "inputs": {
+        "home-manager": [
+          "home-manager"
+        ],
+        "nixpkgs": [
+          "nixpkgs-unstable"
+        ]
+      },
+      "locked": {
+        "lastModified": 1793880732,
+        "narHash": "sha256-uLk15UE3PQQeupVJAcaSxi0piJz/kA6gEYfeiY3puXA=",
+        "owner": "anomalyco",
+        "repo": "hex",
+        "rev": "a3edf8381821481540347a95aca007f303440be4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "anomalyco",
+        "repo": "hex",
+        "type": "github"
+      }
+    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -850,6 +873,7 @@
         "determinate": "determinate",
         "emacs-overlay": "emacs-overlay",
         "flake-utils": "flake-utils",
+        "hex": "hex",
         "home-manager": "home-manager",
         "llm-agents": "llm-agents",
         "mac-app-util": "mac-app-util",
