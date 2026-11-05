@@ -8,7 +8,11 @@ use crate::Bar;
 
 /// Power flow in watts. `battery_w` is + while charging, − while discharging.
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct Flow { pub battery_w: f32, pub adapter_w: Option<f32>, pub on_ac: bool, pub system_w: Option<f32> }
+pub struct Flow {
+    pub battery_w: f32, pub adapter_w: Option<f32>, pub on_ac: bool, pub system_w: Option<f32>,
+    /// The adapter and system watts are `estimate`'s, not measured.
+    pub estimated: bool,
+}
 
 /// `status`/`power_now` (µW) of the battery and (online, µV, µA) of each adapter.
 fn flow(status: &str, power_uw: u64, adapters: &[(bool, u64, u64)]) -> Flow {
@@ -23,7 +27,61 @@ fn flow(status: &str, power_uw: u64, adapters: &[(bool, u64, u64)]) -> Flow {
         Some(a) => Some((a - battery_w.max(0.0)).max(0.0)),
         None => None,
     };
-    Flow { battery_w, adapter_w, on_ac, system_w }
+    Flow { battery_w, adapter_w, on_ac, system_w, estimated: false }
+}
+
+/// On the adapter with no reading of what it supplies (there's no sysfs measure of it; UCSI's
+/// voltage and current go stale), the system is taken to draw `typical_w`, its average on
+/// battery, and the adapter that plus the battery's charge, which is measured.
+// ponytail: a flat average; scale it by CPU load if the estimate misleads.
+fn estimate(mut f: Flow, typical_w: Option<f32>) -> Flow {
+    if f.on_ac && f.system_w.is_none() && let Some(t) = typical_w {
+        (f.system_w, f.adapter_w, f.estimated) = (Some(t), Some(t + f.battery_w.max(0.0)), true);
+    }
+    f
+}
+
+/// One PD profile's watts from sysfs's "20000mV" and "4500mA".
+fn pd_watts(mv: &str, ma: &str) -> Option<f32> {
+    let n = |s: &str| s.trim().trim_end_matches(|c: char| c.is_ascii_alphabetic()).parse::<f32>().ok();
+    Some(n(mv)? * n(ma)? / 1e6)
+}
+
+/// "Dell U2724DE · Thunderbolt · up to 90 W": the charger's most its profiles offer and, when
+/// exactly one Thunderbolt device (vendor, name) is attached, that as its name: nothing links
+/// a charging port to a Thunderbolt device, so with more than one it's unknown.
+fn charger_label(watts: Option<f32>, tb: &[(String, String)]) -> String {
+    let Some(w) = watts else { return "Charger".into() };
+    let name = match tb {
+        [(vendor, device)] => {
+            // "DELL" → "Dell"; "HP" and "CalDigit" stay.
+            let vendor = if vendor.len() > 3 && vendor.chars().all(|c| !c.is_lowercase()) {
+                vendor[..1].to_owned() + &vendor[1..].to_lowercase()
+            } else { vendor.clone() };
+            format!("{vendor} {device} · Thunderbolt")
+        }
+        _ => "USB-C charger".into(),
+    };
+    format!("{name} · up to {w:.0} W")
+}
+
+/// The charger plugged in, read from sysfs: the PD partners' fixed profiles (else UCSI's
+/// online USB supplies' maximums) and the attached Thunderbolt devices.
+fn charger_now() -> String {
+    let dir = |p: &str| std::fs::read_dir(p).into_iter().flatten().flatten().map(|e| e.path()).collect::<Vec<_>>();
+    let name = |p: &std::path::Path| p.file_name().map_or(String::new(), |n| n.to_string_lossy().into_owned());
+    let pd = dir("/sys/class/typec").into_iter().filter(|p| name(p).ends_with("-partner"))
+        .flat_map(|p| std::fs::read_dir(p.join("usb_power_delivery/source-capabilities")).into_iter().flatten().flatten().map(|e| e.path()))
+        .filter(|c| name(c).ends_with("fixed_supply"))
+        .filter_map(|c| pd_watts(&sysfs(&c.join("voltage")), &sysfs(&c.join("maximum_current"))));
+    let ucsi = dir(SUPPLIES).into_iter().filter(|p| sysfs(&p.join("type")) == "USB" && sysfs_num(&p.join("online")) == 1)
+        .map(|p| sysfs_num(&p.join("voltage_max")) as f32 * sysfs_num(&p.join("current_max")) as f32 / 1e12);
+    let watts = pd.reduce(f32::max).or_else(|| ucsi.reduce(f32::max)).filter(|w| *w > 0.0);
+    // Host routers are "N-0"; what's plugged in is "N-1" and on.
+    let tb: Vec<(String, String)> = dir("/sys/bus/thunderbolt/devices").into_iter()
+        .filter(|p| { let n = name(p); !n.contains(':') && n.contains('-') && !n.ends_with("-0") })
+        .map(|p| (sysfs(&p.join("vendor_name")), sysfs(&p.join("device_name")))).filter(|t| !t.0.is_empty() && !t.1.is_empty()).collect();
+    charger_label(watts, &tb)
 }
 
 const SUPPLIES: &str = "/sys/class/power_supply";
@@ -295,6 +353,8 @@ pub struct Stats {
     pub apps: Vec<AppRow>,
     /// The minutes the apps list covers.
     pub apps_minutes: u32,
+    /// What's charging the machine (see `charger_label`), while on the adapter.
+    pub charger: Option<String>,
 }
 
 /// Rounds to what the panel shows, so a sample that only moved past the shown precision doesn't
@@ -322,13 +382,19 @@ fn start_sampler() -> u64 {
         let (mut system_sum, mut system_n) = (0.0f32, 0u32);
         let mut recent: (Option<Instant>, Vec<(u32, f32)>) = (None, Vec::new());
         // The idle draw, from a day of battery use (5-minute averages), read once per opening.
-        let idle = baseline(&history(86_400, 288));
+        let day = history(86_400, 288);
+        let idle = baseline(&day);
+        // What it usually draws, for the adapter's estimate.
+        let typical = avg_since(&day, 0);
+        // Read once, and again when the adapter comes or goes.
+        let mut charger: Option<(bool, Option<String>)> = None;
         while is_current(g) {
             if recent.0.is_none_or(|t| t.elapsed() >= Duration::from_secs(30)) { recent = (Some(Instant::now()), history(10_800, 60)); }
             let ticks = cpu_ticks(&std::fs::read_to_string("/proc/stat").unwrap_or_default());
             let cpu = cpu_prev.map_or(0.0, |(busy, total)| ticks.0.saturating_sub(busy) as f32 / ticks.1.saturating_sub(total).max(1) as f32 * 100.0);
             cpu_prev = Some(ticks);
-            let mut flow = read_flow(&battery, &adapters);
+            let mut flow = estimate(read_flow(&battery, &adapters), typical);
+            if charger.as_ref().is_none_or(|c| c.0 != flow.on_ac) { charger = Some((flow.on_ac, flow.on_ac.then(charger_now))); }
             if let Some(w) = flow.system_w { system_sum += w; system_n += 1; }
             if apps.0.is_none_or(|t| t.elapsed() >= APPS_EVERY) {
                 let procs = read_procs();
@@ -354,6 +420,7 @@ fn start_sampler() -> u64 {
             let (used, total) = parse_meminfo(&std::fs::read_to_string("/proc/meminfo").unwrap_or_default());
             let stats = Stats {
                 flow, history: recent.1.clone(), cpu: cpu.round(), apps: apps.1.clone(), apps_minutes: apps.2,
+                charger: charger.as_ref().and_then(|c| c.1.clone()),
                 load: parse_loadavg(&std::fs::read_to_string("/proc/loadavg").unwrap_or_default()).map(|l| shown(l, 0.01)),
                 // To a tenth of a GB, as shown.
                 mem: (used / 104_858 * 104_858, total),
@@ -410,6 +477,9 @@ const SMALL: TextStyle = TextStyle::new(11.0, 400.0);
 
 fn watts(w: Option<f32>) -> String { w.map_or_else(|| "—".into(), |w| format!("{w:.1} W")) }
 
+/// `watts`, marked "≈" when it's an estimate.
+fn about(w: Option<f32>, estimated: bool) -> String { if estimated && w.is_some() { format!("≈ {}", watts(w)) } else { watts(w) } }
+
 fn bytes(kb: u64) -> String {
     let gb = kb as f32 / 1024.0 / 1024.0;
     if gb >= 1.0 { format!("{gb:.1} GB") } else { format!("{} MB", kb / 1024) }
@@ -458,10 +528,9 @@ fn sankey(f: &Flow) -> El {
         (SANKEY_W - 3.0, system_y, a2s + b2s, c("#d8d8d8")), (SANKEY_W - 3.0, charge_y, a2b, battery_color())] {
         if hh > 0.0 { shape = shape.fill(bar(x, y, hh), col); }
     }
-    // A new key per shape: a change crossfades on the renderer's own transition, with no
-    // frames of ours.
-    let canvas = rune::canvas(shape).key(format!("ribbons-{a2s}-{a2b}-{b2s}").as_str()).absolute(LABEL_W + 8.0, 0.0)
-        .size(SANKEY_W, SANKEY_H).transition(rune::Transition::opacity());
+    // One key, the shape swapped in place: a new key per shape crossfaded the two, and its
+    // overlapping ribbons, faded as a layer, drew blank for a frame.
+    let canvas = rune::canvas(shape).key("ribbons").absolute(LABEL_W + 8.0, 0.0).size(SANKEY_W, SANKEY_H);
     // Labels beside each node, at its middle.
     let label = |key: &str, x: f32, y: f32, name: &str, value: String, right: bool| {
         let c = col().key(key).absolute(x, (y - 15.0).clamp(0.0, SANKEY_H - 30.0)).w(LABEL_W).gap(1.0)
@@ -475,9 +544,9 @@ fn sankey(f: &Flow) -> El {
     let pair = |both: bool, a: f32, b: f32| if both { apart(a, b) } else { (a, b) };
     let (adapter_y, battery_y) = pair(f.on_ac && b2s > 0.0, adapter_y + (a2s + a2b) / 2.0, battery_y + b2s / 2.0);
     let (system_y, charge_y) = pair(a2b > 0.0, system_y + (a2s + b2s) / 2.0, charge_y + a2b / 2.0);
-    if f.on_ac { out = out.child(label("adapter", 0.0, adapter_y, "Adapter", watts(f.adapter_w), false)); }
+    if f.on_ac { out = out.child(label("adapter", 0.0, adapter_y, "Adapter", about(f.adapter_w, f.estimated), false)); }
     if b2s > 0.0 || !f.on_ac { out = out.child(label("battery", 0.0, battery_y, "Battery", watts(Some(-f.battery_w.min(0.0))), false)); }
-    out = out.child(label("system", rx, system_y, "System", watts(f.system_w), true));
+    out = out.child(label("system", rx, system_y, "System", about(f.system_w, f.estimated), true));
     if a2b > 0.0 { out = out.child(label("charge", rx, charge_y, "Battery", watts(Some(f.battery_w.max(0.0))), true)); }
     out
 }
@@ -500,7 +569,7 @@ fn meter(key: &str, label: &str, frac: f32, value: String) -> El {
     row_base(key)
         .child(text(label.to_owned()).key("label").font(LABEL).color(fg()).w(56.0))
         .child(el().key("track").grow(1.0).h(6.0).radius(3.0).fill(c("#ffffff").alpha(0.18)).child(fill))
-        .child(text(value).key("value").font(LABEL).color(fg()).w(86.0))
+        .child(text(value).key("value").font(LABEL).color(fg()).w(36.0).align(rune::Align::End))
 }
 
 fn app_row(d: &Data, a: &AppRow) -> El {
@@ -508,7 +577,7 @@ fn app_row(d: &Data, a: &AppRow) -> El {
         // A fixed column: the fallback glyph is narrower than an icon.
         .child(el().key("icon").w(18.0).center().child(app_icon(d, a.icon.as_deref(), 18.0, "img".into())))
         .child(text(a.name.clone()).key("name").font(LABEL).color(fg()).grow(1.0).truncate())
-        .child(text(format!("{:.0}% · {}", a.cpu, bytes(a.rss_kb))).key("detail").font(SMALL).color(muted()))
+        .help(format!("{:.0}% CPU · {}", a.cpu, bytes(a.rss_kb)))
         .child(text(a.watts.map_or_else(|| "—".into(), |w| format!("{w:.1} W"))).key("watts").font(LABEL).color(fg()).w(48.0).align(rune::Align::End))
 }
 
@@ -522,25 +591,31 @@ pub fn panel(s: &Bar, d: &Data) -> Option<El> {
         (None, true) => "Charging".into(),
         (None, false) => if st.flow.on_ac { "On power adapter".into() } else { String::new() },
     };
+    let mem = st.mem.0 as f32 / st.mem.1.max(1) as f32;
     let avg = (!st.history.is_empty()).then(|| st.history.iter().map(|p| p.1).sum::<f32>() / st.history.len() as f32);
     let mut rows = vec![
         row_base("title").pt(6.0).child(text("Battery").key("title").font(TITLE).color(fg()).grow(1.0))
             .child(text(format!("{}%", b.percent)).key("pct").font(TITLE).color(fg())),
         text(time).key("time").font(SMALL).color(muted()).px(6.0),
-        sankey(&st.flow),
+    ];
+    if let Some(c) = &st.charger { rows.push(text(c.clone()).key("charger").font(SMALL).color(muted()).px(6.0)); }
+    // Nothing flowing that's known (full on the adapter, with no history to estimate from):
+    // no diagram.
+    if links(&st.flow).iter().any(|w| *w > 0.05) { rows.push(sankey(&st.flow)); }
+    rows.extend([
         sep("graph-sep"),
         row().key("graph-head").w_full().items_center()
             .child(section("graph-title", "Power · last 3 h").grow(1.0))
             .child(text(avg.map_or_else(String::new, |a| format!("avg {a:.1} W"))).key("avg").font(SMALL).color(muted()).px(6.0).pt(8.0).pb(2.0)),
         graph(&st.history),
         sep("cpu-sep"),
-        meter("cpu", "CPU", st.cpu / 100.0, format!("{:.0}%", st.cpu)),
-        text(format!("Load {:.2} · {:.2} · {:.2}", st.load[0], st.load[1], st.load[2])).key("load").font(SMALL).color(muted()).px(6.0).pl(72.0),
-        meter("mem", "Memory", st.mem.0 as f32 / st.mem.1.max(1) as f32,
-            format!("{:.1} / {:.0} GB", st.mem.0 as f32 / 1048576.0, st.mem.1 as f32 / 1048576.0)),
+        meter("cpu", "CPU", st.cpu / 100.0, format!("{:.0}%", st.cpu))
+            .help(format!("Load {:.2} · {:.2} · {:.2}", st.load[0], st.load[1], st.load[2])),
+        meter("mem", "Memory", mem, format!("{:.0}%", mem * 100.0))
+            .help(format!("{:.1} / {:.0} GB", st.mem.0 as f32 / 1048576.0, st.mem.1 as f32 / 1048576.0)),
         sep("apps-sep"),
         section("apps-title", &if st.apps_minutes > 0 { format!("Apps · estimated power, last {} min", st.apps_minutes) } else { "Apps · estimated power".into() }),
-    ];
+    ]);
     if st.apps.is_empty() { rows.push(text("Measuring…").key("measuring").font(SMALL).color(muted()).px(6.0).py(4.0)); }
     rows.extend(st.apps.iter().map(|a| app_row(d, a)));
     Some(panel_box(s, "power-panel", rows))
@@ -630,6 +705,30 @@ mod tests {
     #[test] fn flow_charging() {
         let f = flow("Charging", 20_000_000, &[(true, 20_000_000, 3_000_000)]);
         assert!((f.adapter_w.unwrap() - 60.0).abs() < 0.01 && (f.battery_w - 20.0).abs() < 0.01 && (f.system_w.unwrap() - 40.0).abs() < 0.01);
+    }
+
+    #[test] fn flow_estimated_on_adapter() {
+        // No adapter reading: the system takes its typical battery draw, the adapter that plus
+        // the (measured) charge, marked as estimates.
+        let f = estimate(flow("Charging", 34_000_000, &[(true, 5_000_000, 3_000_000)]), Some(12.0));
+        assert_eq!((f.system_w, f.adapter_w, f.estimated), (Some(12.0), Some(46.0), true));
+        // A real reading, or no history to go on, is left alone.
+        let f = estimate(flow("Charging", 20_000_000, &[(true, 20_000_000, 3_000_000)]), Some(12.0));
+        assert!(!f.estimated);
+        assert_eq!(estimate(flow("Charging", 34_000_000, &[(true, 5_000_000, 3_000_000)]), None).system_w, None);
+    }
+
+    #[test] fn charger_names() {
+        let tb = |v: &str, d: &str| (v.to_owned(), d.to_owned());
+        assert_eq!(charger_label(Some(90.0), &[tb("DELL", "U2724DE")]), "Dell U2724DE · Thunderbolt · up to 90 W");
+        // Two docks can't be told apart from the charging port.
+        assert_eq!(charger_label(Some(65.0), &[tb("HP", "G5"), tb("CalDigit", "TS4")]), "USB-C charger · up to 65 W");
+        assert_eq!(charger_label(None, &[]), "Charger");
+    }
+
+    #[test] fn pd_profile_watts() {
+        assert_eq!(pd_watts("20000mV", "4500mA"), Some(90.0));
+        assert_eq!(pd_watts("", "3000mA"), None);
     }
 
     #[test] fn flow_adapter_reading_below_charge_rate() {

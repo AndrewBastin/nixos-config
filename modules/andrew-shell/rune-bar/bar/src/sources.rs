@@ -186,7 +186,7 @@ pub fn set_volume(v: f32) {
 pub struct Battery {
     pub percent: u32,
     pub charging: bool,
-    /// "3.0 hours", as upower words it.
+    /// "1h 12m" (see `duration`).
     pub time: Option<String>,
 }
 
@@ -391,19 +391,20 @@ fn audio() -> Audio {
 }
 
 /// The bar's battery from UPower's DisplayDevice properties (None without a battery). State 1
-/// is charging; the time is worded as `upower -i` words it.
+/// is charging.
 fn battery_of(present: bool, percentage: f64, state: u32, to_empty: i64, to_full: i64) -> Option<Battery> {
     if !present { return None; }
     let charging = state == 1;
-    let secs = if charging { to_full } else { to_empty } as f64;
-    let time = match secs {
-        s if s <= 0.0 => None,
-        s if s < 60.0 => Some(format!("{s:.0} seconds")),
-        s if s < 3600.0 => Some(format!("{:.1} minutes", s / 60.0)),
-        s if s < 86_400.0 => Some(format!("{:.1} hours", s / 3600.0)),
-        s => Some(format!("{:.1} days", s / 86_400.0)),
-    };
+    let time = duration(if charging { to_full } else { to_empty });
     Some(Battery { percent: percentage.ceil() as u32, charging, time })
+}
+
+/// "1h 12m", "48m", "1h", "<1m", to the nearest minute; None for 0 (UPower's unknown).
+fn duration(secs: i64) -> Option<String> {
+    if secs <= 0 { return None; }
+    if secs < 60 { return Some("<1m".into()); }
+    let m = (secs + 30) / 60;
+    Some(match (m / 60, m % 60) { (0, m) => format!("{m}m"), (h, 0) => format!("{h}h"), (h, m) => format!("{h}h {m}m") })
 }
 
 const DISPLAY_DEVICE: &str = "/org/freedesktop/UPower/devices/DisplayDevice";
@@ -560,11 +561,17 @@ mod tests {
     #[test]
     fn battery_props() {
         use super::{Battery, battery_of};
-        // UPower's State 1 is charging; times read as `upower -i` words them.
-        assert_eq!(battery_of(true, 44.2, 1, 0, 3697), Some(Battery { percent: 45, charging: true, time: Some("1.0 hours".into()) }));
-        assert_eq!(battery_of(true, 80.0, 2, 1500, 0), Some(Battery { percent: 80, charging: false, time: Some("25.0 minutes".into()) }));
+        // UPower's State 1 is charging.
+        assert_eq!(battery_of(true, 44.2, 1, 0, 3697), Some(Battery { percent: 45, charging: true, time: Some("1h 2m".into()) }));
+        assert_eq!(battery_of(true, 80.0, 2, 1500, 0), Some(Battery { percent: 80, charging: false, time: Some("25m".into()) }));
         assert_eq!(battery_of(true, 100.0, 4, 0, 0).unwrap().time, None);
         assert_eq!(battery_of(false, 0.0, 0, 0, 0), None);
+    }
+
+    #[test]
+    fn durations() {
+        let d = |s| super::duration(s);
+        assert_eq!([d(0), d(59), d(48 * 60), d(60 * 60), d(72 * 60)], [None, Some("<1m".into()), Some("48m".into()), Some("1h".into()), Some("1h 12m".into())]);
     }
 
     #[test]
