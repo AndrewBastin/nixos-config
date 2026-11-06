@@ -287,7 +287,8 @@ fn sep(key: &str) -> El { el().key(key).w(1.0).h(18.0).fill(separator()) }
 fn app_icon(d: &Data, name: Option<&str>, size: f32, key: String) -> El {
     match name.and_then(|n| d.app_icons.get(n)).and_then(|i| i.as_ref()) {
         Some(img) => el().key(key.as_str()).size(size, size).pixels(img.pixels()),
-        None => text("\u{f2d0}").key(key.as_str()).font(TextStyle::new(size * 0.65, 400.0).family(Family::Named(ICON_FAMILY))).color(fg()),
+        // Boxed like a real icon: bare text is sized by advance, and the wide glyph overflowed it.
+        None => el().key(key.as_str()).size(size, size).center().child(glyph("\u{f2d0}", size * 0.65, fg())),
     }
 }
 
