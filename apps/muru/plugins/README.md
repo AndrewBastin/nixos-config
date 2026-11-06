@@ -128,4 +128,4 @@ in "${out}/index.ts"
 
 ### With muru-specific patching
 
-If the plugin needs to be adapted for muru (e.g. pi-vim's clipboard redirect), keep the patching logic in the plugin's own `default.nix` alongside any supporting files (like a `last-reviewed` version guard). The plugin folder is the right home for anything that is only true about how muru loads that plugin.
+If the plugin needs to be adapted for muru (e.g. redirecting a hard-coded runtime or module path), keep the patching logic in the plugin's own `default.nix` alongside any supporting files (like a `last-reviewed` version guard). The plugin folder is the right home for anything that is only true about how muru loads that plugin.

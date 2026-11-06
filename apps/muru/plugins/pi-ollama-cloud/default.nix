@@ -1,6 +1,6 @@
 # pi-ollama-cloud — Ollama Cloud provider extension for pi.
 #
-# Unlike pi-vim this needs no patching: it only uses bare imports of the packages
+# This needs no patching: it only uses bare imports of the packages
 # pi itself bundles (@earendil-works/*, typebox), which pi's extension loader
 # resolves from inside its own binary. Verified by loading it with `pi -e` — the
 # ollama-cloud models show up in `--list-models`.

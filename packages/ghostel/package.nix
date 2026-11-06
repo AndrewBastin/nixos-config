@@ -45,13 +45,13 @@ let
   zig = zig_0_17;
 
   pname = "ghostel";
-  version = "0.60.0";
+  version = "0.61.0";
 
   src = fetchFromGitHub {
     owner = "dakra";
     repo = "ghostel";
     rev = "v${version}";
-    hash = "sha256-k10nzaIHKGvPJoI1KiiDBY6yDTKL2OAXZ1kxx91BB3E=";
+    hash = "sha256-oDSO8Wb312US5GShRDpTr4IrAXqqWThKwV0jcG2jOQ8=";
   };
 
   libExt = stdenv.hostPlatform.extensions.sharedLibrary;
@@ -80,13 +80,16 @@ let
 
     doCheck = true;
 
-    zigCheckFlags = [
+    # https://github.com/ghostty-org/ghostty/blob/main/PACKAGING.md#build-options
+    zigBuildFlags = [
       "-Dcpu=baseline"
-      # https://github.com/ghostty-org/ghostty/blob/main/PACKAGING.md#build-options
       "-Doptimize=ReleaseFast"
     ];
 
-    zigBuildFlags = finalAttrs.zigCheckFlags;
+    # Tests run in Debug: 0.61.0's "CancellationToken delegates cancellation
+    # checks" writes through a @constCast'd *const pointer, which ReleaseFast
+    # optimizes away, so it fails there.
+    zigCheckFlags = [ "-Dcpu=baseline" ];
 
     postConfigure = ''
       cp -rLT ${finalAttrs.deps} "$ZIG_GLOBAL_CACHE_DIR/p"
