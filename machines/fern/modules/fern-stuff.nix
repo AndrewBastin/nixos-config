@@ -18,6 +18,10 @@
     # Expose the NVIDIA GPU to Docker containers via CDI (for CUDA workloads).
     hardware.nvidia-container-toolkit.enable = true;
 
+    # Save VRAM across suspend (nvidia-suspend/resume); without it GPU apps (Hex's model)
+    # wake up with their memory gone. nixos-hardware's p14s module doesn't set it (#348).
+    hardware.nvidia.powerManagement.enable = true;
+
     users.users.andrew.extraGroups = [ "docker" "libvirtd" "dialout" ];
 
     virtualisation.libvirtd.enable = true;
