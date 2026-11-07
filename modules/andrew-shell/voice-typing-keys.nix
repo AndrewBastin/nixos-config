@@ -4,8 +4,7 @@
 let
   order = [ "CTRL" "ALT" "SHIFT" "LOGO" ];
   parts = trigger: lib.splitString "+" trigger;
-  # Hex rebuilds the trigger before naming its shortcut, so the bind must too: modifiers in
-  # its order, a one-character key lowercase, F-keys uppercase.
+  # Modifiers in Hex's order, a one-character key lowercase, F-keys uppercase.
   mods = trigger:
     let
       given = lib.init (parts trigger);
@@ -16,7 +15,6 @@ let
     in if lib.stringLength k == 1 then lower
       else if builtins.match "f[0-9]+" lower != null then lib.toUpper lower
       else k;
-  canonical = trigger: lib.concatStringsSep "+" (mods trigger ++ [ (key trigger) ]);
   hexName = { CTRL = "control"; ALT = "option"; SHIFT = "shift"; LOGO = "command"; };
   hyprName = m: if m == "LOGO" then "SUPER" else m;
 in
@@ -24,8 +22,8 @@ in
   # `CTRL+ALT+v` → `control+option+v`, the `*_hotkey` setting.
   hexSetting = trigger: lib.concatStringsSep "+" (map (m: hexName.${m}) (mods trigger) ++ [ (key trigger) ]);
 
-  # Hyprland assigns portal shortcuts their keys itself. Hex names each one `<base>-<trigger
-  # with + → ->` (its `portal_shortcut_id`), e.g. `dictation-ALT-space`.
+  # Hyprland assigns portal shortcuts their keys itself, so Hex binds them there under the
+  # bare name (`portal_shortcut_id` with `desktop_assigns`), e.g. `dictation`.
   hyprBind = base: trigger:
-    "${lib.concatMapStringsSep " " hyprName (mods trigger)}, ${key trigger}, global, anomaly.hex:${base}-${lib.replaceStrings [ "+" ] [ "-" ] (canonical trigger)}";
+    "${lib.concatMapStringsSep " " hyprName (mods trigger)}, ${key trigger}, global, anomaly.hex:${base}";
 }

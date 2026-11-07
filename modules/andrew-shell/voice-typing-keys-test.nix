@@ -6,13 +6,12 @@ in
 assert k.hexSetting "ALT+space" == "option+space";
 assert k.hexSetting "CTRL+ALT+v" == "control+option+v";
 assert k.hexSetting "LOGO+SHIFT+d" == "shift+command+d";
-assert k.hyprBind "dictation" "ALT+space" == "ALT, space, global, anomaly.hex:dictation-ALT-space";
-assert k.hyprBind "paste-last" "CTRL+ALT+v" == "CTRL ALT, v, global, anomaly.hex:paste-last-CTRL-ALT-v";
-assert k.hyprBind "dictation" "LOGO+space" == "SUPER, space, global, anomaly.hex:dictation-LOGO-space";
-# Hex rebuilds the trigger before naming its shortcut: modifiers as CTRL, ALT, SHIFT, LOGO,
-# a single-character key lowercase, F-keys uppercase. The bind must use the same name.
-assert k.hyprBind "paste-last" "ALT+CTRL+v" == "CTRL ALT, v, global, anomaly.hex:paste-last-CTRL-ALT-v";
-assert k.hyprBind "dictation" "LOGO+SHIFT+f23" == "SHIFT SUPER, F23, global, anomaly.hex:dictation-SHIFT-LOGO-F23";
-assert k.hyprBind "dictation" "CTRL+V" == "CTRL, v, global, anomaly.hex:dictation-CTRL-v";
+assert k.hyprBind "dictation" "ALT+space" == "ALT, space, global, anomaly.hex:dictation";
+assert k.hyprBind "paste-last" "CTRL+ALT+v" == "CTRL ALT, v, global, anomaly.hex:paste-last";
+assert k.hyprBind "dictation" "LOGO+space" == "SUPER, space, global, anomaly.hex:dictation";
+# Modifiers in Hex's order, a single-character key lowercase, F-keys uppercase.
+assert k.hyprBind "paste-last" "ALT+CTRL+v" == "CTRL ALT, v, global, anomaly.hex:paste-last";
+assert k.hyprBind "dictation" "LOGO+SHIFT+f23" == "SHIFT SUPER, F23, global, anomaly.hex:dictation";
+assert k.hyprBind "dictation" "CTRL+V" == "CTRL, v, global, anomaly.hex:dictation";
 assert !(builtins.tryEval (k.hexSetting "SUPER+space")).success;
 true
