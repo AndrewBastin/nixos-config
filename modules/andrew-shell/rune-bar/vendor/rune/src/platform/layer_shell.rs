@@ -25,6 +25,21 @@ use wayland_protocols_wlr::layer_shell::v1::client::zwlr_layer_shell_v1::{Layer,
 use wayland_protocols_wlr::layer_shell::v1::client::zwlr_layer_surface_v1::{self, Anchor, KeyboardInteractivity, ZwlrLayerSurfaceV1};
 
 use crate::el::Align;
+use focus_grab::hyprland_focus_grab_manager_v1::HyprlandFocusGrabManagerV1;
+use focus_grab::hyprland_focus_grab_v1::{self, HyprlandFocusGrabV1};
+
+/// andrew-shell patch: Hyprland's focus grab, so a click on any other surface tells a panel
+/// to close its popups.
+mod focus_grab {
+    use wayland_client;
+    use wayland_client::protocol::*;
+    pub mod __interfaces {
+        use wayland_client::protocol::__interfaces::*;
+        wayland_scanner::generate_interfaces!("protocols/hyprland-focus-grab-v1.xml");
+    }
+    use self::__interfaces::*;
+    wayland_scanner::generate_client_code!("protocols/hyprland-focus-grab-v1.xml");
+}
 use crate::overlay::{Placement, ScreenEdge};
 use crate::runtime::Waker;
 use crate::{OverlayInput, OverlayOptions, OverlayPlacement};
@@ -78,6 +93,8 @@ struct State {
     xkb: Option<xkbcommon::xkb::State>,
     /// andrew-shell patch: when the outstanding `wl_surface.frame` callback was asked for.
     frame_asked: Option<Instant>,
+    /// andrew-shell patch: the compositor ended the focus grab (a click elsewhere).
+    grab_cleared: bool,
 }
 
 impl Dispatch<WlOutput, ()> for State {
@@ -294,6 +311,16 @@ fn shape(c: crate::el::Cursor) -> Shape {
         Cursor::Crosshair => Shape::Crosshair,
     }
 }
+impl Dispatch<HyprlandFocusGrabManagerV1, ()> for State {
+    fn event(_: &mut Self, _: &HyprlandFocusGrabManagerV1, _: <HyprlandFocusGrabManagerV1 as Proxy>::Event, _: &(), _: &Connection, _: &QueueHandle<Self>) {}
+}
+impl Dispatch<HyprlandFocusGrabV1, ()> for State {
+    fn event(state: &mut Self, _: &HyprlandFocusGrabV1, event: hyprland_focus_grab_v1::Event, _: &(), _: &Connection, _: &QueueHandle<Self>) {
+        // The protocol has one event, `cleared`.
+        let hyprland_focus_grab_v1::Event::Cleared = event;
+        state.grab_cleared = true;
+    }
+}
 impl Dispatch<WlSurface, ()> for State {
     fn event(state: &mut Self, _: &WlSurface, event: wl_surface::Event, _: &(), _: &Connection, _: &QueueHandle<Self>) {
         if let wl_surface::Event::PreferredBufferScale { factor } = event {
@@ -369,6 +396,8 @@ pub(crate) struct Changes {
     pub input: Vec<Input>,
     pub scale: Option<i32>,
     pub closed: bool,
+    /// andrew-shell patch: the focus grab ended.
+    pub grab_cleared: bool,
 }
 
 pub(crate) struct LayerSurface {
@@ -378,6 +407,9 @@ pub(crate) struct LayerSurface {
     compositor: WlCompositor,
     output: Option<WlOutput>,
     seat: Option<WlSeat>,
+    /// andrew-shell patch: Hyprland's focus-grab manager, and the grab while one is held.
+    grabs: Option<HyprlandFocusGrabManagerV1>,
+    grab: Option<HyprlandFocusGrabV1>,
     options: OverlayOptions,
     queue: EventQueue<State>,
     state: State,
@@ -421,9 +453,10 @@ impl LayerSurface {
         layer.set_keyboard_interactivity(KeyboardInteractivity::None);
         layer.set_exclusive_zone(0);
         let shapes = globals.bind::<WpCursorShapeManagerV1, _, _>(&qh, 1..=1, ()).ok();
+        let grabs = globals.bind::<HyprlandFocusGrabManagerV1, _, _>(&qh, 1..=1, ()).ok();
         let state = State { surface: Some(surface.clone()), want_pointer, want_keys, shapes, ..State::default() };
         let watch = wake.map(|wake| Watch::spawn(conn.backend().poll_fd().as_raw_fd(), wake));
-        let mut this = LayerSurface { registry, seat_global, regions: std::cell::RefCell::new(Some(Vec::new())), compositor, output, seat, options: options.clone(), queue, state, layer, surface, display: display.display, watch };
+        let mut this = LayerSurface { registry, seat_global, regions: std::cell::RefCell::new(Some(Vec::new())), compositor, output, seat, grabs, grab: None, options: options.clone(), queue, state, layer, surface, display: display.display, watch };
         this.place(at);
         this.surface.commit();
         while this.state.configured.is_none() && !this.state.closed {
@@ -520,6 +553,21 @@ impl LayerSurface {
         true
     }
 
+    /// andrew-shell patch: holds or releases a focus grab on this surface. While held, a click
+    /// on any other surface ends it and `dispatch` reports `grab_cleared`. Without Hyprland's
+    /// focus-grab protocol it does nothing.
+    pub fn set_grab(&mut self, on: bool) {
+        if let Some(grab) = self.grab.take() { grab.destroy(); }
+        if on && let Some(grabs) = &self.grabs {
+            let grab = grabs.create_grab(&self.queue.handle(), ());
+            grab.add_surface(&self.surface);
+            grab.commit();
+            self.grab = Some(grab);
+        }
+        self.state.grab_cleared = false;
+        let _ = self.queue.flush();
+    }
+
     pub fn supports_keys(&self) -> bool { self.layer.version() >= 4 && self.seat.is_some() }
 
     /// Shows `want` while the pointer is over the surface, once per change. Without
@@ -576,7 +624,9 @@ impl LayerSurface {
         let _ = self.queue.dispatch_pending(&mut self.state);
         let _ = self.queue.flush();
         if let Some(watch) = &self.watch { watch.turned(); }
-        Changes { size: self.state.configured.take(), input: std::mem::take(&mut self.state.input), scale: self.state.scale.take(), closed: self.state.closed }
+        let grab_cleared = std::mem::take(&mut self.state.grab_cleared);
+        if grab_cleared && let Some(grab) = self.grab.take() { grab.destroy(); let _ = self.queue.flush(); }
+        Changes { size: self.state.configured.take(), input: std::mem::take(&mut self.state.input), scale: self.state.scale.take(), closed: self.state.closed, grab_cleared }
     }
 
     pub fn raw_handles(&self) -> (RawDisplayHandle, RawWindowHandle) {
@@ -591,6 +641,8 @@ impl LayerSurface {
 impl Drop for LayerSurface {
     fn drop(&mut self) {
         if let Some(shape) = self.state.shape.take() { shape.destroy(); }
+        if let Some(grab) = self.grab.take() { grab.destroy(); }
+        if let Some(grabs) = self.grabs.take() { grabs.destroy(); }
         if let Some(shapes) = self.state.shapes.take() { shapes.destroy(); }
         if let Some(pointer) = self.state.pointer.take() && pointer.version() >= 3 { pointer.release(); }
         if let Some(touch) = self.state.touch.take() && touch.version() >= 3 { touch.release(); }

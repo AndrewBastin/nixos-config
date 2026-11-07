@@ -59,6 +59,10 @@ impl<T: 'static> Overlay<T> {
                 }
                 self.dirty = true;
             }
+            if changes.grab_cleared && let Some(cleared) = self.grab_cleared.take() {
+                self.rt.update_if(cleared);
+                self.dirty = true;
+            }
             if let Some((w, h)) = changes.size {
                 let size = (if w == 0 { self.at.size.0 } else { w as f32 }, if h == 0 { self.at.size.1 } else { h as f32 });
                 if size != self.at.size {

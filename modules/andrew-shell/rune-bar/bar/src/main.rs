@@ -244,6 +244,8 @@ pub struct Bar {
     power_open: bool,
     /// Its sampler's generation (`power::close` stops only that one).
     power_gen: u64,
+    /// This bar holds a focus grab, so a click anywhere off it closes what's open.
+    grabbed: bool,
 }
 
 impl Bar {
@@ -590,9 +592,22 @@ pub fn view(s: &Bar, cx: &mut Cx<Bar>) -> El {
     root.child(bar)
 }
 
+/// Holds a focus grab while a menu or panel is open: the `dismiss` layer only sees clicks on
+/// this surface, the grab sees clicks on windows, the desktop and other monitors.
+fn sync_grab(s: &mut Bar) {
+    let open = s.any_open();
+    if open == s.grabbed { return; }
+    s.grabbed = open;
+    let Some(i) = BAR_MONITORS.lock().unwrap().iter().position(|m| m.as_ref() == Some(&s.monitor)) else { return };
+    let bar = hub::bar(i);
+    // Only this bar: another monitor's may have opened its own panel with that same click.
+    if open { bar.grab(|s, _| close_here(s)) } else { bar.ungrab() }
+}
+
 const COPIED: std::time::Duration = std::time::Duration::from_millis(1500);
 
 fn poll(s: &mut Bar, _: f64, _: &mut rune::Tx) -> bool {
+    sync_grab(s);
     let done = s.copied.is_some_and(|t| t.elapsed() >= COPIED);
     if done { s.copied = None; }
     done

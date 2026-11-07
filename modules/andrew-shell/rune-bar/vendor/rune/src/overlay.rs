@@ -154,6 +154,16 @@ impl<T: 'static> OverlayHandle<T> {
     /// Request keyboard focus without application activation, where supported.
     pub fn request_keys(&self) { self.request(|q| q.request_keys = true); }
 
+    /// andrew-shell patch: holds a focus grab on the shown overlay (Hyprland), so a click on
+    /// any other surface ends it and runs `cleared` on the state, once. Replaces a held grab.
+    /// Elsewhere, or once the overlay hides, nothing happens.
+    pub fn grab(&self, cleared: impl FnOnce(&mut T, &mut Tx) + Send + 'static) {
+        self.request(|q| q.grab = Some(Some(Box::new(move |s, tx| { cleared(s, tx); true }))));
+    }
+
+    /// andrew-shell patch: releases the grab `grab` holds, without running its `cleared`.
+    pub fn ungrab(&self) { self.request(|q| q.grab = Some(None)); }
+
     /// macOS panel CGWindowID for an explicit ScreenCaptureKit exclusion filter. Available
     /// at native creation (see `on_created`/`prewarm`), stable across hide/show until drop.
     pub fn window_number(&self) -> Option<u32> { self.shared.native.lock().unwrap().0 }
@@ -360,6 +370,8 @@ pub(crate) struct Overlay<T: 'static> {
     /// andrew-shell patch: `retry` is a fallback for a frame callback the compositor may never
     /// send, so the callback's arrival clears it.
     frame_retry: bool,
+    /// andrew-shell patch: what runs when the held focus grab ends (`OverlayHandle::grab`).
+    grab_cleared: Option<requests::Update<T>>,
     /// The next occluded re-check's wait, backing off while the surface stays occluded.
     occluded_wait: Duration,
     /// When a hidden retained overlay commits the changes it hasn't yet.
@@ -438,6 +450,7 @@ impl<T: 'static> Overlay<T> {
             occlusion_read: false,
             retry: None,
             frame_retry: false,
+            grab_cleared: None,
             occluded_wait: crate::window::OCCLUDED_RETRY,
             hidden_pace: Default::default(),
             #[cfg(target_os = "macos")]

@@ -2626,6 +2626,7 @@ dependencies = [
  "wayland-client",
  "wayland-protocols",
  "wayland-protocols-wlr",
+ "wayland-scanner",
  "web-sys",
  "web-time",
  "wgpu",

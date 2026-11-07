@@ -398,5 +398,11 @@ impl<T: 'static> Overlay<T> {
         #[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))]
         if requests.request_keys && self.visible && self.options.keys == KeyPolicy::OnDemand
             && let Some(Live { backing: Backing::Layer(layer), .. }) = &self.live { layer.request_keys(); }
+        if let Some(grab) = requests.grab {
+            let _on = grab.is_some();
+            self.grab_cleared = grab;
+            #[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))]
+            if let Some(Live { backing: Backing::Layer(layer), .. }) = self.live.as_mut() { layer.set_grab(_on); }
+        }
     }
 }
