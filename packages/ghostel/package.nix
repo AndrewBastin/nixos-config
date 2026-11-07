@@ -45,13 +45,13 @@ let
   zig = zig_0_17;
 
   pname = "ghostel";
-  version = "0.61.0";
+  version = "0.62.0";
 
   src = fetchFromGitHub {
     owner = "dakra";
     repo = "ghostel";
     rev = "v${version}";
-    hash = "sha256-oDSO8Wb312US5GShRDpTr4IrAXqqWThKwV0jcG2jOQ8=";
+    hash = "sha256-wHpaa4c3kSiBc7RiAMUWme1q2O7+ArUy4nxjo37IrU8=";
   };
 
   libExt = stdenv.hostPlatform.extensions.sharedLibrary;
@@ -67,7 +67,7 @@ let
       inherit (finalAttrs) src pname version;
       fetchAll = true;
       # Vendored Zig dependency set; refreshed alongside `src' by ./update.sh.
-      hash = "sha256-Kt3r1B/5kgjMO89gih/87oEtuWmby9NB6oQp5t0vUYw=";
+      hash = "sha256-X16YfBc8i84G2/Dd7/qPhm0lRMDJDLfWCcLeXymb4yg=";
     };
 
     nativeBuildInputs = [ zig ] ++ lib.optionals stdenv.hostPlatform.isDarwin [ xcbuild ];
