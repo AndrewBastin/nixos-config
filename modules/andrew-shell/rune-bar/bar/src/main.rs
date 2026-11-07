@@ -159,6 +159,23 @@ pub mod rt {
         static SYSTEM: tokio::sync::OnceCell<zbus::Connection> = tokio::sync::OnceCell::const_new();
         SYSTEM.get_or_try_init(zbus::Connection::system).await.cloned()
     }
+
+    /// The system bus's signals matching `rule`, drained by their own task. zbus stops reading
+    /// the connection (replies included) while a filtered stream holds 64 unread messages, so
+    /// a watcher awaiting a call while its signals pile up (NetworkManager's burst on resume)
+    /// would wait forever, and wedge every other system-bus task with it.
+    pub async fn system_signals(rule: zbus::MatchRule<'static>) -> zbus::Result<(zbus::Connection, tokio::sync::mpsc::UnboundedReceiver<zbus::Message>)> {
+        use futures_util::StreamExt;
+        let conn = system().await?;
+        let mut stream = zbus::MessageStream::for_match_rule(rule, &conn, None).await?;
+        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+        spawn(async move {
+            while let Some(m) = stream.next().await {
+                if let Ok(m) = m && tx.send(m).is_err() { break; }
+            }
+        });
+        Ok((conn, rx))
+    }
 }
 
 pub mod clock {

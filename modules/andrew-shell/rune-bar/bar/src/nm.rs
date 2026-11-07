@@ -5,8 +5,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use futures_util::StreamExt;
-use zbus::{Connection, MatchRule, MessageStream, OwnedObjectPath, OwnedVariant};
+use zbus::{Connection, MatchRule, OwnedObjectPath, OwnedVariant};
 
 use crate::hub;
 use crate::sources::{Link, Vpn, WifiNet, Wired, merge_networks};
@@ -22,10 +21,9 @@ pub fn start() {
 }
 
 async fn watch() -> zbus::Result<()> {
-    let conn = crate::rt::system().await?;
     // Subscribe before the first read, so nothing between the two is missed.
     let rule = MatchRule::builder().msg_type(zbus::message::Type::Signal).sender(NM).build()?;
-    let mut signals = MessageStream::for_match_rule(rule, &conn, None).await?;
+    let (conn, mut signals) = crate::rt::system_signals(rule).await?;
     // What's been read, so a signal costs only what it changed: saved connections are re-read
     // only when they change, access points are looked up once each (strength updates carry
     // their value), and the rest only when something other than a strength moved.
@@ -42,12 +40,12 @@ async fn watch() -> zbus::Result<()> {
             Ok(()) => if let (Some(saved), Some(state)) = (&saved, &state) { publish(snapshot(saved, state, &aps)) },
             Err(e) => eprintln!("andrew-bar: NetworkManager: {e}"),
         }
-        let Some(first) = signals.next().await else { return Ok(()) };
+        let Some(first) = signals.recv().await else { return Ok(()) };
         // A scan updates every access point at once: take the whole burst as one change.
         let settle = tokio::time::Instant::now() + Duration::from_millis(250);
         let mut burst = vec![first];
-        while let Ok(Some(m)) = tokio::time::timeout_at(settle, signals.next()).await { burst.push(m); }
-        for m in burst.into_iter().flatten() {
+        while let Ok(Some(m)) = tokio::time::timeout_at(settle, signals.recv()).await { burst.push(m); }
+        for m in burst {
             let h = m.header();
             let path = h.path().map(|p| p.as_str().to_owned()).unwrap_or_default();
             if path.starts_with("/org/freedesktop/NetworkManager/Settings") {

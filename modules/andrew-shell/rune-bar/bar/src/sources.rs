@@ -413,11 +413,9 @@ const DISPLAY_DEVICE: &str = "/org/freedesktop/UPower/devices/DisplayDevice";
 /// processes, and other devices (a mouse's battery) don't wake the bar.
 // ponytail: UPower restarting mid-session ends the watch until the bar restarts.
 async fn watch_battery() -> zbus::Result<()> {
-    let conn = crate::rt::system().await?;
-    use futures_util::StreamExt;
     let rule = zbus::MatchRule::builder().msg_type(zbus::message::Type::Signal).sender("org.freedesktop.UPower")
         .path(DISPLAY_DEVICE).interface("org.freedesktop.DBus.Properties").member("PropertiesChanged").build()?;
-    let mut signals = zbus::MessageStream::for_match_rule(rule, &conn, None).await?;
+    let (conn, mut signals) = crate::rt::system_signals(rule).await?;
     loop {
         let reply = conn.call_method(Some("org.freedesktop.UPower"), DISPLAY_DEVICE, Some("org.freedesktop.DBus.Properties"), "GetAll", &("org.freedesktop.UPower.Device",)).await?;
         let mut p: HashMap<String, zbus::OwnedVariant> = reply.body().deserialize()?;
@@ -430,7 +428,7 @@ async fn watch_battery() -> zbus::Result<()> {
             get("TimeToFull").and_then(|v| i64::try_from(v).ok()).unwrap_or(0),
         );
         hub::put(|d| &mut d.battery, b);
-        if signals.next().await.is_none() { return Ok(()); }
+        if signals.recv().await.is_none() { return Ok(()); }
     }
 }
 
