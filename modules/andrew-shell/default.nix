@@ -68,10 +68,18 @@
   nixos = { pkgs, pkgs-unstable, universalConfig ? {}, ... }: {
     programs.hyprland = let
       hyprlandPkgs = if universalConfig.andrew-shell.use-unstable-hyprland then pkgs-unstable else pkgs;
-      patches = if universalConfig.andrew-shell.patches.vmwgfx-workaround then [ ./vmwgfx-dmabuf-workaround.patch ] else [];
-      hyprlandPackage = hyprlandPkgs.hyprland.overrideAttrs (oldAttrs: {
-        patches = (oldAttrs.patches or []) ++ patches;
-      });
+      # monitor-move-layers: Hyprland leaves layer surfaces (bar, wallpaper) at a moved monitor's old position.
+      patches = [ ./monitor-move-layers.patch ]
+        ++ pkgs.lib.optional universalConfig.andrew-shell.patches.vmwgfx-workaround ./vmwgfx-dmabuf-workaround.patch;
+      # Pinned to the version the patches were reviewed against: a Hyprland bump fails eval until
+      # someone checks each patch is still needed (fixed upstream?) and still correct, then updates this string.
+      hyprlandPackage = hyprlandPkgs.hyprland.overrideAttrs (oldAttrs:
+        pkgs.lib.throwIfNot (oldAttrs.version == "0.55.4") ''
+          Hyprland is now ${oldAttrs.version}; review the patches in modules/andrew-shell
+          (drop them if fixed upstream), then bump the pinned version in modules/andrew-shell/default.nix.
+        '' {
+          patches = (oldAttrs.patches or []) ++ patches;
+        });
     in 
       {
         enable = true;

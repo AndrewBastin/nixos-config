@@ -1,0 +1,14 @@
+diff --git a/src/helpers/Monitor.cpp b/src/helpers/Monitor.cpp
+index 5d1a7ef..52fc273 100644
+--- a/src/helpers/Monitor.cpp
++++ b/src/helpers/Monitor.cpp
+@@ -1686,6 +1686,9 @@ void CMonitor::moveTo(const Vector2D& pos) {
+     if (OLD_POSITION == Vector2D{-1, -1})
+         return;
+ 
++    // Layer surfaces hold global boxes too; re-place them, or bars and wallpapers stay at the old spot.
++    g_pHyprRenderer->arrangeLayersForMonitor(m_id);
++
+     const auto DELTA = pos - OLD_POSITION;
+ 
+     for (const auto& w : g_pCompositor->m_windows) {
