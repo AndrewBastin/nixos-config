@@ -702,9 +702,11 @@ pub fn check_monitors() {
             let Some(i) = slots.iter().position(Option::is_none) else { eprintln!("andrew-bar: no free bar for {m}"); continue };
             eprintln!("andrew-bar: bar on {m}");
             let bar = hub::bar(i);
-            // A fresh state: the bar's popups closed, showing this monitor's workspaces.
+            // A fresh state: the bar's popups closed, showing this monitor's workspaces. Keep the
+            // laid-out rects: Rune fires `on_layout` only when a rect moves, so pills that come
+            // back in the same place (a monitor re-plugged) would never report again.
             let monitor = m.clone();
-            bar.update(move |s, _| *s = Bar::new(monitor));
+            bar.update(move |s, _| *s = Bar { ws_row: s.ws_row, ws_rects: std::mem::take(&mut s.ws_rects), ..Bar::new(monitor) });
             bar.set_display(DisplayTarget::Name(m.clone()));
             bar.show();
             slots[i] = Some(m);
