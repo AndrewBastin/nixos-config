@@ -2,11 +2,11 @@
 
 let
   pname = "paradev";
-  version = "2.0.7";
+  version = "2.0.8";
 
   src = fetchurl {
     url = "https://github.com/ParadevAI/Paradev/releases/download/desktop-v${version}/superset-${version}-x86_64.AppImage";
-    hash = "sha256-4eM/S1fMXToDvrwXCr2Ob0s/BNw+oh1OOeEXTFW72rQ=";
+    hash = "sha256-rUZB+e6rhFNIVaZPbBk1SWM38csSlWgeM8qvhoHMM+4=";
   };
 
   # Upstream still ships the Superset-branded binary/desktop/icon names.

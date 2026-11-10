@@ -6,7 +6,7 @@
 }:
 
 let
-  version = "0.15.1";
+  version = "0.16.0";
 in
 stdenvNoCC.mkDerivation {
   pname = "pi-vim";
@@ -15,7 +15,7 @@ stdenvNoCC.mkDerivation {
   src = fetchzip {
     name = "pi-vim-${version}-source";
     url = "https://registry.npmjs.org/pi-vim/-/pi-vim-${version}.tgz";
-    hash = "sha256-do3gommLEvmY7oZrSAS8femg7bC33Swbod3gIXHtaK0=";
+    hash = "sha256-Ef7KOS40+cYRyEEqUvAYrAGmQE40Hr+7HeddUlXRpnc=";
   };
 
   dontBuild = true;
