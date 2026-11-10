@@ -178,6 +178,9 @@ in
           # Dell Monitor on office desk
           "desc:Dell Inc. DELL U2724DE 3SBQ6P3, 2560x1440@120, 2560x0, 1"
 
+          # Apple Studio Display - 5K @ 2 scale = 2560x1440 logical, left of built in
+          "desc:Apple Computer Inc StudioDisplay 0x1C52D25C, 5120x2880@60, 2560x0, 2"
+
           # Built in monitor - 1.6 scale = 1600x1000 logical
           "eDP-1, preferred, 5120x220, 1.6"
         ];
