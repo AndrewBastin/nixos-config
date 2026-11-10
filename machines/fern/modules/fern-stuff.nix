@@ -5,7 +5,20 @@
       firefox
       pkgs-unstable.thunderbird
       pkgs-unstable.slack
-      pkgs-unstable.cider-2
+      # Chromium-drawn frames (titleBarStyle "hidden") reserve a shadow inset, Hyprland
+      # forces server-side decorations, and the inset gets baked into the popup's min/max
+      # size: the miniplayer ends up 20px too big with black strips. Native frame instead.
+      (pkgs-unstable.cider-2.overrideAttrs (old: {
+        nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.asar ];
+        postInstall = (old.postInstall or "") + ''
+          asar extract $out/lib/cider/resources/app.asar ./cider-build
+          substituteInPlace ./cider-build/.vite/build/events-*.js \
+            --replace-fail 'titleBarStyle:i.get("inlinetitlebar")==="1"||u?"hidden":"default"' \
+                           'titleBarStyle:process.platform==="darwin"&&(i.get("inlinetitlebar")==="1"||u)?"hidden":"default"'
+          asar pack ./cider-build $out/lib/cider/resources/app.asar
+          rm -rf ./cider-build
+        '';
+      }))
       pkgs-unstable.obsidian
       pkgs-unstable.vlc
       pkgs-unstable.signal-desktop
