@@ -179,15 +179,27 @@ pub mod rt {
 }
 
 pub mod clock {
+    unsafe extern "C" { fn tzset(); }
+
     pub fn now() -> i64 { std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs() as i64) }
 
     pub fn local(t: i64) -> libc::tm {
-        // SAFETY: localtime_r writes only the tm we hand it.
+        // SAFETY: localtime_r writes only the tm we hand it. tzset first: localtime_r alone
+        // keeps the zone it first loaded, so a changed /etc/localtime would never show.
         unsafe {
             let mut tm: libc::tm = std::mem::zeroed();
+            tzset();
             libc::localtime_r(&t, &mut tm);
             tm
         }
+    }
+
+    /// Local midnight starting the day `days` after `t`'s; mktime makes it DST-aware.
+    pub fn midnight(t: i64, days: i32) -> i64 {
+        let mut tm = local(t);
+        (tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, tm.tm_isdst) = (tm.tm_mday + days, 0, 0, 0, -1);
+        // SAFETY: mktime only normalises the tm we hand it.
+        unsafe { libc::mktime(&mut tm) as i64 }
     }
 
     /// "h:mm AM"

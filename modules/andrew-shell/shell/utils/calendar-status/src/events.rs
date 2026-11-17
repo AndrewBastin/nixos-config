@@ -686,6 +686,20 @@ mod tests {
     }
 
     #[test]
+    fn recurrence_keeps_wall_time_across_dst() {
+        // Weekly 09:00 in Los Angeles: 16:00Z in PDT, 17:00Z once PST starts (Nov 1 2026).
+        let utc = |s: &str| chrono::DateTime::parse_from_rfc3339(s).unwrap().timestamp_micros();
+        let master = RawEvent {
+            cal_id: "cal1".into(), id: "rec1".into(), title: None, flags: 0, ical_status: None,
+            event_start: utc("2026-10-26T16:00:00Z"), event_end: utc("2026-10-26T17:00:00Z"),
+            event_start_tz: Some("America/Los_Angeles".into()), recurrence_id: None,
+        };
+        let from = utc("2026-11-01T00:00:00Z");
+        let got = expand_master(&master, &["RRULE:FREQ=WEEKLY".into()], from, from + 7 * DAY);
+        assert_eq!(got, vec![(utc("2026-11-02T17:00:00Z"), utc("2026-11-02T18:00:00Z"))]);
+    }
+
+    #[test]
     fn exdate_removes_occurrence() {
         let conn = fixture_conn();
         let master_start = NOW + 2 * HOUR - 30 * DAY;

@@ -95,10 +95,9 @@ fn panel(s: &Bar, d: &Data) -> Option<El> {
     // Earlier today, under way, later today, tomorrow, then the rest of the week (to
     // Saturday, as the grid's rows).
     const SECTIONS: [&str; 5] = ["Earlier Today", "Now", "Later Today", "Tomorrow", "This Week"];
-    let (now_day, next_day) = ((today.tm_year, today.tm_yday), day_of(d.now + 86_400));
-    // ponytail: a fixed 86400 s per day, an hour off across a DST change.
-    let midnight = d.now - (today.tm_hour * 3600 + today.tm_min * 60 + today.tm_sec) as i64;
-    let week_end = midnight + (7 - today.tm_wday) as i64 * 86_400;
+    let (now_day, next_day) = ((today.tm_year, today.tm_yday), day_of(clock::midnight(d.now, 1)));
+    let midnight = clock::midnight(d.now, 0);
+    let week_end = clock::midnight(d.now, 7 - today.tm_wday);
     let mut buckets: [Vec<&Event>; 5] = Default::default();
     for e in d.events.iter().filter(|e| e.start >= midnight && e.start < week_end) {
         let day = day_of(e.start);
@@ -118,4 +117,22 @@ fn panel(s: &Bar, d: &Data) -> Option<El> {
     rows.push(row_base("open").py(8.0).child(text("Open Calendar…").key("l").font(LABEL).color(fg()))
         .hover(hover()).hit().on_press(|s: &mut Bar| { close(s); spawn("hyprctl", &["dispatch", "exec", crate::CALENDAR_APP]); }));
     Some(panel_box(s, "calendar-panel", rows))
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::clock::{local, midnight};
+
+    #[test]
+    fn midnight_is_local_and_dst_aware() {
+        // 2026-11-01 12:00Z: the day US DST ends. Run with TZ=America/Los_Angeles to cover it.
+        let t = 1_793_534_400;
+        for days in 0..3 {
+            let m = midnight(t, days);
+            let tm = local(m);
+            assert_eq!((tm.tm_hour, tm.tm_min, tm.tm_sec), (0, 0, 0));
+            assert_eq!(tm.tm_yday, local(t).tm_yday + days);
+        }
+        assert!(midnight(t, 0) <= t && t < midnight(t, 1));
+    }
 }
