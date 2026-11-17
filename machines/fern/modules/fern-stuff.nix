@@ -22,7 +22,6 @@
       pkgs-unstable.obsidian
       pkgs-unstable.vlc
       pkgs-unstable.signal-desktop
-      (pkgs.callPackage ../../../packages/paradev/package.nix {})
     ];
   };
 
