@@ -339,14 +339,11 @@ impl MediaController {
         if !self.is_a2dp_profile_available().await {
             warn!("A2DP profile not available, attempting to restart WirePlumber");
             if self.restart_wire_plumber().await {
-                let mut state = self.state.lock().await;
-                state.device_index = self
-                    .get_audio_device_index(&state.connected_device_mac)
-                    .await;
-                debug!(
-                    "Updated device_index after WirePlumber restart: {:?}",
-                    state.device_index
-                );
+                // Don't hold the state lock across this: is_a2dp_profile_available
+                // re-locks it, and Tokio's Mutex isn't reentrant (it deadlocked here).
+                let index = self.get_audio_device_index(&mac).await;
+                self.state.lock().await.device_index = index;
+                debug!("Updated device_index after WirePlumber restart: {:?}", index);
                 if !self.is_a2dp_profile_available().await {
                     error!("A2DP profile still not available after WirePlumber restart");
                     return;
