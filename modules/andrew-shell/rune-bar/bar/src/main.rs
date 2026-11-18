@@ -276,7 +276,11 @@ fn headless_demo() -> bool {
 }
 
 fn spawn(cmd: &str, args: &[&str]) {
-    if let Err(e) = Command::new(cmd).args(args).spawn() { eprintln!("andrew-bar: {cmd}: {e}"); }
+    // Reaped on its own thread, or every click leaves a zombie behind.
+    match Command::new(cmd).args(args).spawn() {
+        Ok(mut child) => { std::thread::spawn(move || child.wait()); }
+        Err(e) => eprintln!("andrew-bar: {cmd}: {e}"),
+    }
 }
 
 /// A Nerd Font icon in a box as wide as its ink, as Qt's `Text` lays it out. Rune sizes text by

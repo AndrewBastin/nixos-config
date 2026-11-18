@@ -385,9 +385,14 @@ fn output(cmd: &str, args: &[&str]) -> String {
     Command::new(cmd).args(args).output().map(|o| String::from_utf8_lossy(&o.stdout).into_owned()).unwrap_or_default()
 }
 
-fn audio() -> Audio {
-    let dump = match serde_json::from_str(&output("pw-dump", &["--no-colors"])) { Ok(serde_json::Value::Array(objs)) => objs, _ => Vec::new() };
-    audio_of(&dump)
+/// None when the dump fails. pw-dump can hang for good if WirePlumber restarts mid-dump,
+/// which froze the Sound panel on stale node ids, so it gets a deadline; the change events
+/// queued meanwhile run the next query.
+fn audio() -> Option<Audio> {
+    match serde_json::from_str(&output("timeout", &["-k", "1", "3", "pw-dump", "--no-colors"])) {
+        Ok(serde_json::Value::Array(objs)) => Some(audio_of(&objs)),
+        _ => None,
+    }
 }
 
 /// The bar's battery from UPower's DisplayDevice properties (None without a battery). State 1
@@ -504,7 +509,7 @@ pub fn start() {
     });
     let mut pw = PwFilter::default();
     on_change("pw-dump", &["--monitor", "--no-colors"], move |l| pw.relevant(l), || {
-        let a = audio();
+        let Some(a) = audio() else { return };
         // The bar shows the default output; the lists are only in the open Sound panel.
         let seen = |a: &Audio| (a.volume, a.muted, a.bluetooth, a.name.clone());
         let (bar, panel) = { let d = hub::data(); (seen(&d.audio) != seen(&a), d.audio != a) };
