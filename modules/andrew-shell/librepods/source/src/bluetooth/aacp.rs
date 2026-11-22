@@ -474,8 +474,27 @@ impl AACPManager {
     }
 
     async fn send_packet(&self, data: &[u8]) -> Result<()> {
-        let state = self.state.lock().await;
-        if let Some(sender) = &state.sender {
+        // The sender is cloned and the lock released before awaiting. Holding
+        // the state mutex across a full channel blocks every other task,
+        // including the receive loop, and the manager stops responding
+        // entirely. The timeout turns a stuck mutex into a logged error
+        // instead of a hang with no diagnosis.
+        let sender = match tokio::time::timeout(
+            std::time::Duration::from_secs(2),
+            self.state.lock(),
+        )
+        .await
+        {
+            Ok(state) => state.sender.clone(),
+            Err(_) => {
+                error!("send_packet: state mutex held for over 2s, giving up");
+                return Err(Error::from(std::io::Error::new(
+                    std::io::ErrorKind::TimedOut,
+                    "state mutex busy",
+                )));
+            }
+        };
+        if let Some(sender) = sender {
             sender.send(data.to_vec()).await.map_err(|e| {
                 error!("Failed to send packet to channel: {}", e);
                 Error::from(std::io::Error::new(
@@ -802,10 +821,13 @@ impl AACPManager {
                     keys.push((key_type, key_data));
                     offset += key_length;
                 }
+                // Key material (IRK, encryption key) is secret: it identifies the
+                // device and decrypts its BLE broadcasts, so only types and sizes
+                // are logged.
                 info!(
                     "Received Proximity Keys Response: {:?}",
                     keys.iter()
-                        .map(|(kt, kd)| (kt, hex::encode(kd)))
+                        .map(|(kt, kd)| format!("type {kt}: {} bytes", kd.len()))
                         .collect::<Vec<_>>()
                 );
                 let mut state = self.state.lock().await;

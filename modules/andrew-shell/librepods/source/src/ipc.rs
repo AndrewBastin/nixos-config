@@ -306,8 +306,6 @@ async fn handle_take_back(bus: &IpcBus) -> Result<(), String> {
             .find(|d| d.mac != local_mac)
             .map(|d| d.mac.clone())
     };
-    let target_mac = target_mac.ok_or_else(|| "no other peer to take audio from".to_string())?;
-
     let tx_lock = bus.command_tx.lock().await;
     if let Some(tx) = tx_lock.as_ref() {
         let _ = tx.send((ControlCommandIdentifiers::OwnsConnection, vec![0x01]));
@@ -321,6 +319,10 @@ async fn handle_take_back(bus: &IpcBus) -> Result<(), String> {
             controller.activate_a2dp_profile().await;
         }
     }
+
+    // The peer that took the audio may have left since (A2DP still off, WirePlumber
+    // restoring "off" on reconnect): turning A2DP back on locally is the whole job.
+    let Some(target_mac) = target_mac else { return Ok(()) };
 
     aacp_manager
         .send_media_information(&local_mac, &target_mac, true)
