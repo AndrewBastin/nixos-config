@@ -35,6 +35,10 @@
     # wake up with their memory gone. nixos-hardware's p14s module doesn't set it (#348).
     hardware.nvidia.powerManagement.enable = true;
 
+    # Syncthing + JS dev-server watchers exhaust the 524288 default, and nom (via nh)
+    # dies with "addWatch: resource exhausted (No space left on device)".
+    boot.kernel.sysctl."fs.inotify.max_user_watches" = 2097152;
+
     users.users.andrew.extraGroups = [ "docker" "libvirtd" "dialout" ];
 
     virtualisation.libvirtd.enable = true;
