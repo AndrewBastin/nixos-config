@@ -25,14 +25,14 @@ let
 
   pname = "vc-jj";
   # Main is ahead of the v0.5 tag; commit date of the pinned rev below.
-  version = "0.5-unstable-2026-07-27";
+  version = "0.6-unstable-2026-11-22";
 
   src = fetchFromGitea {
     domain = "codeberg.org";
     owner = "emacs-jj-vc";
     repo = "vc-jj.el";
-    rev = "17310449644cc527dfa6b8ca5320de4c33d1c7f3";
-    hash = "sha256-koM7qbJbeAIf+0W0O4NR8ri31tft5MfdTTGM6M848d4=";
+    rev = "26d93de27fe1fa046dcd88e15656de07d5718978";
+    hash = "sha256-UjAzPmHZaQMcux8G1VdxgScF9MclEtuq1WV1S+Xwxrw=";
   };
 in
 melpaBuild {
