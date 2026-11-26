@@ -200,7 +200,11 @@
       rofi-pass-wayland
     ];
 
-    programs.zen-browser.enable = true;
+    programs.zen-browser = {
+      enable = true;
+      # WebGPU is off by default on Linux; Vulkan drivers are there, so turn it on.
+      policies.Preferences."dom.webgpu.enabled" = { Value = true; Status = "default"; };
+    };
 
     # Voice typing: Hex's settings window does the rest (hold or toggle, model, language).
     programs.hex = {
