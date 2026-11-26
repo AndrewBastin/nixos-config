@@ -7,13 +7,13 @@
 
 stdenvNoCC.mkDerivation {
   pname = "i-have-adhd-plugin";
-  version = "0.4.1-unstable-2026-10-11";
+  version = "0.4.1-unstable-2026-11-25";
 
   src = fetchFromGitHub {
     owner = "ayghri";
     repo = "i-have-adhd";
-    rev = "1ecea1993b7fce257ffbd686c070948b5e07eda6";
-    hash = "sha256-GTqrnZxQvzo/ogAuUrffkOaMK1BYm/4rAZsnfmDt7DU=";
+    rev = "f3e783bae5f4820416492091b3abeb670616c23a";
+    hash = "sha256-iUwacxvDZT/9Ck0gUWOlmUxrZlieVZEYOeyEJJOk650=";
   };
 
   dontBuild = true;
